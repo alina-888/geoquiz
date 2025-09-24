@@ -29,9 +29,9 @@ class QuizSerializer(serializers.ModelSerializer):
         model = Quiz
         fields = [
             'id', 'creator', 'title', 'description', 'difficulty_level', 'estimated_duration', 'category',
-            'avg_rating'
+            'is_published', 'avg_rating'
         ]
-        read_only_fields = ['id', 'avg_rating']
+        read_only_fields = ['id', 'avg_rating', 'creator']
 
 
 class QuizDetailSerializer(QuizSerializer):

@@ -41,15 +41,77 @@ class QuizViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(creator=self.request.user)
 
-    @action(detail=True, methods=['get'])
-    def questions(self, request, pk=None):
-        """Get all questions for a specific quiz"""
-        quiz = self.get_object()
-        questions = quiz.questions.all().order_by('question_order')
-        serializer = QuestionSerializer(questions, many=True)
-        return Response(serializer.data)
+    # Helpers for robust answer comparison
+    @staticmethod
+    def _normalize_text(value):
+        if value is None:
+            return None
+        return str(value).strip().casefold()
 
-    @action(detail=True, methods=['post'])
+    @staticmethod
+    def _to_bool_like(value):
+        if value is None:
+            return None
+        val = str(value).strip().casefold()
+        true_vals = {'true', 't', 'yes', 'y', '1'}
+        false_vals = {'false', 'f', 'no', 'n', '0'}
+        if val in true_vals:
+            return True
+        if val in false_vals:
+            return False
+        return None
+
+    @action(detail=True, methods=['get', 'post'])
+    def questions(self, request, pk=None):
+        """Get all questions for a specific quiz or create a new one with options"""
+        quiz = self.get_object()
+        if request.method.lower() == 'get':
+            questions = quiz.questions.all().order_by('question_order')
+            serializer = QuestionSerializer(questions, many=True)
+            return Response(serializer.data)
+
+        # POST: create question (only quiz creator)
+        if quiz.creator != request.user:
+            self.permission_denied(request)
+
+        data = request.data
+        question_text = data.get('question_text')
+        points_value = data.get('points_value', 10)
+        question_type = data.get('question_type', 'multiple_choice')
+        correct_answer = data.get('correct_answer')
+        options_data = data.get('options', [])
+
+        if not question_text:
+            return Response({"error": "question_text is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        next_order = quiz.questions.count() + 1
+        question = Question.objects.create(
+            quiz=quiz,
+            question_text=question_text,
+            question_order=next_order,
+            points_value=points_value,
+            question_type=question_type,
+            correct_answer=correct_answer,
+        )
+
+        # Create options if provided (for multiple choice)
+        option_order = 1
+        for opt in options_data:
+            text = opt.get('option_text')
+            if not text:
+                continue
+            Option.objects.create(
+                question=question,
+                option_text=text,
+                is_correct=bool(opt.get('is_correct', False)),
+                option_order=option_order,
+            )
+            option_order += 1
+
+        serializer = QuestionSerializer(question)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['post'], url_path='start')
     def start_attempt(self, request, pk=None):
         """Create a new attempt for the current user on this quiz"""
         quiz = self.get_object()
@@ -72,6 +134,115 @@ class QuizViewSet(viewsets.ModelViewSet):
         )
         serializer = QuizAttemptSerializer(attempt)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['get'], url_path='progress')
+    def progress(self, request, pk=None):
+        """Return current in-progress attempt progress for the user on this quiz"""
+        quiz = self.get_object()
+        attempt = QuizAttempt.objects.filter(user=request.user, quiz=quiz).order_by('-start_time').first()
+        if not attempt:
+            return Response({"detail": "No attempt found"}, status=status.HTTP_404_NOT_FOUND)
+        serializer = QuizAttemptSerializer(attempt)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'], url_path=r'question/(?P<question_id>[^/.]+)')
+    def question_detail(self, request, pk=None, question_id=None):
+        """Get a specific question within this quiz"""
+        quiz = self.get_object()
+        question = get_object_or_404(Question, id=question_id, quiz=quiz)
+        serializer = QuestionSerializer(question)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], url_path=r'question/(?P<question_id>[^/.]+)/answer')
+    def submit_answer_nested(self, request, pk=None, question_id=None):
+        """Submit an answer for a question within this quiz for the current user's active attempt"""
+        quiz = self.get_object()
+        question = get_object_or_404(Question, id=question_id, quiz=quiz)
+
+        # Find or create an in-progress attempt for this quiz
+        attempt = QuizAttempt.objects.filter(user=request.user, quiz=quiz, status='in_progress').first()
+        if not attempt:
+            attempt = QuizAttempt.objects.create(user=request.user, quiz=quiz, status='in_progress')
+
+        option_id = request.data.get('option')
+        text_answer = request.data.get('text')
+
+        selected_option = None
+        if option_id is not None:
+            selected_option = get_object_or_404(Option, id=option_id, question=question)
+
+        # Create or update user answer
+        is_correct = False
+        points_earned = 0
+        if selected_option is not None:
+            is_correct = bool(selected_option.is_correct)
+            points_earned = question.points_value if is_correct else 0
+        elif question.question_type in ['text', 'true_false']:
+            # Robust text/boolean comparison
+            if question.question_type == 'true_false':
+                user_bool = self._to_bool_like(text_answer)
+                correct_bool = self._to_bool_like(question.correct_answer)
+                if user_bool is not None and correct_bool is not None:
+                    is_correct = user_bool == correct_bool
+            else:
+                user_norm = self._normalize_text(text_answer)
+                correct_norm = self._normalize_text(question.correct_answer)
+                if user_norm is not None and correct_norm is not None:
+                    is_correct = user_norm == correct_norm
+            points_earned = question.points_value if is_correct else 0
+
+        user_answer, _ = UserAnswer.objects.update_or_create(
+            attempt=attempt,
+            question=question,
+            defaults={
+                'selected_option': selected_option,
+                'text': text_answer,
+                'is_correct': is_correct,
+                'points_earned': points_earned,
+            }
+        )
+
+        # If all answered, finalize attempt
+        total_questions = attempt.quiz.questions.count()
+        answered_questions = attempt.answers.count()
+        if answered_questions >= total_questions:
+            total_points = attempt.answers.aggregate(total=models.Sum('points_earned'))['total'] or 0
+            completion_percent = (answered_questions / total_questions) * 100 if total_questions else 0
+            attempt.score = total_points
+            attempt.completion_percentage = completion_percent
+            attempt.end_time = timezone.now()
+            attempt.status = 'completed'
+            attempt.save()
+            attempt.user.total_points += total_points
+            attempt.user.save()
+
+        serializer = UserAnswerSerializer(user_answer)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], url_path='complete')
+    def complete_by_quiz(self, request, pk=None):
+        """Complete the current user's attempt for this quiz"""
+        quiz = self.get_object()
+        attempt = QuizAttempt.objects.filter(user=request.user, quiz=quiz, status='in_progress').first()
+        if not attempt:
+            return Response({"error": "No in-progress attempt found"}, status=status.HTTP_400_BAD_REQUEST)
+
+        total_questions = attempt.quiz.questions.count()
+        answered_questions = attempt.answers.count()
+        total_points = attempt.answers.aggregate(total=models.Sum('points_earned'))['total'] or 0
+        completion_percent = (answered_questions / total_questions) * 100 if total_questions else 0
+
+        attempt.score = total_points
+        attempt.completion_percentage = completion_percent
+        attempt.end_time = timezone.now()
+        attempt.status = 'completed'
+        attempt.save()
+
+        attempt.user.total_points += total_points
+        attempt.user.save()
+
+        serializer = QuizAttemptSerializer(attempt)
+        return Response(serializer.data)
 
 
 class QuestionViewSet(viewsets.ModelViewSet):
@@ -137,18 +308,20 @@ class QuizAttemptViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Get the question and selected option
+        # Get the question and selected option/text
         question_id = request.data.get('question')
         option_id = request.data.get('option')
+        text_answer = request.data.get('text')
 
-        if not question_id or not option_id:
-            return Response(
-                {"error": "Question and option are required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        if not question_id:
+            return Response({"error": "Question is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         question = get_object_or_404(Question, id=question_id, quiz=attempt.quiz)
-        option = get_object_or_404(Option, id=option_id, question=question)
+        option = None
+        if question.question_type == 'multiple_choice':
+            if option_id in (None, '', 'null', 'undefined'):
+                return Response({"error": "Option is required for multiple choice"}, status=status.HTTP_400_BAD_REQUEST)
+            option = get_object_or_404(Option, id=option_id, question=question)
 
         # # Check if user's location matches question location
         # if 'lat' in request.data and 'lng' in request.data:
@@ -173,13 +346,38 @@ class QuizAttemptViewSet(viewsets.ModelViewSet):
         #         pass
 
         # Create or update user answer
+        # Compute correctness
+        is_correct = False
+        points_earned = 0
+        if question.question_type == 'multiple_choice':
+            is_correct = bool(option.is_correct)
+        elif question.question_type == 'true_false':
+            def to_bool_like(v):
+                if v is None:
+                    return None
+                s = str(v).strip().casefold()
+                if s in {'true','t','yes','y','1'}: return True
+                if s in {'false','f','no','n','0'}: return False
+                return None
+            user_bool = to_bool_like(text_answer)
+            correct_bool = to_bool_like(question.correct_answer)
+            if user_bool is not None and correct_bool is not None:
+                is_correct = user_bool == correct_bool
+        else:  # text
+            user_norm = str(text_answer).strip().casefold() if text_answer is not None else None
+            correct_norm = str(question.correct_answer).strip().casefold() if question.correct_answer is not None else None
+            if user_norm is not None and correct_norm is not None:
+                is_correct = user_norm == correct_norm
+        points_earned = question.points_value if is_correct else 0
+
         user_answer, created = UserAnswer.objects.update_or_create(
             attempt=attempt,
             question=question,
             defaults={
                 'selected_option': option,
-                'is_correct': option.is_correct,
-                'points_earned': question.points_value if option.is_correct else 0
+                'text': text_answer,
+                'is_correct': is_correct,
+                'points_earned': points_earned,
             }
         )
 

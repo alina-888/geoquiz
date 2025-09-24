@@ -28,9 +28,9 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email', 'profile_picture', 'total_points', 'bio', 'date_joined']
         read_only_fields = ['id', 'date_joined', 'email', 'total_points']
 
-        def update(self, instance, validated_data):
-            instance.username = validated_data.get('username', instance.username)
-            instance.profile_picture = validated_data.get('profile_picture', instance.profile_picture)
-            instance.bio = validated_data.get('bio', instance.bio)
-            instance.save()
-            return instance
+    def update(self, instance, validated_data):
+        instance.username = validated_data.get('username', instance.username)
+        instance.profile_picture = validated_data.get('profile_picture', instance.profile_picture)
+        instance.bio = validated_data.get('bio', instance.bio)
+        instance.save()
+        return instance

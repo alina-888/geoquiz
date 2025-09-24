@@ -1,5 +1,5 @@
 from django.db import models
-from backend.users.models import CustomUser
+from users.models import CustomUser
 from django.core.validators import MinValueValidator, MaxValueValidator
 
 
