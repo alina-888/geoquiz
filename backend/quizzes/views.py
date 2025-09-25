@@ -168,7 +168,8 @@ class QuizViewSet(viewsets.ModelViewSet):
         text_answer = request.data.get('text')
 
         selected_option = None
-        if option_id is not None:
+        # Only resolve option for multiple choice questions; ignore stray option ids
+        if question.question_type == 'multiple_choice' and option_id not in (None, '', 'null', 'undefined'):
             selected_option = get_object_or_404(Option, id=option_id, question=question)
 
         # Create or update user answer
