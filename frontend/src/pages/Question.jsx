@@ -11,6 +11,7 @@ export default function Question() {
   const [attempt, setAttempt] = useState(null);
   const [selectedOption, setSelectedOption] = useState(null);
   const [textAnswer, setTextAnswer] = useState('');
+  const [tfAnswer, setTfAnswer] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -26,6 +27,7 @@ export default function Question() {
         // Reset local answer state when question changes
         setSelectedOption(null);
         setTextAnswer('');
+        setTfAnswer('');
       })
       .catch((err) => {
         setError(err.message || 'Failed to load question');
@@ -38,7 +40,14 @@ export default function Question() {
     setSaving(true);
     setError('');
     try {
-      const payload = selectedOption ? { option: selectedOption } : { text: textAnswer };
+      let payload;
+      if (question.question_type === 'multiple_choice') {
+        payload = { option: selectedOption };
+      } else if (question.question_type === 'true_false') {
+        payload = { text: tfAnswer };
+      } else {
+        payload = { text: textAnswer };
+      }
       await answerQuizQuestion(id, questionId, payload);
       const updated = await getQuizProgress(id);
       const answeredIds = new Set((updated.answers || []).map(a => a.question));
@@ -81,6 +90,34 @@ export default function Question() {
                   </div>
                 ))}
               </div>
+            ) : question.question_type === 'true_false' ? (
+              <div className="mb-3">
+                <label className="form-label d-block">Your answer</label>
+                <div className="form-check form-check-inline">
+                  <input
+                    className="form-check-input"
+                    type="radio"
+                    name="tf-answer"
+                    id="tf-true"
+                    value="true"
+                    checked={tfAnswer === 'true'}
+                    onChange={(e) => setTfAnswer(e.target.value)}
+                  />
+                  <label className="form-check-label" htmlFor="tf-true">True</label>
+                </div>
+                <div className="form-check form-check-inline">
+                  <input
+                    className="form-check-input"
+                    type="radio"
+                    name="tf-answer"
+                    id="tf-false"
+                    value="false"
+                    checked={tfAnswer === 'false'}
+                    onChange={(e) => setTfAnswer(e.target.value)}
+                  />
+                  <label className="form-check-label" htmlFor="tf-false">False</label>
+                </div>
+              </div>
             ) : (
               <div className="mb-3">
                 <label className="form-label">Your answer</label>
@@ -93,7 +130,7 @@ export default function Question() {
               </div>
             )}
 
-            <button type="submit" disabled={saving} className="btn btn-primary">
+            <button type="submit" disabled={saving || (question.question_type === 'multiple_choice' && !selectedOption) || (question.question_type === 'true_false' && !tfAnswer)} className="btn btn-primary">
               {saving ? 'Submitting...' : 'Submit'}
             </button>
           </form>

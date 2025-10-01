@@ -33,6 +33,14 @@ class QuizViewSet(viewsets.ModelViewSet):
     ordering_fields = ['created_at', 'avg_rating', 'title']
     pagination_class = StandardResultsSetPagination
 
+    def get_queryset(self):
+        """Only show published quizzes to everyone; creators can also see their own."""
+        base_qs = Quiz.objects.all()
+        user = getattr(self.request, 'user', None)
+        if user and user.is_authenticated:
+            return base_qs.filter(Q(is_published=True) | Q(creator=user))
+        return base_qs.filter(is_published=True)
+
     def get_serializer_class(self):
         if self.action in ['retrieve', 'update', 'partial_update']:
             return QuizDetailSerializer

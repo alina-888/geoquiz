@@ -79,6 +79,16 @@ export function completeQuiz(quizId) {
   return apiRequest(`/quizzes/${quizId}/complete/`, { method: 'POST' });
 }
 
+// Получить викторины, созданные конкретным пользователем
+export function getQuizzesByCreator(userIdOrUsername) {
+  // Backend supports filtering by creator id via ?creator=ID.
+  // If a username is provided, caller should resolve to id first; here we pass through.
+  const query = typeof userIdOrUsername === 'number'
+    ? `?creator=${userIdOrUsername}`
+    : `?search=${encodeURIComponent(userIdOrUsername)}&ordering=-created_at`;
+  return apiRequest(`/quizzes/${query}`);
+}
+
 // Логин
 export function loginUser(username, password) {
     return apiRequest('/users/login/', {

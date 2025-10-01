@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { fetchUserProfile, updateUserProfile } from '../api/api';
+import { useParams, Link } from 'react-router-dom';
+import { fetchUserProfile, updateUserProfile, getQuizzesByCreator } from '../api/api';
 
 export default function Profile() {
   const { username } = useParams();
@@ -12,6 +12,8 @@ export default function Profile() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [createdQuizzes, setCreatedQuizzes] = useState([]);
+  const [quizzesError, setQuizzesError] = useState('');
 
   useEffect(() => {
     setLoading(true);
@@ -26,6 +28,20 @@ export default function Profile() {
         setLoading(false);
       });
   }, [username]);
+
+  useEffect(() => {
+    if (!profile || !profile.id) return;
+    setQuizzesError('');
+    getQuizzesByCreator(profile.id)
+      .then((resp) => {
+        // API is paginated; handle both list and paginated shape
+        const results = Array.isArray(resp) ? resp : resp?.results || [];
+        setCreatedQuizzes(results);
+      })
+      .catch((err) => {
+        setQuizzesError(err.message || 'Failed to load created quizzes');
+      });
+  }, [profile]);
 
   const onChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -90,6 +106,27 @@ export default function Profile() {
               <p><strong>Username:</strong> {profile.username}</p>
               <p><strong>Bio:</strong> {profile.bio || '—'}</p>
             </>
+          )}
+        </div>
+      </div>
+
+      <div className="card shadow-sm mt-4">
+        <div className="card-body">
+          <h2 className="h5 mb-3">Created quizzes</h2>
+          {quizzesError && <div className="alert alert-danger">{quizzesError}</div>}
+          {createdQuizzes.length === 0 ? (
+            <p className="text-muted mb-0">No quizzes yet.</p>
+          ) : (
+            <ul className="list-group list-group-flush">
+              {createdQuizzes.map((q) => (
+                <li key={q.id} className="list-group-item px-0 d-flex justify-content-between align-items-center">
+                  <div>
+                    <Link to={`/quizzes/${q.id}/`} className="text-decoration-none">{q.title}</Link>
+                    <div className="small text-muted">{q.category} • Difficulty {q.difficulty_level}</div>
+                  </div>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       </div>

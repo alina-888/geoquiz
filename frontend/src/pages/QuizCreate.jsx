@@ -15,6 +15,7 @@ export default function QuizCreate() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [createdQuiz, setCreatedQuiz] = useState(null);
+  const [questionWarning, setQuestionWarning] = useState('');
 
   // Question builder state
   const [qText, setQText] = useState('');
@@ -56,8 +57,23 @@ export default function QuizCreate() {
   const onAddQuestion = async (e) => {
     e.preventDefault();
     if (!createdQuiz) return;
+    // Client-side validation for multiple choice: must have at least one correct option
+    if (qType === 'multiple_choice') {
+      const nonEmptyOptions = options.filter(o => o.option_text.trim().length > 0);
+      const hasCorrect = nonEmptyOptions.some(o => o.is_correct);
+      if (!hasCorrect) {
+        setQuestionWarning('Please select at least one correct option for multiple choice.');
+        return;
+      }
+    }
+    // Validation for true/false: require a selection
+    if (qType === 'true_false' && (!qCorrect || String(qCorrect).trim() === '')) {
+      setQuestionWarning('Please select True or False as the correct answer.');
+      return;
+    }
     setSaving(true);
     setError('');
+    setQuestionWarning('');
     try {
       const payload = {
         question_text: qText,
@@ -157,14 +173,48 @@ export default function QuizCreate() {
               </div>
             </div>
 
-            {qType !== 'multiple_choice' ? (
+            {qType === 'text' ? (
               <div className="mb-3">
                 <label className="form-label">Correct answer</label>
                 <input value={qCorrect} onChange={(e)=>setQCorrect(e.target.value)} className="form-control" />
               </div>
+            ) : qType === 'true_false' ? (
+              <div className="mb-3">
+                <label className="form-label d-block">Correct answer</label>
+                {questionWarning && (
+                  <div className="alert alert-warning py-2 mb-2">{questionWarning}</div>
+                )}
+                <div className="form-check form-check-inline">
+                  <input
+                    className="form-check-input"
+                    type="radio"
+                    name="tf-correct"
+                    id="tf-true"
+                    value="true"
+                    checked={qCorrect === 'true'}
+                    onChange={(e)=>setQCorrect(e.target.value)}
+                  />
+                  <label className="form-check-label" htmlFor="tf-true">True</label>
+                </div>
+                <div className="form-check form-check-inline">
+                  <input
+                    className="form-check-input"
+                    type="radio"
+                    name="tf-correct"
+                    id="tf-false"
+                    value="false"
+                    checked={qCorrect === 'false'}
+                    onChange={(e)=>setQCorrect(e.target.value)}
+                  />
+                  <label className="form-check-label" htmlFor="tf-false">False</label>
+                </div>
+              </div>
             ) : (
               <div className="mb-3">
                 <label className="form-label">Options</label>
+              {questionWarning && (
+                <div className="alert alert-warning py-2 mb-2">{questionWarning}</div>
+              )}
                 {options.map((opt, idx) => (
                   <div key={idx} className="d-flex align-items-center mb-2 gap-2">
                     <input
