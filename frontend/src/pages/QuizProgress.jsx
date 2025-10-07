@@ -24,6 +24,17 @@ export default function QuizProgress() {
       });
   }, [id]);
 
+  // Auto-redirect to the first question if user hasn't answered anything yet
+  useEffect(() => {
+    if (!loading && attempt && quiz) {
+      const answeredIds = new Set((attempt.answers || []).map(a => a.question));
+      const nextQuestion = (quiz.questions || []).find(q => !answeredIds.has(q.id));
+      if (answeredIds.size === 0 && nextQuestion) {
+        navigate(`/quizzes/${id}/question/${nextQuestion.id}/`);
+      }
+    }
+  }, [loading, attempt, quiz, navigate, id]);
+
   if (loading) return <div className="p-4">Loading...</div>;
   if (error) return <div className="p-4 alert alert-danger">{error}</div>;
   if (!attempt || !quiz) return null;

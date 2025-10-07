@@ -35,7 +35,7 @@ class QuizViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Only show published quizzes to everyone; creators can also see their own."""
-        base_qs = Quiz.objects.all()
+        base_qs = Quiz.objects.select_related('creator').prefetch_related('questions')
         user = getattr(self.request, 'user', None)
         if user and user.is_authenticated:
             return base_qs.filter(Q(is_published=True) | Q(creator=user))
@@ -259,7 +259,7 @@ class QuestionViewSet(viewsets.ModelViewSet):
     API endpoint for questions
     Allows managing quiz questions
     """
-    queryset = Question.objects.all()
+    queryset = Question.objects.select_related('quiz').prefetch_related('options')
     serializer_class = QuestionSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
 
@@ -303,7 +303,12 @@ class QuizAttemptViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Users can only see their own attempts"""
-        return QuizAttempt.objects.filter(user=self.request.user)
+        return (
+            QuizAttempt.objects
+            .select_related('quiz', 'user')
+            .prefetch_related('answers__question')
+            .filter(user=self.request.user)
+        )
 
     @action(detail=True, methods=['post'])
     def submit_answer(self, request, pk=None):

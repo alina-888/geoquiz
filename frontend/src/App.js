@@ -3,6 +3,7 @@ import Home from './pages/Home';
 import QuizDetail from './pages/QuizDetail';
 import QuizCreate from './pages/QuizCreate';
 import QuizProgress from './pages/QuizProgress';
+import QuestionCreate from './pages/QuestionCreate';
 import Question from './pages/Question';
 import QuizComplete from './pages/QuizComplete';
 import QuizResults from './pages/QuizResults';
@@ -88,6 +89,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/quizzes/create/" element={<QuizCreate />} />
+        <Route path="/quizzes/:id/questions/create/" element={<QuestionCreate />} />
         <Route path="/quizzes/:id/" element={<QuizDetail />} />
         <Route path="/quizzes/:id/start/" element={<QuizProgress />} />
         <Route path="/quizzes/:id/progress/" element={<QuizProgress />} />
