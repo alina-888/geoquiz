@@ -16,6 +16,9 @@ export default function QuestionCreate() {
   const [qType, setQType] = useState('multiple_choice');
   const [qPoints, setQPoints] = useState(10);
   const [qCorrect, setQCorrect] = useState('');
+  const [imageFile, setImageFile] = useState(null);
+  const [audioFile, setAudioFile] = useState(null);
+  const [videoFile, setVideoFile] = useState(null);
   const [options, setOptions] = useState([
     { option_text: '', is_correct: false },
     { option_text: '', is_correct: false },
@@ -70,12 +73,18 @@ export default function QuestionCreate() {
         question_type: qType,
         correct_answer: qType !== 'multiple_choice' ? qCorrect : undefined,
         options: qType === 'multiple_choice' ? options.filter(o => o.option_text.trim().length > 0) : [],
+        image: imageFile || undefined,
+        audio: audioFile || undefined,
+        video: videoFile || undefined,
       };
       await createQuestion(quiz.id, payload);
       setQText('');
       setQPoints(10);
       setQType('multiple_choice');
       setQCorrect('');
+      setImageFile(null);
+      setAudioFile(null);
+      setVideoFile(null);
       setOptions([
         { option_text: '', is_correct: false },
         { option_text: '', is_correct: false },
@@ -85,6 +94,53 @@ export default function QuestionCreate() {
         const detail = await getQuizDetail(quiz.id);
         setQuiz(detail);
       } catch (_) {}
+    } catch (err) {
+      setError(err.message || 'Failed to add question');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const onDone = async () => {
+    if (!quiz) return navigate(`/quizzes/${quizId}/`);
+    if (saving) return; // prevent double submit
+
+    // If there's no question text, just navigate away
+    if (!qText || qText.trim().length === 0) {
+      return navigate(`/quizzes/${quizId}/`);
+    }
+
+    // Run same validations as Add
+    if (qType === 'multiple_choice') {
+      const nonEmptyOptions = options.filter(o => o.option_text.trim().length > 0);
+      const hasCorrect = nonEmptyOptions.some(o => o.is_correct);
+      if (!hasCorrect) {
+        setQuestionWarning('Please select at least one correct option for multiple choice.');
+        return; // stay on page
+      }
+    }
+    if (qType === 'true_false' && (!qCorrect || String(qCorrect).trim() === '')) {
+      setQuestionWarning('Please select True or False as the correct answer.');
+      return; // stay on page
+    }
+
+    setSaving(true);
+    setError('');
+    setQuestionWarning('');
+    try {
+      const payload = {
+        question_text: qText,
+        points_value: qPoints,
+        question_type: qType,
+        correct_answer: qType !== 'multiple_choice' ? qCorrect : undefined,
+        options: qType === 'multiple_choice' ? options.filter(o => o.option_text.trim().length > 0) : [],
+        image: imageFile || undefined,
+        audio: audioFile || undefined,
+        video: videoFile || undefined,
+      };
+      await createQuestion(quiz.id, payload);
+      // After successful save, navigate away
+      navigate(`/quizzes/${quizId}/`);
     } catch (err) {
       setError(err.message || 'Failed to add question');
     } finally {
@@ -183,9 +239,25 @@ export default function QuestionCreate() {
           </div>
         )}
 
+        <div className="mb-3">
+          <label className="form-label d-block">Attach media (one of image, audio, or video)</label>
+          <div className="row g-2">
+            <div className="col">
+              <input type="file" accept="image/*" className="form-control" onChange={(e)=>{ setImageFile(e.target.files?.[0] || null); setAudioFile(null); setVideoFile(null); }} />
+            </div>
+            <div className="col">
+              <input type="file" accept="audio/*" className="form-control" onChange={(e)=>{ setAudioFile(e.target.files?.[0] || null); setImageFile(null); setVideoFile(null); }} />
+            </div>
+            <div className="col">
+              <input type="file" accept="video/*" className="form-control" onChange={(e)=>{ setVideoFile(e.target.files?.[0] || null); setImageFile(null); setAudioFile(null); }} />
+            </div>
+          </div>
+          <div className="form-text">If you choose one, the others will be cleared automatically.</div>
+        </div>
+
         <div className="d-flex gap-2">
           <button type="submit" disabled={saving} className="btn btn-primary">{saving ? 'Adding...' : 'Add question'}</button>
-          <button type="button" onClick={()=>navigate(`/quizzes/${quizId}/`)} className="btn btn-secondary">Done</button>
+          <button type="button" disabled={saving} onClick={onDone} className="btn btn-secondary">Done</button>
         </div>
       </form>
     </div>

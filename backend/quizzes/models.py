@@ -1,5 +1,6 @@
 from django.db import models
 from users.models import CustomUser
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, MaxValueValidator
 
 
@@ -51,7 +52,10 @@ class Question(models.Model):
     #                                             help_text="Distance in meters within which the question is activated")
     #
     question_type = models.CharField(max_length=20, choices=QUESTION_TYPES, default='multiple_choice')
-    media_content = models.ImageField(upload_to='question_media/', null=True, blank=True)
+    image = models.ImageField(upload_to='question_media/images/', null=True, blank=True)
+    audio = models.FileField(upload_to='question_media/audio/', null=True, blank=True)
+    video = models.FileField(upload_to='question_media/videos/', null=True, blank=True)
+    
     correct_answer = models.TextField(null=True, blank=True)  # for text and true/false questions
 
     class Meta:
@@ -60,6 +64,68 @@ class Question(models.Model):
 
     def __str__(self):
         return f"{self.quiz.title} - Question {self.question_order}"
+
+    def clean(self):
+        """Validate that only one media type is uploaded"""
+        media_fields = [self.image, self.audio, self.video]
+        uploaded_count = sum(1 for field in media_fields if field)
+        
+        if uploaded_count > 1:
+            raise ValidationError("Only one media type can be attached per question.")
+        
+        # Optional: Validate file extensions
+        if self.audio:
+            ext = self.audio.name.split('.')[-1].lower()
+            valid_audio = ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac']
+            if ext not in valid_audio:
+                raise ValidationError(
+                    f"Invalid audio file extension. Allowed: {', '.join(valid_audio)}"
+                )
+        
+        if self.video:
+            ext = self.video.name.split('.')[-1].lower()
+            valid_video = ['mp4', 'webm', 'avi', 'mov', 'mkv']
+            if ext not in valid_video:
+                raise ValidationError(
+                    f"Invalid video file extension. Allowed: {', '.join(valid_video)}"
+                )
+
+
+    @property
+    def has_media(self):
+        """Check if question has any media attached"""
+        return bool(self.image or self.audio or self.video)
+    
+    @property
+    def media_type(self):
+        """Return the type of media attached"""
+        if self.image:
+            return 'image'
+        elif self.audio:
+            return 'audio'
+        elif self.video:
+            return 'video'
+        return None
+    
+    def get_media_url(self):
+        """Get URL of attached media"""
+        if self.image:
+            return self.image.url
+        elif self.audio:
+            return self.audio.url
+        elif self.video:
+            return self.video.url
+        return None
+    
+    def get_media_field(self):
+        """Get the actual media field object"""
+        if self.image:
+            return self.image
+        elif self.audio:
+            return self.audio
+        elif self.video:
+            return self.video
+        return None
 
 
 class Option(models.Model):

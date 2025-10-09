@@ -1,4 +1,5 @@
 from django.db import models
+import json
 from django.db.models import Avg, Count, Q
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
@@ -87,12 +88,34 @@ class QuizViewSet(viewsets.ModelViewSet):
         points_value = data.get('points_value', 10)
         question_type = data.get('question_type', 'multiple_choice')
         correct_answer = data.get('correct_answer')
-        options_data = data.get('options', [])
+        options_raw = data.get('options', [])
+        # If sent via multipart, options may arrive as a JSON string
+        if isinstance(options_raw, str):
+            try:
+                options_data = json.loads(options_raw)
+            except json.JSONDecodeError:
+                options_data = []
+        else:
+            options_data = options_raw
 
         if not question_text:
             return Response({"error": "question_text is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         next_order = quiz.questions.count() + 1
+        
+        # Handle media files
+        image_file = request.FILES.get('image')
+        audio_file = request.FILES.get('audio')
+        video_file = request.FILES.get('video')
+        
+        # Validate that only one media type is provided
+        media_files = [f for f in [image_file, audio_file, video_file] if f is not None]
+        if len(media_files) > 1:
+            return Response(
+                {"error": "Only one media type can be attached per question"}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         question = Question.objects.create(
             quiz=quiz,
             question_text=question_text,
@@ -100,6 +123,9 @@ class QuizViewSet(viewsets.ModelViewSet):
             points_value=points_value,
             question_type=question_type,
             correct_answer=correct_answer,
+            image=image_file,
+            audio=audio_file,
+            video=video_file,
         )
 
         # Create options if provided (for multiple choice)
@@ -282,7 +308,24 @@ class QuestionViewSet(viewsets.ModelViewSet):
 
         # Get the next question order number
         next_order = quiz.questions.count() + 1
-        serializer.save(question_order=next_order)
+        
+        # Handle media files
+        image_file = self.request.FILES.get('image')
+        audio_file = self.request.FILES.get('audio')
+        video_file = self.request.FILES.get('video')
+        
+        # Validate that only one media type is provided
+        media_files = [f for f in [image_file, audio_file, video_file] if f is not None]
+        if len(media_files) > 1:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError("Only one media type can be attached per question")
+        
+        serializer.save(
+            question_order=next_order,
+            image=image_file,
+            audio=audio_file,
+            video=video_file,
+        )
 
     @action(detail=True, methods=['get'])
     def options(self, request, pk=None):

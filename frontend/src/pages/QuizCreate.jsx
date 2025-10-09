@@ -91,7 +91,6 @@ export default function QuizCreate() {
           </div>
         )}
       </form>
-
     </div>
   );
 }

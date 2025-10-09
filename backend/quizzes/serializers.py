@@ -12,14 +12,21 @@ class OptionSerializer(serializers.ModelSerializer):
 
 class QuestionSerializer(serializers.ModelSerializer):
     options = OptionSerializer(many=True, read_only=True)
+    has_media = serializers.ReadOnlyField()
+    media_type = serializers.ReadOnlyField()
+    media_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Question
         fields = [
             'id', 'quiz', 'question_text', 'question_order', 'points_value',
-            'question_type', 'media_content', 'options', 'correct_answer'
+            'question_type', 'image', 'audio', 'video', 'has_media', 'media_type', 'media_url',
+            'options', 'correct_answer'
         ]
         read_only_fields = ['id', 'question_order']
+
+    def get_media_url(self, obj):
+        return obj.get_media_url()
 
 
 

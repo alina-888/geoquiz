@@ -16,6 +16,14 @@ export default function Question() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  // Resolve absolute media URL if backend returned a relative path
+  const resolveMediaUrl = (url) => {
+    if (!url) return url;
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    if (url.startsWith('/media/')) return `http://localhost:8000${url}`; // dev default
+    return url;
+  };
+
   useEffect(() => {
     setLoading(true);
     Promise.all([getQuizDetail(id), getQuizQuestion(id, questionId), getQuizProgress(id)])
@@ -70,6 +78,20 @@ export default function Question() {
       <div className="card shadow-sm">
         <div className="card-body">
           <h1 className="h4 fw-bold mb-3">{question.question_text}</h1>
+
+          {question.has_media && (
+            <div className="mb-3">
+              {question.media_type === 'image' && (
+                <img src={resolveMediaUrl(question.media_url)} alt="Question media" className="img-fluid rounded" />
+              )}
+              {question.media_type === 'audio' && (
+                <audio src={resolveMediaUrl(question.media_url)} controls className="w-100" />
+              )}
+              {question.media_type === 'video' && (
+                <video src={resolveMediaUrl(question.media_url)} controls className="w-100 rounded" />
+              )}
+            </div>
+          )}
 
           <form onSubmit={onSubmit}>
             {question.question_type === 'multiple_choice' ? (
