@@ -21,7 +21,7 @@ class QuestionSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'quiz', 'question_text', 'question_order', 'points_value',
             'question_type', 'image', 'audio', 'video', 'has_media', 'media_type', 'media_url',
-            'options', 'correct_answer'
+            'options', 'geolocation', 'correct_answer'
         ]
         read_only_fields = ['id', 'question_order']
 
@@ -36,7 +36,7 @@ class QuizSerializer(serializers.ModelSerializer):
         model = Quiz
         fields = [
             'id', 'creator', 'title', 'description', 'difficulty_level', 'estimated_duration', 'category',
-            'is_published', 'avg_rating'
+            'is_published', 'is_geo', 'avg_rating'
         ]
         read_only_fields = ['id', 'avg_rating', 'creator']
 

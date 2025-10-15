@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { createQuestion, getQuizDetail } from '../api/api';
+import LocationPicker from './LocationPicker';
 
 export default function QuestionCreate() {
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ export default function QuestionCreate() {
   const [imageFile, setImageFile] = useState(null);
   const [audioFile, setAudioFile] = useState(null);
   const [videoFile, setVideoFile] = useState(null);
+  const [qGeolocation, setQGeolocation] = useState(null);
   const [options, setOptions] = useState([
     { option_text: '', is_correct: false },
     { option_text: '', is_correct: false },
@@ -76,6 +78,7 @@ export default function QuestionCreate() {
         image: imageFile || undefined,
         audio: audioFile || undefined,
         video: videoFile || undefined,
+        geolocation: qGeolocation || undefined,
       };
       await createQuestion(quiz.id, payload);
       setQText('');
@@ -85,6 +88,7 @@ export default function QuestionCreate() {
       setImageFile(null);
       setAudioFile(null);
       setVideoFile(null);
+      setQGeolocation(null);
       setOptions([
         { option_text: '', is_correct: false },
         { option_text: '', is_correct: false },
@@ -137,6 +141,7 @@ export default function QuestionCreate() {
         image: imageFile || undefined,
         audio: audioFile || undefined,
         video: videoFile || undefined,
+        geolocation: qGeolocation || undefined,
       };
       await createQuestion(quiz.id, payload);
       // After successful save, navigate away
@@ -254,6 +259,16 @@ export default function QuestionCreate() {
           </div>
           <div className="form-text">If you choose one, the others will be cleared automatically.</div>
         </div>
+
+        <LocationPicker
+          value={qGeolocation}
+          onChange={(location) => {
+            setQGeolocation(location);
+          }}
+          onRemove={() => {
+            setQGeolocation(null);
+          }}
+        />
 
         <div className="d-flex gap-2">
           <button type="submit" disabled={saving} className="btn btn-primary">{saving ? 'Adding...' : 'Add question'}</button>

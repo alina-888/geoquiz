@@ -66,6 +66,15 @@ export function createQuestion(quizId, payload) {
     form.append('options', JSON.stringify(payload.options));
   }
 
+  // geolocation as JSON string if provided
+  if (payload.geolocation) {
+    try {
+      form.append('geolocation', JSON.stringify(payload.geolocation));
+    } catch (_) {
+      // ignore if cannot stringify
+    }
+  }
+
   // attach at most one media file (one of: image, audio, video)
   if (payload.image) form.append('image', payload.image);
   if (payload.audio) form.append('audio', payload.audio);

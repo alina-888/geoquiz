@@ -11,6 +11,7 @@ export default function QuizCreate() {
     estimated_duration: 10,
     category: 'other',
     is_published: false,
+    is_geo: false,
   });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -76,6 +77,11 @@ export default function QuizCreate() {
         <div className="form-check mb-3">
           <input id="is_published" type="checkbox" name="is_published" checked={form.is_published} onChange={onChange} className="form-check-input" />
           <label htmlFor="is_published" className="form-check-label">Publish immediately</label>
+        </div>
+
+        <div className="form-check mb-3">
+          <input id="is_geo" type="checkbox" name="is_geo" checked={form.is_geo} onChange={onChange} className="form-check-input" />
+          <label htmlFor="is_geo" className="form-check-label">This is a geo-quiz</label>
         </div>
 
         {!createdQuiz ? (

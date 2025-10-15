@@ -30,6 +30,7 @@ class Quiz(models.Model):
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default='other')
     is_published = models.BooleanField(default=False)
     avg_rating = models.FloatField(default=0.0)
+    is_geo = models.BooleanField(default=False)
 
     def __str__(self):
         return self.title
@@ -46,16 +47,11 @@ class Question(models.Model):
     question_text = models.TextField()
     question_order = models.PositiveIntegerField()
     points_value = models.PositiveIntegerField(default=10)
-    # latitude = models.FloatField()
-    # longitude = models.FloatField()
-    # radius_meters = models.PositiveIntegerField(default=50,
-    #                                             help_text="Distance in meters within which the question is activated")
-    #
     question_type = models.CharField(max_length=20, choices=QUESTION_TYPES, default='multiple_choice')
     image = models.ImageField(upload_to='question_media/images/', null=True, blank=True)
     audio = models.FileField(upload_to='question_media/audio/', null=True, blank=True)
     video = models.FileField(upload_to='question_media/videos/', null=True, blank=True)
-    
+    geolocation = models.JSONField(null=True, blank=True)
     correct_answer = models.TextField(null=True, blank=True)  # for text and true/false questions
 
     class Meta:

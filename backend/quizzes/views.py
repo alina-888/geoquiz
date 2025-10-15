@@ -89,6 +89,7 @@ class QuizViewSet(viewsets.ModelViewSet):
         question_type = data.get('question_type', 'multiple_choice')
         correct_answer = data.get('correct_answer')
         options_raw = data.get('options', [])
+        geolocation_raw = data.get('geolocation')
         # If sent via multipart, options may arrive as a JSON string
         if isinstance(options_raw, str):
             try:
@@ -97,6 +98,17 @@ class QuizViewSet(viewsets.ModelViewSet):
                 options_data = []
         else:
             options_data = options_raw
+
+        # Parse geolocation JSON if provided as string
+        geolocation_data = None
+        if geolocation_raw is not None and geolocation_raw != 'null' and geolocation_raw != 'undefined':
+            if isinstance(geolocation_raw, str):
+                try:
+                    geolocation_data = json.loads(geolocation_raw)
+                except json.JSONDecodeError:
+                    geolocation_data = None
+            elif isinstance(geolocation_raw, (dict, list)):
+                geolocation_data = geolocation_raw
 
         if not question_text:
             return Response({"error": "question_text is required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -126,6 +138,7 @@ class QuizViewSet(viewsets.ModelViewSet):
             image=image_file,
             audio=audio_file,
             video=video_file,
+            geolocation=geolocation_data,
         )
 
         # Create options if provided (for multiple choice)
