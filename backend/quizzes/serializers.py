@@ -28,6 +28,26 @@ class QuestionSerializer(serializers.ModelSerializer):
     def get_media_url(self, obj):
         return obj.get_media_url()
 
+    def validate(self, attrs):
+        """Disallow geolocation on questions for non-geo quizzes."""
+        quiz = None
+        # When creating, quiz may be provided in attrs; on update, use instance
+        if 'quiz' in attrs:
+            quiz = attrs.get('quiz')
+        elif getattr(self, 'instance', None) is not None:
+            quiz = getattr(self.instance, 'quiz', None)
+
+        geolocation = attrs.get('geolocation', None)
+
+        if quiz is not None and geolocation not in (None, {}, [], ''):
+            # If quiz is known and not geo, block any geolocation payload
+            if getattr(quiz, 'is_geo', False) is False:
+                raise serializers.ValidationError({
+                    'geolocation': 'Geolocation is only allowed for geo quizzes.'
+                })
+
+        return super().validate(attrs)
+
 
 
 class QuizSerializer(serializers.ModelSerializer):

@@ -110,6 +110,13 @@ class QuizViewSet(viewsets.ModelViewSet):
             elif isinstance(geolocation_raw, (dict, list)):
                 geolocation_data = geolocation_raw
 
+        # Block geolocation for non-geo quizzes
+        if geolocation_data not in (None, {}, [], '') and getattr(quiz, 'is_geo', False) is False:
+            return Response(
+                {"error": "Geolocation is only allowed for geo quizzes"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         if not question_text:
             return Response({"error": "question_text is required"}, status=status.HTTP_400_BAD_REQUEST)
 

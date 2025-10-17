@@ -31,7 +31,13 @@ export default function QuestionCreate() {
     async function fetchQuiz() {
       try {
         const detail = await getQuizDetail(quizId);
-        if (mounted) setQuiz(detail);
+        if (mounted) {
+          setQuiz(detail);
+          // If this quiz is not geo-enabled, ensure any prior geolocation is cleared
+          if (!detail?.is_geo) {
+            setQGeolocation(null);
+          }
+        }
       } catch (err) {
         if (mounted) setError(err.message || 'Failed to load quiz');
       }
@@ -78,7 +84,7 @@ export default function QuestionCreate() {
         image: imageFile || undefined,
         audio: audioFile || undefined,
         video: videoFile || undefined,
-        geolocation: qGeolocation || undefined,
+        geolocation: quiz?.is_geo ? (qGeolocation || undefined) : undefined,
       };
       await createQuestion(quiz.id, payload);
       setQText('');
@@ -141,7 +147,7 @@ export default function QuestionCreate() {
         image: imageFile || undefined,
         audio: audioFile || undefined,
         video: videoFile || undefined,
-        geolocation: qGeolocation || undefined,
+        geolocation: quiz?.is_geo ? (qGeolocation || undefined) : undefined,
       };
       await createQuestion(quiz.id, payload);
       // After successful save, navigate away
@@ -260,15 +266,17 @@ export default function QuestionCreate() {
           <div className="form-text">If you choose one, the others will be cleared automatically.</div>
         </div>
 
-        <LocationPicker
-          value={qGeolocation}
-          onChange={(location) => {
-            setQGeolocation(location);
-          }}
-          onRemove={() => {
-            setQGeolocation(null);
-          }}
-        />
+        {quiz?.is_geo && (
+          <LocationPicker
+            value={qGeolocation}
+            onChange={(location) => {
+              setQGeolocation(location);
+            }}
+            onRemove={() => {
+              setQGeolocation(null);
+            }}
+          />
+        )}
 
         <div className="d-flex gap-2">
           <button type="submit" disabled={saving} className="btn btn-primary">{saving ? 'Adding...' : 'Add question'}</button>
