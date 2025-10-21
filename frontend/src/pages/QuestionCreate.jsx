@@ -25,7 +25,7 @@ export default function QuestionCreate() {
     { option_text: '', is_correct: false },
     { option_text: '', is_correct: false },
   ]);
-
+  
   // Refs to reset file inputs
   const imageInputRef = useRef(null);
   const audioInputRef = useRef(null);
@@ -52,7 +52,7 @@ export default function QuestionCreate() {
       mounted = false;
     };
   }, [quizId]);
-
+  
   const addOption = () => setOptions([...options, { option_text: '', is_correct: false }]);
   const updateOption = (idx, key, value) => {
     const copy = options.slice();
@@ -114,6 +114,8 @@ export default function QuestionCreate() {
       await createQuestion(quiz.id, payload);
       resetForm(); // Use the helper function
       // Refresh quiz details to update question count
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
       try {
         const detail = await getQuizDetail(quiz.id);
         setQuiz(detail);
