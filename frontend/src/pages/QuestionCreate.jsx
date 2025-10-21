@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { createQuestion, getQuizDetail } from '../api/api';
 import LocationPicker from './LocationPicker';
@@ -25,6 +25,11 @@ export default function QuestionCreate() {
     { option_text: '', is_correct: false },
     { option_text: '', is_correct: false },
   ]);
+
+  // Refs to reset file inputs
+  const imageInputRef = useRef(null);
+  const audioInputRef = useRef(null);
+  const videoInputRef = useRef(null);
 
   useEffect(() => {
     let mounted = true;
@@ -55,6 +60,26 @@ export default function QuestionCreate() {
     setOptions(copy);
   };
   const removeOption = (idx) => setOptions(options.filter((_, i) => i !== idx));
+
+  // Helper function to reset all form fields
+  const resetForm = () => {
+    setQText('');
+    setQPoints(10);
+    setQType('multiple_choice');
+    setQCorrect('');
+    setImageFile(null);
+    setAudioFile(null);
+    setVideoFile(null);
+    setQGeolocation(null);
+    setOptions([
+      { option_text: '', is_correct: false },
+      { option_text: '', is_correct: false },
+    ]);
+    // Reset file input values
+    if (imageInputRef.current) imageInputRef.current.value = '';
+    if (audioInputRef.current) audioInputRef.current.value = '';
+    if (videoInputRef.current) videoInputRef.current.value = '';
+  };
 
   const onAddQuestion = async (e) => {
     e.preventDefault();
@@ -87,18 +112,7 @@ export default function QuestionCreate() {
         geolocation: quiz?.is_geo ? (qGeolocation || undefined) : undefined,
       };
       await createQuestion(quiz.id, payload);
-      setQText('');
-      setQPoints(10);
-      setQType('multiple_choice');
-      setQCorrect('');
-      setImageFile(null);
-      setAudioFile(null);
-      setVideoFile(null);
-      setQGeolocation(null);
-      setOptions([
-        { option_text: '', is_correct: false },
-        { option_text: '', is_correct: false },
-      ]);
+      resetForm(); // Use the helper function
       // Refresh quiz details to update question count
       try {
         const detail = await getQuizDetail(quiz.id);
@@ -254,13 +268,49 @@ export default function QuestionCreate() {
           <label className="form-label d-block">Attach media (one of image, audio, or video)</label>
           <div className="row g-2">
             <div className="col">
-              <input type="file" accept="image/*" className="form-control" onChange={(e)=>{ setImageFile(e.target.files?.[0] || null); setAudioFile(null); setVideoFile(null); }} />
+              <input 
+                ref={imageInputRef}
+                type="file" 
+                accept="image/*" 
+                className="form-control" 
+                onChange={(e)=>{ 
+                  setImageFile(e.target.files?.[0] || null); 
+                  setAudioFile(null); 
+                  setVideoFile(null);
+                  if (audioInputRef.current) audioInputRef.current.value = '';
+                  if (videoInputRef.current) videoInputRef.current.value = '';
+                }} 
+              />
             </div>
             <div className="col">
-              <input type="file" accept="audio/*" className="form-control" onChange={(e)=>{ setAudioFile(e.target.files?.[0] || null); setImageFile(null); setVideoFile(null); }} />
+              <input 
+                ref={audioInputRef}
+                type="file" 
+                accept="audio/*" 
+                className="form-control" 
+                onChange={(e)=>{ 
+                  setAudioFile(e.target.files?.[0] || null); 
+                  setImageFile(null); 
+                  setVideoFile(null);
+                  if (imageInputRef.current) imageInputRef.current.value = '';
+                  if (videoInputRef.current) videoInputRef.current.value = '';
+                }} 
+              />
             </div>
             <div className="col">
-              <input type="file" accept="video/*" className="form-control" onChange={(e)=>{ setVideoFile(e.target.files?.[0] || null); setImageFile(null); setAudioFile(null); }} />
+              <input 
+                ref={videoInputRef}
+                type="file" 
+                accept="video/*" 
+                className="form-control" 
+                onChange={(e)=>{ 
+                  setVideoFile(e.target.files?.[0] || null); 
+                  setImageFile(null); 
+                  setAudioFile(null);
+                  if (imageInputRef.current) imageInputRef.current.value = '';
+                  if (audioInputRef.current) audioInputRef.current.value = '';
+                }} 
+              />
             </div>
           </div>
           <div className="form-text">If you choose one, the others will be cleared automatically.</div>
@@ -286,5 +336,3 @@ export default function QuestionCreate() {
     </div>
   );
 }
-
-
