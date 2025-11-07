@@ -165,7 +165,7 @@ class QuizViewSet(viewsets.ModelViewSet):
         serializer = QuestionSerializer(question)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    @action(detail=True, methods=['post'], url_path='start')
+    @action(detail=True, methods=['post'], url_path='start', permission_classes=[permissions.IsAuthenticated])
     def start_attempt(self, request, pk=None):
         """Create a new attempt for the current user on this quiz"""
         quiz = self.get_object()
@@ -189,7 +189,7 @@ class QuizViewSet(viewsets.ModelViewSet):
         serializer = QuizAttemptSerializer(attempt)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    @action(detail=True, methods=['get'], url_path='progress')
+    @action(detail=True, methods=['get'], url_path='progress', permission_classes=[permissions.IsAuthenticated])
     def progress(self, request, pk=None):
         """Return current in-progress attempt progress for the user on this quiz"""
         quiz = self.get_object()
@@ -199,7 +199,7 @@ class QuizViewSet(viewsets.ModelViewSet):
         serializer = QuizAttemptSerializer(attempt)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['get'], url_path=r'question/(?P<question_id>[^/.]+)')
+    @action(detail=True, methods=['get'], url_path=r'question/(?P<question_id>[^/.]+)', permission_classes=[permissions.IsAuthenticated])
     def question_detail(self, request, pk=None, question_id=None):
         """Get a specific question within this quiz"""
         quiz = self.get_object()
@@ -207,7 +207,7 @@ class QuizViewSet(viewsets.ModelViewSet):
         serializer = QuestionSerializer(question)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['post'], url_path=r'question/(?P<question_id>[^/.]+)/answer')
+    @action(detail=True, methods=['post'], url_path=r'question/(?P<question_id>[^/.]+)/answer', permission_classes=[permissions.IsAuthenticated])
     def submit_answer_nested(self, request, pk=None, question_id=None):
         """Submit an answer for a question within this quiz for the current user's active attempt"""
         quiz = self.get_object()
@@ -274,7 +274,7 @@ class QuizViewSet(viewsets.ModelViewSet):
         serializer = UserAnswerSerializer(user_answer)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['post'], url_path='complete')
+    @action(detail=True, methods=['post'], url_path='complete', permission_classes=[permissions.IsAuthenticated])
     def complete_by_quiz(self, request, pk=None):
         """Complete the current user's attempt for this quiz"""
         quiz = self.get_object()
