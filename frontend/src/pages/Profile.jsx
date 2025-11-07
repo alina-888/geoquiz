@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { fetchUserProfile, updateUserProfile, getQuizzesByCreator } from '../api/api';
+import { isDebugMode, toggleDebugMode } from '../utils/geolocation';
 
 export default function Profile() {
   const { username } = useParams();
@@ -109,6 +110,41 @@ export default function Profile() {
           )}
         </div>
       </div>
+
+      {/* Developer Tools - Only show when viewing your own profile */}
+      {canEdit && (
+        <div className="card shadow-sm mt-4 border-info">
+          <div className="card-body">
+            <h2 className="h5 mb-3">Developer Tools</h2>
+            <div className="d-flex justify-content-between align-items-center">
+              <div>
+                <strong>DEBUG Mode (Geolocation)</strong>
+                <div className="small text-muted">
+                  When enabled, bypasses all location checks for testing
+                </div>
+              </div>
+              <div className="form-check form-switch">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  id="debugModeSwitch"
+                  checked={isDebugMode()}
+                  onChange={toggleDebugMode}
+                  style={{ cursor: 'pointer', width: '3em', height: '1.5em' }}
+                />
+                <label className="form-check-label" htmlFor="debugModeSwitch"></label>
+              </div>
+            </div>
+            {isDebugMode() && (
+              <div className="alert alert-warning mt-3 mb-0">
+                <small>
+                  <strong>⚠ DEBUG mode is ON</strong> - All location-based questions will be unlocked regardless of your location.
+                </small>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="card shadow-sm mt-4">
         <div className="card-body">

@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getQuizQuestion, answerQuizQuestion, getQuizDetail, getQuizProgress } from '../api/api';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import LocationStatus from '../components/LocationStatus';
+import { isDebugMode, getCurrentPosition, calculateDistance, isWithinRadius } from '../utils/geolocation';
 
 export default function Question() {
   const { id, questionId } = useParams();
@@ -16,12 +18,76 @@ export default function Question() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  // Geolocation state
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationError, setLocationError] = useState('');
+  const [isCheckingLocation, setIsCheckingLocation] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const [distanceToTarget, setDistanceToTarget] = useState(null);
+
   // Resolve absolute media URL if backend returned a relative path
   const resolveMediaUrl = (url) => {
     if (!url) return url;
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
     if (url.startsWith('/media/')) return `http://localhost:8000${url}`; // dev default
     return url;
+  };
+
+  // Check user's location and determine if question is locked
+  const checkLocation = async () => {
+    if (!question || !question.geolocation) {
+      // Question doesn't have geolocation, so it's unlocked
+      setIsLocked(false);
+      return;
+    }
+
+    // Check DEBUG mode
+    if (isDebugMode()) {
+      console.log('DEBUG mode enabled - bypassing location check');
+      setIsLocked(false);
+      return;
+    }
+
+    // Check if quiz creator is viewing their own quiz
+    const currentUser = localStorage.getItem('auth.username');
+    if (quiz && quiz.creator && quiz.creator.username === currentUser) {
+      console.log('Quiz creator viewing own quiz - bypassing location check');
+      setIsLocked(false);
+      return;
+    }
+
+    setIsCheckingLocation(true);
+    setLocationError('');
+
+    try {
+      const position = await getCurrentPosition();
+      setUserLocation(position);
+
+      const distance = calculateDistance(
+        position.lat,
+        position.lng,
+        question.geolocation.lat,
+        question.geolocation.lng
+      );
+
+      setDistanceToTarget(distance);
+
+      const withinRadius = isWithinRadius(position, question.geolocation);
+      setIsLocked(!withinRadius);
+
+      if (withinRadius) {
+        console.log('User is within radius - question unlocked');
+      } else {
+        console.log(`User is ${distance.toFixed(0)}m away - question locked`);
+      }
+    } catch (err) {
+      console.error('Location error:', err);
+      setLocationError(err.message);
+      // If we can't get location, lock the question
+      setIsLocked(true);
+    } finally {
+      setIsCheckingLocation(false);
+    }
   };
 
   useEffect(() => {
@@ -42,6 +108,13 @@ export default function Question() {
         setLoading(false);
       });
   }, [id, questionId]);
+
+  // Check location when question and quiz are loaded
+  useEffect(() => {
+    if (question && quiz && !loading) {
+      checkLocation();
+    }
+  }, [question, quiz, loading]);
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -75,9 +148,37 @@ export default function Question() {
 
   return (
     <div className="container mt-4" style={{ maxWidth: '700px' }}>
-      <div className="card shadow-sm">
-        <div className="card-body">
-          <h1 className="h4 fw-bold mb-3">{question.question_text}</h1>
+      {/* Show checking location state */}
+      {isCheckingLocation && (
+        <div className="alert alert-info">
+          Checking your location...
+        </div>
+      )}
+
+      {/* Show location error if any */}
+      {locationError && (
+        <div className="alert alert-danger">
+          <strong>Location Error:</strong> {locationError}
+        </div>
+      )}
+
+      {/* Show location status if question has geolocation */}
+      {question.geolocation && (
+        <LocationStatus
+          isLocked={isLocked}
+          distance={distanceToTarget}
+          targetLocation={question.geolocation}
+          userLocation={userLocation}
+          onRefresh={checkLocation}
+          isRefreshing={isCheckingLocation}
+        />
+      )}
+
+      {/* Only show question content if not locked */}
+      {!isLocked && (
+        <div className="card shadow-sm">
+          <div className="card-body">
+            <h1 className="h4 fw-bold mb-3">{question.question_text}</h1>
 
           {question.has_media && (
             <div className="mb-3">
@@ -158,6 +259,7 @@ export default function Question() {
           </form>
         </div>
       </div>
+      )}
     </div>
   );
 }

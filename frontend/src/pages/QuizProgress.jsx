@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { Lock } from 'lucide-react';
 import { getQuizProgress, getQuizDetail } from '../api/api';
 
 export default function QuizProgress() {
@@ -41,6 +42,7 @@ export default function QuizProgress() {
 
   const answeredIds = new Set((attempt.answers || []).map(a => a.question));
   const nextQuestion = (quiz.questions || []).find(q => !answeredIds.has(q.id));
+  const lockedQuestionsCount = (quiz.questions || []).filter(q => q.geolocation).length;
 
   return (
     <div className="container mt-4" style={{ maxWidth: '700px' }}>
@@ -50,6 +52,42 @@ export default function QuizProgress() {
           <p className="mb-3">
             Answered <strong>{answeredIds.size}</strong> / {quiz.questions?.length || 0}
           </p>
+
+          {lockedQuestionsCount > 0 && (
+            <div className="alert alert-info mb-3">
+              <Lock size={16} className="me-2" style={{ display: 'inline' }} />
+              This quiz has <strong>{lockedQuestionsCount}</strong> location-based {lockedQuestionsCount === 1 ? 'question' : 'questions'}
+            </div>
+          )}
+
+          {/* Question list */}
+          {quiz.questions && quiz.questions.length > 0 && (
+            <div className="mb-3">
+              <h6 className="mb-2">Questions:</h6>
+              <div className="list-group">
+                {quiz.questions.map((q, index) => {
+                  const isAnswered = answeredIds.has(q.id);
+                  const isCurrent = nextQuestion && nextQuestion.id === q.id;
+                  return (
+                    <div
+                      key={q.id}
+                      className={`list-group-item d-flex justify-content-between align-items-center ${isCurrent ? 'active' : ''}`}
+                    >
+                      <div>
+                        <span className="me-2">Question {index + 1}</span>
+                        {q.geolocation && (
+                          <Lock size={14} className="text-warning" style={{ display: 'inline' }} title="Location-based question" />
+                        )}
+                      </div>
+                      <div>
+                        {isAnswered && <span className="badge bg-success">✓</span>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {nextQuestion ? (
             <button
