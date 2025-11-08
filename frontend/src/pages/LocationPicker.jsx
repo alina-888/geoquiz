@@ -37,6 +37,13 @@ const LocationPicker = ({ value, onChange, onRemove }) => {
 
   const [location, setLocation] = useState(defaultLocation);
 
+  // Sync internal state with value prop
+  useEffect(() => {
+    if (value) {
+      setLocation(value);
+    }
+  }, [value]);
+
   useEffect(() => {
     setIsMapReady(true);
   }, []);
@@ -383,7 +390,12 @@ const LocationPicker = ({ value, onChange, onRemove }) => {
         {onRemove && (
           <button
             type="button"
-            onClick={onRemove}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('LocationPicker: Remove button clicked');
+              onRemove();
+            }}
             className="btn btn-sm btn-outline-danger"
           >
             <X size={16} className="me-1" style={{ display: 'inline' }} />

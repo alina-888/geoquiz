@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { MapPin } from 'lucide-react';
 import { getQuestion, updateQuestion, getQuizDetail } from '../api/api';
 import LocationPicker from './LocationPicker';
 
@@ -131,7 +132,7 @@ export default function QuestionEdit() {
         image: imageFile || undefined,
         audio: audioFile || undefined,
         video: videoFile || undefined,
-        geolocation: quiz?.is_geo ? (qGeolocation || undefined) : undefined,
+        geolocation: quiz?.is_geo ? qGeolocation : undefined,
       };
       await updateQuestion(questionId, payload);
       navigate(`/quizzes/${quizId}/`);
@@ -306,15 +307,41 @@ export default function QuestionEdit() {
         </div>
 
         {quiz?.is_geo && (
-          <LocationPicker
-            value={qGeolocation}
-            onChange={(location) => {
-              setQGeolocation(location);
-            }}
-            onRemove={() => {
-              setQGeolocation(null);
-            }}
-          />
+          <>
+            {qGeolocation ? (
+              <LocationPicker
+                value={qGeolocation}
+                onChange={(location) => {
+                  setQGeolocation(location);
+                }}
+                onRemove={() => {
+                  setQGeolocation(null);
+                }}
+              />
+            ) : (
+              <div className="mb-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Set default location (Belgrade)
+                    setQGeolocation({
+                      lat: 44.8176,
+                      lng: 20.4569,
+                      radius: 50,
+                      address: ''
+                    });
+                  }}
+                  className="btn btn-outline-primary w-100"
+                >
+                  <MapPin size={16} className="me-2" style={{ display: 'inline' }} />
+                  Add Location to Question
+                </button>
+                <small className="text-muted d-block mt-1">
+                  This is a geo quiz. You can optionally add a location requirement to this question.
+                </small>
+              </div>
+            )}
+          </>
         )}
 
         <div className="d-flex gap-2">

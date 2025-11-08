@@ -79,12 +79,16 @@ export function createQuestion(quizId, payload) {
     form.append('options', JSON.stringify(payload.options));
   }
 
-  // geolocation as JSON string if provided
-  if (payload.geolocation) {
-    try {
-      form.append('geolocation', JSON.stringify(payload.geolocation));
-    } catch (_) {
-      // ignore if cannot stringify
+  // geolocation as JSON string if provided, or explicit null to remove
+  if (payload.geolocation !== undefined) {
+    if (payload.geolocation === null) {
+      form.append('geolocation', 'null');
+    } else {
+      try {
+        form.append('geolocation', JSON.stringify(payload.geolocation));
+      } catch (_) {
+        // ignore if cannot stringify
+      }
     }
   }
 
@@ -116,12 +120,16 @@ export function updateQuestion(questionId, payload) {
     form.append('options', JSON.stringify(payload.options));
   }
 
-  // geolocation as JSON string if provided
-  if (payload.geolocation) {
-    try {
-      form.append('geolocation', JSON.stringify(payload.geolocation));
-    } catch (_) {
-      // ignore if cannot stringify
+  // geolocation as JSON string if provided, or explicit null to remove
+  if (payload.geolocation !== undefined) {
+    if (payload.geolocation === null) {
+      form.append('geolocation', 'null');
+    } else {
+      try {
+        form.append('geolocation', JSON.stringify(payload.geolocation));
+      } catch (_) {
+        // ignore if cannot stringify
+      }
     }
   }
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { MapPin } from 'lucide-react';
 import { createQuestion, getQuizDetail } from '../api/api';
 import LocationPicker from './LocationPicker';
 
@@ -109,7 +110,7 @@ export default function QuestionCreate() {
         image: imageFile || undefined,
         audio: audioFile || undefined,
         video: videoFile || undefined,
-        geolocation: quiz?.is_geo ? (qGeolocation || undefined) : undefined,
+        geolocation: quiz?.is_geo ? qGeolocation : undefined,
       };
       await createQuestion(quiz.id, payload);
       resetForm(); // Use the helper function
@@ -163,7 +164,7 @@ export default function QuestionCreate() {
         image: imageFile || undefined,
         audio: audioFile || undefined,
         video: videoFile || undefined,
-        geolocation: quiz?.is_geo ? (qGeolocation || undefined) : undefined,
+        geolocation: quiz?.is_geo ? qGeolocation : undefined,
       };
       await createQuestion(quiz.id, payload);
       // After successful save, navigate away
@@ -319,15 +320,43 @@ export default function QuestionCreate() {
         </div>
 
         {quiz?.is_geo && (
-          <LocationPicker
-            value={qGeolocation}
-            onChange={(location) => {
-              setQGeolocation(location);
-            }}
-            onRemove={() => {
-              setQGeolocation(null);
-            }}
-          />
+          <>
+            {qGeolocation ? (
+              <LocationPicker
+                value={qGeolocation}
+                onChange={(location) => {
+                  console.log('Location changed:', location);
+                  setQGeolocation(location);
+                }}
+                onRemove={() => {
+                  console.log('Remove location clicked');
+                  setQGeolocation(null);
+                }}
+              />
+            ) : (
+              <div className="mb-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Set default location (Belgrade)
+                    setQGeolocation({
+                      lat: 44.8176,
+                      lng: 20.4569,
+                      radius: 50,
+                      address: ''
+                    });
+                  }}
+                  className="btn btn-outline-primary w-100"
+                >
+                  <MapPin size={16} className="me-2" style={{ display: 'inline' }} />
+                  Add Location to Question
+                </button>
+                <small className="text-muted d-block mt-1">
+                  This is a geo quiz. You can optionally add a location requirement to this question.
+                </small>
+              </div>
+            )}
+          </>
         )}
 
         <div className="d-flex gap-2">
