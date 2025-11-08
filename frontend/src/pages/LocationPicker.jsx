@@ -264,6 +264,19 @@ const LocationPicker = ({ value, onChange, onRemove }) => {
         )}
       </div>
 
+      {/* Use My Location Button - Prominent */}
+      <div className="mb-3">
+        <button
+          type="button"
+          onClick={useCurrentLocation}
+          className="btn btn-success w-100"
+        >
+          <Crosshair size={20} className="me-2" style={{ display: 'inline' }} />
+          Use My Current Location
+        </button>
+        <small className="text-muted">Quick way to set this question at your current position</small>
+      </div>
+
       {/* Search Bar */}
       <div className="mb-3 position-relative">
         <div className="input-group">
@@ -272,7 +285,7 @@ const LocationPicker = ({ value, onChange, onRemove }) => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && searchLocation()}
-            placeholder="Search for a location..."
+            placeholder="Or search for a location..."
             className="form-control"
           />
           <button
@@ -282,14 +295,6 @@ const LocationPicker = ({ value, onChange, onRemove }) => {
             className="btn btn-primary"
           >
             {isSearching ? 'Searching...' : 'Search'}
-          </button>
-          <button
-            type="button"
-            onClick={useCurrentLocation}
-            className="btn btn-outline-secondary"
-            title="Use my current location"
-          >
-            <Crosshair size={20} />
           </button>
         </div>
 
