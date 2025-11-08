@@ -5,6 +5,7 @@ import QuizCreate from './pages/QuizCreate';
 import QuizEdit from './pages/QuizEdit';
 import QuizProgress from './pages/QuizProgress';
 import QuestionCreate from './pages/QuestionCreate';
+import QuestionEdit from './pages/QuestionEdit';
 import Question from './pages/Question';
 import QuizComplete from './pages/QuizComplete';
 import QuizResults from './pages/QuizResults';
@@ -92,6 +93,7 @@ function App() {
         <Route path="/quizzes/create/" element={<QuizCreate />} />
         <Route path="/quizzes/:id/edit" element={<QuizEdit />} />
         <Route path="/quizzes/:id/questions/create/" element={<QuestionCreate />} />
+        <Route path="/quizzes/:quizId/questions/:questionId/edit" element={<QuestionEdit />} />
         <Route path="/quizzes/:id/" element={<QuizDetail />} />
         <Route path="/quizzes/:id/start/" element={<QuizProgress />} />
         <Route path="/quizzes/:id/progress/" element={<QuizProgress />} />

@@ -99,6 +99,49 @@ export function createQuestion(quizId, payload) {
   });
 }
 
+export function getQuestion(questionId) {
+  return apiRequest(`/questions/${questionId}/`);
+}
+
+export function updateQuestion(questionId, payload) {
+  // Accepts plain object; converts to FormData for file upload support
+  const form = new FormData();
+  form.append('question_text', payload.question_text || '');
+  form.append('points_value', String(payload.points_value ?? 10));
+  form.append('question_type', payload.question_type || 'multiple_choice');
+  if (payload.correct_answer != null) form.append('correct_answer', String(payload.correct_answer));
+
+  // options as JSON string for backend to parse
+  if (Array.isArray(payload.options)) {
+    form.append('options', JSON.stringify(payload.options));
+  }
+
+  // geolocation as JSON string if provided
+  if (payload.geolocation) {
+    try {
+      form.append('geolocation', JSON.stringify(payload.geolocation));
+    } catch (_) {
+      // ignore if cannot stringify
+    }
+  }
+
+  // attach at most one media file (one of: image, audio, video)
+  if (payload.image) form.append('image', payload.image);
+  if (payload.audio) form.append('audio', payload.audio);
+  if (payload.video) form.append('video', payload.video);
+
+  return apiRequest(`/questions/${questionId}/`, {
+    method: 'PUT',
+    body: form,
+  });
+}
+
+export function deleteQuestion(questionId) {
+  return apiRequest(`/questions/${questionId}/`, {
+    method: 'DELETE'
+  });
+}
+
 export function startQuiz(quizId) {
   return apiRequest(`/quizzes/${quizId}/start/`, { method: 'POST' });
 }

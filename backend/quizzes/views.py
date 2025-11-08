@@ -80,90 +80,126 @@ class QuizViewSet(viewsets.ModelViewSet):
             return Response(serializer.data)
 
         # POST: create question (only quiz creator)
-        if quiz.creator != request.user:
-            self.permission_denied(request)
+        try:
+            print(f"DEBUG: Creating question for quiz {quiz.id}")
+            print(f"DEBUG: Quiz creator: {quiz.creator}, Request user: {request.user}")
+            print(f"DEBUG: Request data keys: {request.data.keys()}")
+            print(f"DEBUG: Request FILES keys: {request.FILES.keys()}")
 
-        data = request.data
-        question_text = data.get('question_text')
-        points_value = data.get('points_value', 10)
-        question_type = data.get('question_type', 'multiple_choice')
-        correct_answer = data.get('correct_answer')
-        options_raw = data.get('options', [])
-        geolocation_raw = data.get('geolocation')
-        # If sent via multipart, options may arrive as a JSON string
-        if isinstance(options_raw, str):
-            try:
-                options_data = json.loads(options_raw)
-            except json.JSONDecodeError:
-                options_data = []
-        else:
-            options_data = options_raw
+            if quiz.creator != request.user:
+                print(f"DEBUG: Permission denied - creator mismatch")
+                self.permission_denied(request)
 
-        # Parse geolocation JSON if provided as string
-        geolocation_data = None
-        if geolocation_raw is not None and geolocation_raw != 'null' and geolocation_raw != 'undefined':
-            if isinstance(geolocation_raw, str):
+            data = request.data
+            question_text = data.get('question_text')
+            points_value = data.get('points_value', 10)
+            question_type = data.get('question_type', 'multiple_choice')
+            correct_answer = data.get('correct_answer')
+            options_raw = data.get('options', [])
+            geolocation_raw = data.get('geolocation')
+
+            print(f"DEBUG: question_text={question_text}, type={question_type}, points={points_value}")
+            print(f"DEBUG: options_raw type: {type(options_raw)}, value: {options_raw}")
+            print(f"DEBUG: geolocation_raw type: {type(geolocation_raw)}, value: {geolocation_raw}")
+
+            # If sent via multipart, options may arrive as a JSON string
+            if isinstance(options_raw, str):
                 try:
-                    geolocation_data = json.loads(geolocation_raw)
-                except json.JSONDecodeError:
-                    geolocation_data = None
-            elif isinstance(geolocation_raw, (dict, list)):
-                geolocation_data = geolocation_raw
+                    options_data = json.loads(options_raw)
+                except json.JSONDecodeError as e:
+                    print(f"DEBUG: Failed to parse options JSON: {e}")
+                    options_data = []
+            else:
+                options_data = options_raw
 
-        # Block geolocation for non-geo quizzes
-        if geolocation_data not in (None, {}, [], '') and getattr(quiz, 'is_geo', False) is False:
+            # Parse geolocation JSON if provided as string
+            geolocation_data = None
+            if geolocation_raw is not None and geolocation_raw != 'null' and geolocation_raw != 'undefined' and geolocation_raw != '':
+                if isinstance(geolocation_raw, str):
+                    try:
+                        geolocation_data = json.loads(geolocation_raw)
+                        print(f"DEBUG: Parsed geolocation: {geolocation_data}")
+                    except json.JSONDecodeError as e:
+                        print(f"DEBUG: Failed to parse geolocation JSON: {e}")
+                        geolocation_data = None
+                elif isinstance(geolocation_raw, (dict, list)):
+                    geolocation_data = geolocation_raw
+                    print(f"DEBUG: Using geolocation as-is: {geolocation_data}")
+
+            # Block geolocation for non-geo quizzes
+            if geolocation_data not in (None, {}, [], '') and getattr(quiz, 'is_geo', False) is False:
+                print(f"DEBUG: Blocking geolocation for non-geo quiz")
+                return Response(
+                    {"error": "Geolocation is only allowed for geo quizzes"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            if not question_text:
+                print(f"DEBUG: Missing question_text")
+                return Response({"error": "question_text is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Get the next question order number (use max + 1 to avoid conflicts after deletions)
+            max_order = quiz.questions.aggregate(models.Max('question_order'))['question_order__max']
+            next_order = (max_order or 0) + 1
+            print(f"DEBUG: Next order: {next_order} (max was {max_order})")
+
+            # Handle media files
+            image_file = request.FILES.get('image')
+            audio_file = request.FILES.get('audio')
+            video_file = request.FILES.get('video')
+
+            print(f"DEBUG: Media files - image: {image_file}, audio: {audio_file}, video: {video_file}")
+
+            # Validate that only one media type is provided
+            media_files = [f for f in [image_file, audio_file, video_file] if f is not None]
+            if len(media_files) > 1:
+                print(f"DEBUG: Multiple media files provided")
+                return Response(
+                    {"error": "Only one media type can be attached per question"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            print(f"DEBUG: About to create question")
+            question = Question.objects.create(
+                quiz=quiz,
+                question_text=question_text,
+                question_order=next_order,
+                points_value=points_value,
+                question_type=question_type,
+                correct_answer=correct_answer,
+                image=image_file,
+                audio=audio_file,
+                video=video_file,
+                geolocation=geolocation_data,
+            )
+            print(f"DEBUG: Question created with id={question.id}")
+
+            # Create options if provided (for multiple choice)
+            option_order = 1
+            for opt in options_data:
+                if isinstance(opt, dict):
+                    text = opt.get('option_text')
+                    if text and text.strip():
+                        Option.objects.create(
+                            question=question,
+                            option_text=text,
+                            is_correct=bool(opt.get('is_correct', False)),
+                            option_order=option_order,
+                        )
+                        option_order += 1
+                        print(f"DEBUG: Created option {option_order - 1}: {text}")
+
+            print(f"DEBUG: Serializing question")
+            serializer = QuestionSerializer(question)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            import traceback
+            print(f"ERROR in questions POST: {str(e)}")
+            print(traceback.format_exc())
             return Response(
-                {"error": "Geolocation is only allowed for geo quizzes"},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": f"Failed to create question: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
-        if not question_text:
-            return Response({"error": "question_text is required"}, status=status.HTTP_400_BAD_REQUEST)
-
-        next_order = quiz.questions.count() + 1
-        
-        # Handle media files
-        image_file = request.FILES.get('image')
-        audio_file = request.FILES.get('audio')
-        video_file = request.FILES.get('video')
-        
-        # Validate that only one media type is provided
-        media_files = [f for f in [image_file, audio_file, video_file] if f is not None]
-        if len(media_files) > 1:
-            return Response(
-                {"error": "Only one media type can be attached per question"}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        question = Question.objects.create(
-            quiz=quiz,
-            question_text=question_text,
-            question_order=next_order,
-            points_value=points_value,
-            question_type=question_type,
-            correct_answer=correct_answer,
-            image=image_file,
-            audio=audio_file,
-            video=video_file,
-            geolocation=geolocation_data,
-        )
-
-        # Create options if provided (for multiple choice)
-        option_order = 1
-        for opt in options_data:
-            text = opt.get('option_text')
-            if not text:
-                continue
-            Option.objects.create(
-                question=question,
-                option_text=text,
-                is_correct=bool(opt.get('is_correct', False)),
-                option_order=option_order,
-            )
-            option_order += 1
-
-        serializer = QuestionSerializer(question)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['post'], url_path='start', permission_classes=[permissions.IsAuthenticated])
     def start_attempt(self, request, pk=None):
@@ -326,26 +362,93 @@ class QuestionViewSet(viewsets.ModelViewSet):
         if quiz.creator != self.request.user:
             self.permission_denied(self.request)
 
-        # Get the next question order number
-        next_order = quiz.questions.count() + 1
-        
+        # Get the next question order number (use max + 1 to avoid conflicts after deletions)
+        max_order = quiz.questions.aggregate(models.Max('question_order'))['question_order__max']
+        next_order = (max_order or 0) + 1
+
         # Handle media files
         image_file = self.request.FILES.get('image')
         audio_file = self.request.FILES.get('audio')
         video_file = self.request.FILES.get('video')
-        
+
         # Validate that only one media type is provided
         media_files = [f for f in [image_file, audio_file, video_file] if f is not None]
         if len(media_files) > 1:
             from rest_framework.exceptions import ValidationError
             raise ValidationError("Only one media type can be attached per question")
-        
+
         serializer.save(
             question_order=next_order,
             image=image_file,
             audio=audio_file,
             video=video_file,
         )
+
+    def update(self, request, *args, **kwargs):
+        """Custom update to handle options and media files"""
+        try:
+            instance = self.get_object()
+            quiz = instance.quiz
+
+            # Only allow quiz creator to update questions
+            if quiz.creator != request.user:
+                self.permission_denied(request)
+
+            # Handle media files
+            image_file = request.FILES.get('image')
+            audio_file = request.FILES.get('audio')
+            video_file = request.FILES.get('video')
+
+            # Validate that only one media type is provided
+            media_files = [f for f in [image_file, audio_file, video_file] if f is not None]
+            if len(media_files) > 1:
+                from rest_framework.exceptions import ValidationError
+                raise ValidationError("Only one media type can be attached per question")
+
+            # Handle options for multiple choice questions
+            question_type = request.data.get('question_type', instance.question_type)
+            if question_type == 'multiple_choice':
+                options_raw = request.data.get('options', [])
+                # Parse options if it's a JSON string
+                if isinstance(options_raw, str):
+                    try:
+                        options_data = json.loads(options_raw)
+                    except json.JSONDecodeError:
+                        options_data = []
+                else:
+                    options_data = options_raw
+
+                # Delete old options and create new ones
+                instance.options.all().delete()
+                for idx, opt in enumerate(options_data):
+                    if isinstance(opt, dict) and opt.get('option_text', '').strip():
+                        Option.objects.create(
+                            question=instance,
+                            option_text=opt['option_text'],
+                            is_correct=opt.get('is_correct', False),
+                            option_order=idx + 1
+                        )
+
+            # Update the question instance
+            serializer = self.get_serializer(instance, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+
+            # Handle media updates
+            if image_file:
+                serializer.save(image=image_file, audio=None, video=None)
+            elif audio_file:
+                serializer.save(audio=audio_file, image=None, video=None)
+            elif video_file:
+                serializer.save(video=video_file, image=None, audio=None)
+            else:
+                serializer.save()
+
+            return Response(serializer.data)
+        except Exception as e:
+            import traceback
+            print(f"Error in QuestionViewSet.update: {str(e)}")
+            print(traceback.format_exc())
+            raise
 
     @action(detail=True, methods=['get'])
     def options(self, request, pk=None):

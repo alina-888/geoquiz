@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { Edit2, Trash2 } from 'lucide-react';
-import { getQuizDetail, startQuiz, deleteQuiz } from '../api/api';
+import { Edit2, Trash2, MapPin, Image, Music, Video } from 'lucide-react';
+import { getQuizDetail, startQuiz, deleteQuiz, deleteQuestion } from '../api/api';
 
 export default function QuizDetail() {
   const { id } = useParams();
@@ -50,6 +50,19 @@ export default function QuizDetail() {
     }
   };
 
+  const handleDeleteQuestion = async (questionId, questionText) => {
+    if (window.confirm(`Delete this question: "${questionText.substring(0, 50)}..."?`)) {
+      try {
+        await deleteQuestion(questionId);
+        // Refresh quiz data
+        const updated = await getQuizDetail(id);
+        setQuiz(updated);
+      } catch (err) {
+        setError(err.message || 'Failed to delete question');
+      }
+    }
+  };
+
   if (loading) return <div className="p-4">Loading...</div>;
   if (error) return <div className="p-4 alert alert-danger">{error}</div>;
   if (!quiz) return null;
@@ -94,6 +107,72 @@ export default function QuizDetail() {
           )}
         </div>
       </div>
+
+      {/* Questions list (for creator only) */}
+      {isCreator && quiz.questions && quiz.questions.length > 0 && (
+        <div className="card mt-4">
+          <div className="card-body">
+            <h5 className="card-title mb-3">Questions ({quiz.questions.length})</h5>
+            <ul className="list-group list-group-flush">
+              {quiz.questions.map((q, index) => (
+                <li key={q.id} className="list-group-item px-0">
+                  <div className="d-flex justify-content-between align-items-start">
+                    <div className="flex-grow-1">
+                      <div className="mb-1">
+                        <strong>Q{index + 1}:</strong> {q.question_text.length > 80 ? q.question_text.substring(0, 80) + '...' : q.question_text}
+                      </div>
+                      <div className="d-flex gap-2 flex-wrap">
+                        <span className="badge bg-secondary">{q.question_type.replace('_', ' ')}</span>
+                        <span className="badge bg-primary">{q.points_value} pts</span>
+                        {q.geolocation && (
+                          <span className="badge bg-info">
+                            <MapPin size={12} style={{ display: 'inline' }} /> Geo
+                          </span>
+                        )}
+                        {q.media_type === 'image' && (
+                          <span className="badge bg-success">
+                            <Image size={12} style={{ display: 'inline' }} /> Image
+                          </span>
+                        )}
+                        {q.media_type === 'audio' && (
+                          <span className="badge bg-success">
+                            <Music size={12} style={{ display: 'inline' }} /> Audio
+                          </span>
+                        )}
+                        {q.media_type === 'video' && (
+                          <span className="badge bg-success">
+                            <Video size={12} style={{ display: 'inline' }} /> Video
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="d-flex gap-2 ms-3">
+                      <Link to={`/quizzes/${id}/questions/${q.id}/edit`} className="btn btn-sm btn-outline-warning">
+                        <Edit2 size={14} />
+                      </Link>
+                      <button
+                        onClick={() => handleDeleteQuestion(q.id, q.question_text)}
+                        className="btn btn-sm btn-outline-danger"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+
+      {/* Add questions button (for creator only) */}
+      {isCreator && (
+        <div className="mt-3">
+          <Link to={`/quizzes/${id}/questions/create/`} className="btn btn-outline-primary">
+            + Add Questions
+          </Link>
+        </div>
+      )}
     </div>
   );
 }
