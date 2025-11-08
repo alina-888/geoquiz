@@ -181,16 +181,44 @@ export default function Question() {
             <h1 className="h4 fw-bold mb-3">{question.question_text}</h1>
 
           {question.has_media && (
-            <div className="mb-3">
-              {question.media_type === 'image' && (
-                <img src={resolveMediaUrl(question.media_url)} alt="Question media" className="img-fluid rounded" />
-              )}
-              {question.media_type === 'audio' && (
-                <audio src={resolveMediaUrl(question.media_url)} controls className="w-100" />
-              )}
-              {question.media_type === 'video' && (
-                <video src={resolveMediaUrl(question.media_url)} controls className="w-100 rounded" />
-              )}
+            <div className="mb-4">
+              <div className="border rounded p-3 bg-light">
+                {question.media_type === 'image' && (
+                  <div className="text-center">
+                    <img
+                      src={resolveMediaUrl(question.media_url)}
+                      alt="Question media"
+                      className="img-fluid rounded shadow-sm"
+                      style={{ maxHeight: '400px', objectFit: 'contain' }}
+                    />
+                  </div>
+                )}
+                {question.media_type === 'audio' && (
+                  <div className="d-flex align-items-center justify-content-center p-3">
+                    <div className="w-100" style={{ maxWidth: '500px' }}>
+                      <div className="text-center mb-2 text-muted small">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-1">
+                          <path d="M9 18V5l12-2v13"></path>
+                          <circle cx="6" cy="18" r="3"></circle>
+                          <circle cx="18" cy="16" r="3"></circle>
+                        </svg>
+                        <div>Audio Clip</div>
+                      </div>
+                      <audio src={resolveMediaUrl(question.media_url)} controls className="w-100" />
+                    </div>
+                  </div>
+                )}
+                {question.media_type === 'video' && (
+                  <div className="text-center">
+                    <video
+                      src={resolveMediaUrl(question.media_url)}
+                      controls
+                      className="rounded shadow-sm"
+                      style={{ maxWidth: '100%', maxHeight: '400px' }}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

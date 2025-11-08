@@ -268,55 +268,126 @@ export default function QuestionCreate() {
         )}
 
         <div className="mb-3">
-          <label className="form-label d-block">Attach media (one of image, audio, or video)</label>
-          <div className="row g-2">
-            <div className="col">
-              <input 
-                ref={imageInputRef}
-                type="file" 
-                accept="image/*" 
-                className="form-control" 
-                onChange={(e)=>{ 
-                  setImageFile(e.target.files?.[0] || null); 
-                  setAudioFile(null); 
-                  setVideoFile(null);
-                  if (audioInputRef.current) audioInputRef.current.value = '';
-                  if (videoInputRef.current) videoInputRef.current.value = '';
-                }} 
-              />
-            </div>
-            <div className="col">
-              <input 
-                ref={audioInputRef}
-                type="file" 
-                accept="audio/*" 
-                className="form-control" 
-                onChange={(e)=>{ 
-                  setAudioFile(e.target.files?.[0] || null); 
-                  setImageFile(null); 
-                  setVideoFile(null);
-                  if (imageInputRef.current) imageInputRef.current.value = '';
-                  if (videoInputRef.current) videoInputRef.current.value = '';
-                }} 
-              />
-            </div>
-            <div className="col">
-              <input 
-                ref={videoInputRef}
-                type="file" 
-                accept="video/*" 
-                className="form-control" 
-                onChange={(e)=>{ 
-                  setVideoFile(e.target.files?.[0] || null); 
-                  setImageFile(null); 
-                  setAudioFile(null);
-                  if (imageInputRef.current) imageInputRef.current.value = '';
-                  if (audioInputRef.current) audioInputRef.current.value = '';
-                }} 
-              />
+          <label className="form-label d-block fw-semibold">Media Attachment</label>
+          <div className="card">
+            <div className="card-body p-3">
+              <div className="row g-3">
+                <div className="col-12 col-md-4">
+                  <div
+                    className={`border rounded p-3 text-center ${imageFile ? 'border-primary bg-primary bg-opacity-10' : 'border-secondary'}`}
+                    style={{ cursor: 'pointer', transition: 'all 0.2s' }}
+                    onClick={() => imageInputRef.current?.click()}
+                    onMouseEnter={(e) => !imageFile && (e.currentTarget.style.borderColor = '#0d6efd')}
+                    onMouseLeave={(e) => !imageFile && (e.currentTarget.style.borderColor = '')}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-2 text-secondary">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                      <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                      <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                    <div className="fw-semibold mb-2">Image</div>
+                    <input
+                      ref={imageInputRef}
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={(e)=>{
+                        setImageFile(e.target.files?.[0] || null);
+                        setAudioFile(null);
+                        setVideoFile(null);
+                        if (audioInputRef.current) audioInputRef.current.value = '';
+                        if (videoInputRef.current) videoInputRef.current.value = '';
+                      }}
+                    />
+                    {imageFile ? (
+                      <>
+                        <div className="small text-success fw-semibold mb-1">✓ Selected</div>
+                        <div className="small text-truncate text-muted" title={imageFile.name}>{imageFile.name}</div>
+                      </>
+                    ) : (
+                      <div className="small text-muted">Click to upload</div>
+                    )}
+                  </div>
+                </div>
+                <div className="col-12 col-md-4">
+                  <div
+                    className={`border rounded p-3 text-center ${audioFile ? 'border-primary bg-primary bg-opacity-10' : 'border-secondary'}`}
+                    style={{ cursor: 'pointer', transition: 'all 0.2s' }}
+                    onClick={() => audioInputRef.current?.click()}
+                    onMouseEnter={(e) => !audioFile && (e.currentTarget.style.borderColor = '#0d6efd')}
+                    onMouseLeave={(e) => !audioFile && (e.currentTarget.style.borderColor = '')}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-2 text-secondary">
+                      <path d="M9 18V5l12-2v13"></path>
+                      <circle cx="6" cy="18" r="3"></circle>
+                      <circle cx="18" cy="16" r="3"></circle>
+                    </svg>
+                    <div className="fw-semibold mb-2">Audio</div>
+                    <input
+                      ref={audioInputRef}
+                      type="file"
+                      accept="audio/*"
+                      style={{ display: 'none' }}
+                      onChange={(e)=>{
+                        setAudioFile(e.target.files?.[0] || null);
+                        setImageFile(null);
+                        setVideoFile(null);
+                        if (imageInputRef.current) imageInputRef.current.value = '';
+                        if (videoInputRef.current) videoInputRef.current.value = '';
+                      }}
+                    />
+                    {audioFile ? (
+                      <>
+                        <div className="small text-success fw-semibold mb-1">✓ Selected</div>
+                        <div className="small text-truncate text-muted" title={audioFile.name}>{audioFile.name}</div>
+                      </>
+                    ) : (
+                      <div className="small text-muted">Click to upload</div>
+                    )}
+                  </div>
+                </div>
+                <div className="col-12 col-md-4">
+                  <div
+                    className={`border rounded p-3 text-center ${videoFile ? 'border-primary bg-primary bg-opacity-10' : 'border-secondary'}`}
+                    style={{ cursor: 'pointer', transition: 'all 0.2s' }}
+                    onClick={() => videoInputRef.current?.click()}
+                    onMouseEnter={(e) => !videoFile && (e.currentTarget.style.borderColor = '#0d6efd')}
+                    onMouseLeave={(e) => !videoFile && (e.currentTarget.style.borderColor = '')}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-2 text-secondary">
+                      <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                      <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                    </svg>
+                    <div className="fw-semibold mb-2">Video</div>
+                    <input
+                      ref={videoInputRef}
+                      type="file"
+                      accept="video/*"
+                      style={{ display: 'none' }}
+                      onChange={(e)=>{
+                        setVideoFile(e.target.files?.[0] || null);
+                        setImageFile(null);
+                        setAudioFile(null);
+                        if (imageInputRef.current) imageInputRef.current.value = '';
+                        if (audioInputRef.current) audioInputRef.current.value = '';
+                      }}
+                    />
+                    {videoFile ? (
+                      <>
+                        <div className="small text-success fw-semibold mb-1">✓ Selected</div>
+                        <div className="small text-truncate text-muted" title={videoFile.name}>{videoFile.name}</div>
+                      </>
+                    ) : (
+                      <div className="small text-muted">Click to upload</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="form-text mt-2 text-center">
+                Click a card to upload. Selecting a new file will clear the others.
+              </div>
             </div>
           </div>
-          <div className="form-text">If you choose one, the others will be cleared automatically.</div>
         </div>
 
         {quiz?.is_geo && (
