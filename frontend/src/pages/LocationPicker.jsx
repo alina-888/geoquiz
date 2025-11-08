@@ -41,106 +41,186 @@ const LocationPicker = ({ value, onChange, onRemove }) => {
     setIsMapReady(true);
   }, []);
 
-  // DEBUG - Remove this after testing
+  // Ensure proper cleanup on unmount
   useEffect(() => {
-    console.log('Map ready state:', isMapReady);
-    console.log('Leaflet available:', typeof L);
-    console.log('Map ref:', mapRef.current);
-    console.log('Map instance:', mapInstanceRef.current);
-  }, [isMapReady]);
+    return () => {
+      if (mapInstanceRef.current) {
+        try {
+          mapInstanceRef.current.off();
+          mapInstanceRef.current.remove();
+        } catch (err) {
+          console.error('Error during final cleanup:', err);
+        }
+      }
+    };
+  }, []);
 
   // Initialize map
   useEffect(() => {
     if (!isMapReady || mapInstanceRef.current || !mapRef.current) return;
 
+    // Ensure the container has dimensions before initializing
+    const container = mapRef.current;
+    if (!container || container.offsetWidth === 0 || container.offsetHeight === 0) {
+      console.warn('Map container not ready yet');
+      return;
+    }
+
     console.log('Initializing map...');
-    
-    try {
-      const map = L.map(mapRef.current).setView([location.lat, location.lng], 13);
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 19
-      }).addTo(map);
+    // Add a small delay to ensure DOM is fully ready
+    const timer = setTimeout(() => {
+      try {
+        // Double check the container is still valid and has dimensions
+        if (!mapRef.current) {
+          console.warn('Map ref lost during initialization');
+          return;
+        }
 
-      // Add marker
-      const marker = L.marker([location.lat, location.lng], {
-        draggable: true
-      }).addTo(map);
+        const container = mapRef.current;
+        if (container.offsetWidth === 0 || container.offsetHeight === 0) {
+          console.warn('Map container has no dimensions during initialization');
+          return;
+        }
 
-      // Add radius circle
-      const circle = L.circle([location.lat, location.lng], {
-        radius: location.radius,
-        color: '#3b82f6',
-        fillColor: '#3b82f6',
-        fillOpacity: 0.2
-      }).addTo(map);
+        // Check if map is already initialized on this element
+        if (container._leaflet_id) {
+          console.warn('Map already initialized on this element, skipping');
+          return;
+        }
+
+        const map = L.map(container, {
+          fadeAnimation: false,
+          zoomAnimation: false,
+          preferCanvas: true
+        }).setView([location.lat, location.lng], 13);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors',
+          maxZoom: 19
+        }).addTo(map);
+
+        // Add marker
+        const marker = L.marker([location.lat, location.lng], {
+          draggable: true
+        }).addTo(map);
+
+        // Add radius circle
+        const circle = L.circle([location.lat, location.lng], {
+          radius: location.radius,
+          color: '#3b82f6',
+          fillColor: '#3b82f6',
+          fillOpacity: 0.2
+        }).addTo(map);
 
       // Update location when marker is dragged
       marker.on('dragend', async (e) => {
-        const pos = e.target.getLatLng();
-        const newLocation = {
-          ...location,
-          lat: pos.lat,
-          lng: pos.lng
-        };
-        
-        // Try to get address
         try {
-          const address = await reverseGeocode(pos.lat, pos.lng);
-          newLocation.address = address;
-        } catch (e) {
-          // Silent fail
+          const pos = e.target.getLatLng();
+          const newLocation = {
+            ...location,
+            lat: pos.lat,
+            lng: pos.lng
+          };
+
+          // Try to get address
+          try {
+            const address = await reverseGeocode(pos.lat, pos.lng);
+            newLocation.address = address;
+          } catch (e) {
+            // Silent fail
+          }
+
+          setLocation(newLocation);
+          onChange(newLocation);
+          if (circle) {
+            circle.setLatLng(pos);
+          }
+        } catch (err) {
+          console.error('Error handling marker drag:', err);
         }
-        
-        setLocation(newLocation);
-        onChange(newLocation);
-        circle.setLatLng(pos);
       });
 
       // Click on map to move marker
       map.on('click', async (e) => {
-        const pos = e.latlng;
-        marker.setLatLng(pos);
-        circle.setLatLng(pos);
-        
-        const newLocation = {
-          ...location,
-          lat: pos.lat,
-          lng: pos.lng
-        };
-        
-        // Try to get address
         try {
-          const address = await reverseGeocode(pos.lat, pos.lng);
-          newLocation.address = address;
-        } catch (e) {
-          // Silent fail
+          const pos = e.latlng;
+          if (marker) marker.setLatLng(pos);
+          if (circle) circle.setLatLng(pos);
+
+          const newLocation = {
+            ...location,
+            lat: pos.lat,
+            lng: pos.lng
+          };
+
+          // Try to get address
+          try {
+            const address = await reverseGeocode(pos.lat, pos.lng);
+            newLocation.address = address;
+          } catch (e) {
+            // Silent fail
+          }
+
+          setLocation(newLocation);
+          onChange(newLocation);
+        } catch (err) {
+          console.error('Error handling map click:', err);
         }
-        
-        setLocation(newLocation);
-        onChange(newLocation);
       });
 
-      mapInstanceRef.current = map;
-      markerRef.current = { marker, circle };
+        mapInstanceRef.current = map;
+        markerRef.current = { marker, circle };
 
-      console.log('Map initialized successfully');
+        console.log('Map initialized successfully');
 
-      return () => {
-        console.log('Cleaning up map');
-        map.remove();
+        // Force a size recalculation after a short delay
+        setTimeout(() => {
+          if (map && mapRef.current) {
+            try {
+              map.invalidateSize();
+            } catch (err) {
+              console.error('Error invalidating map size:', err);
+            }
+          }
+        }, 250);
+      } catch (error) {
+        console.error('Error initializing map:', error);
+      }
+    }, 100); // Small delay to ensure DOM is ready
+
+    // Cleanup function
+    return () => {
+      console.log('Cleaning up map');
+      clearTimeout(timer);
+
+      if (mapInstanceRef.current) {
+        try {
+          mapInstanceRef.current.off(); // Remove all event listeners
+          mapInstanceRef.current.remove();
+        } catch (err) {
+          console.error('Error removing map:', err);
+        }
         mapInstanceRef.current = null;
-      };
-    } catch (error) {
-      console.error('Error initializing map:', error);
-    }
+      }
+
+      // Clean up Leaflet container reference
+      if (mapRef.current && mapRef.current._leaflet_id) {
+        delete mapRef.current._leaflet_id;
+      }
+
+      markerRef.current = null;
+    };
   }, [isMapReady]); // Keep this dependency array minimal
 
   // Update radius circle when radius changes
   useEffect(() => {
-    if (markerRef.current) {
-      markerRef.current.circle.setRadius(location.radius);
+    if (markerRef.current && markerRef.current.circle) {
+      try {
+        markerRef.current.circle.setRadius(location.radius);
+      } catch (err) {
+        console.error('Error updating radius:', err);
+      }
     }
   }, [location.radius]);
 
@@ -179,63 +259,111 @@ const LocationPicker = ({ value, onChange, onRemove }) => {
   const selectSearchResult = (result) => {
     const lat = parseFloat(result.lat);
     const lng = parseFloat(result.lon);
-    
+
     const newLocation = {
       ...location,
       lat,
       lng,
       address: result.display_name
     };
-    
+
     setLocation(newLocation);
     onChange(newLocation);
-    
+
+    // Update map view and markers (with null checks)
     if (mapInstanceRef.current && markerRef.current) {
-      mapInstanceRef.current.setView([lat, lng], 15);
-      markerRef.current.marker.setLatLng([lat, lng]);
-      markerRef.current.circle.setLatLng([lat, lng]);
+      try {
+        mapInstanceRef.current.setView([lat, lng], 15);
+        if (markerRef.current.marker) {
+          markerRef.current.marker.setLatLng([lat, lng]);
+        }
+        if (markerRef.current.circle) {
+          markerRef.current.circle.setLatLng([lat, lng]);
+        }
+      } catch (err) {
+        console.error('Error updating map:', err);
+      }
     }
-    
+
     setSearchResults([]);
     setSearchQuery('');
   };
 
   // Get user's current location
   const useCurrentLocation = () => {
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const lat = position.coords.latitude;
-          const lng = position.coords.longitude;
-          
-          const newLocation = {
-            ...location,
-            lat,
-            lng
-          };
-          
-          // Try to get address
-          try {
-            const address = await reverseGeocode(lat, lng);
-            newLocation.address = address;
-          } catch (e) {
-            // Silent fail
-          }
-          
-          setLocation(newLocation);
-          onChange(newLocation);
-          
-          if (mapInstanceRef.current && markerRef.current) {
-            mapInstanceRef.current.setView([lat, lng], 15);
-            markerRef.current.marker.setLatLng([lat, lng]);
-            markerRef.current.circle.setLatLng([lat, lng]);
-          }
-        },
-        (error) => {
-          alert('Unable to get your location. Please search for a location instead.');
-        }
-      );
+    if (!('geolocation' in navigator)) {
+      alert('Geolocation is not supported by your browser.');
+      return;
     }
+
+    // Check if map is ready
+    if (!mapInstanceRef.current || !markerRef.current) {
+      alert('Map is still loading. Please wait a moment and try again.');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+
+        const newLocation = {
+          ...location,
+          lat,
+          lng
+        };
+
+        // Try to get address
+        try {
+          const address = await reverseGeocode(lat, lng);
+          newLocation.address = address;
+        } catch (e) {
+          // Silent fail
+        }
+
+        setLocation(newLocation);
+        onChange(newLocation);
+
+        // Update map view and markers (with null checks)
+        if (mapInstanceRef.current && markerRef.current) {
+          try {
+            mapInstanceRef.current.setView([lat, lng], 15);
+            if (markerRef.current.marker) {
+              markerRef.current.marker.setLatLng([lat, lng]);
+            }
+            if (markerRef.current.circle) {
+              markerRef.current.circle.setLatLng([lat, lng]);
+            }
+          } catch (err) {
+            console.error('Error updating map:', err);
+          }
+        }
+      },
+      (error) => {
+        let errorMessage = 'Unable to get your location.';
+
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = 'Location access denied. Please enable location permissions in your browser settings.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = 'Location unavailable. Please make sure GPS is enabled.';
+            break;
+          case error.TIMEOUT:
+            errorMessage = 'Location request timed out. Please try again.';
+            break;
+          default:
+            errorMessage = 'Unable to get your location. Please search for a location instead.';
+        }
+
+        alert(errorMessage);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
   };
 
   const handleRadiusChange = (e) => {
@@ -269,10 +397,11 @@ const LocationPicker = ({ value, onChange, onRemove }) => {
         <button
           type="button"
           onClick={useCurrentLocation}
+          disabled={!isMapReady || !mapInstanceRef.current}
           className="btn btn-success w-100"
         >
           <Crosshair size={20} className="me-2" style={{ display: 'inline' }} />
-          Use My Current Location
+          {!isMapReady || !mapInstanceRef.current ? 'Loading Map...' : 'Use My Current Location'}
         </button>
         <small className="text-muted">Quick way to set this question at your current position</small>
       </div>
@@ -323,9 +452,9 @@ const LocationPicker = ({ value, onChange, onRemove }) => {
         <div
           ref={mapRef}
           className="border rounded"
-          style={{ height: '400px', width: '100%' }}
+          style={{ height: '400px', width: '100%', minHeight: '400px' }}
         />
-        {!isMapReady && (
+        {(!isMapReady || !mapInstanceRef.current) && (
           <div className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-light rounded">
             <div className="text-muted">Loading map...</div>
           </div>

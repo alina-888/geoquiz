@@ -36,15 +36,49 @@ const LocationStatus = ({
     setIsMapReady(true);
   }, []);
 
+  // Ensure proper cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (mapInstanceRef.current) {
+        try {
+          mapInstanceRef.current.off();
+          mapInstanceRef.current.remove();
+        } catch (err) {
+          console.error('Error during LocationStatus cleanup:', err);
+        }
+      }
+    };
+  }, []);
+
   // Initialize map
   useEffect(() => {
     if (!isMapReady || mapInstanceRef.current || !mapRef.current || !targetLocation) return;
 
-    try {
-      const map = L.map(mapRef.current).setView(
-        [targetLocation.lat, targetLocation.lng],
-        14
-      );
+    // Ensure the container has dimensions
+    const container = mapRef.current;
+    if (!container || container.offsetWidth === 0 || container.offsetHeight === 0) {
+      console.warn('LocationStatus map container not ready');
+      return;
+    }
+
+    // Check if already initialized
+    if (container._leaflet_id) {
+      console.warn('LocationStatus map already initialized, skipping');
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      try {
+        if (!mapRef.current) return;
+
+        const map = L.map(mapRef.current, {
+          fadeAnimation: false,
+          zoomAnimation: false,
+          preferCanvas: true
+        }).setView(
+          [targetLocation.lat, targetLocation.lng],
+          14
+        );
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
@@ -93,15 +127,44 @@ const LocationStatus = ({
         map.fitBounds(bounds, { padding: [50, 50] });
       }
 
-      mapInstanceRef.current = map;
+        mapInstanceRef.current = map;
 
-      return () => {
-        map.remove();
+        console.log('LocationStatus map initialized successfully');
+
+        // Force size recalculation
+        setTimeout(() => {
+          if (map && mapRef.current) {
+            try {
+              map.invalidateSize();
+            } catch (err) {
+              console.error('Error invalidating LocationStatus map size:', err);
+            }
+          }
+        }, 250);
+      } catch (error) {
+        console.error('Error initializing LocationStatus map:', error);
+      }
+    }, 100);
+
+    return () => {
+      console.log('Cleaning up LocationStatus map initialization');
+      clearTimeout(timer);
+
+      if (mapInstanceRef.current) {
+        try {
+          mapInstanceRef.current.off();
+          mapInstanceRef.current.remove();
+        } catch (err) {
+          console.error('Error removing LocationStatus map:', err);
+        }
         mapInstanceRef.current = null;
-      };
-    } catch (error) {
-      console.error('Error initializing map:', error);
-    }
+      }
+
+      // Clean up Leaflet container reference
+      if (mapRef.current && mapRef.current._leaflet_id) {
+        delete mapRef.current._leaflet_id;
+      }
+    };
   }, [isMapReady, targetLocation, userLocation, isLocked]);
 
   if (!targetLocation) return null;
@@ -139,7 +202,7 @@ const LocationStatus = ({
               <div
                 ref={mapRef}
                 className="border rounded"
-                style={{ height: '300px', width: '100%' }}
+                style={{ height: '300px', width: '100%', minHeight: '300px' }}
               />
             </div>
 
