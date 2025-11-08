@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import Home from './pages/Home';
 import QuizDetail from './pages/QuizDetail';
 import QuizCreate from './pages/QuizCreate';
+import QuizEdit from './pages/QuizEdit';
 import QuizProgress from './pages/QuizProgress';
 import QuestionCreate from './pages/QuestionCreate';
 import Question from './pages/Question';
@@ -89,6 +90,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/quizzes/create/" element={<QuizCreate />} />
+        <Route path="/quizzes/:id/edit" element={<QuizEdit />} />
         <Route path="/quizzes/:id/questions/create/" element={<QuestionCreate />} />
         <Route path="/quizzes/:id/" element={<QuizDetail />} />
         <Route path="/quizzes/:id/start/" element={<QuizProgress />} />

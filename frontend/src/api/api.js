@@ -53,6 +53,19 @@ export function createQuiz(payload) {
   return apiRequest('/quizzes/', { method: 'POST', body: JSON.stringify(payload) });
 }
 
+export function updateQuiz(quizId, payload) {
+  return apiRequest(`/quizzes/${quizId}/`, {
+    method: 'PUT',
+    body: JSON.stringify(payload)
+  });
+}
+
+export function deleteQuiz(quizId) {
+  return apiRequest(`/quizzes/${quizId}/`, {
+    method: 'DELETE'
+  });
+}
+
 export function createQuestion(quizId, payload) {
   // Accepts plain object; converts to FormData for file upload support
   const form = new FormData();

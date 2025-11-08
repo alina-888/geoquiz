@@ -51,14 +51,30 @@ class QuestionSerializer(serializers.ModelSerializer):
 
 
 class QuizSerializer(serializers.ModelSerializer):
+    creator_username = serializers.CharField(source='creator.username', read_only=True)
 
     class Meta:
         model = Quiz
         fields = [
-            'id', 'creator', 'title', 'description', 'difficulty_level', 'estimated_duration', 'category',
+            'id', 'creator', 'creator_username', 'title', 'description', 'difficulty_level', 'estimated_duration', 'category',
             'is_published', 'is_geo', 'avg_rating'
         ]
-        read_only_fields = ['id', 'avg_rating', 'creator']
+        read_only_fields = ['id', 'avg_rating', 'creator', 'creator_username']
+
+    def validate_is_geo(self, value):
+        """Prevent changing is_geo to False if quiz has questions with geolocation"""
+        # Only validate on update (when instance exists)
+        if self.instance:
+            # If trying to change from True to False
+            if self.instance.is_geo and not value:
+                # Check if there are any questions with geolocation
+                has_geo_questions = self.instance.questions.filter(geolocation__isnull=False).exists()
+                if has_geo_questions:
+                    raise serializers.ValidationError(
+                        'Cannot change quiz to non-geo: this quiz has questions with geolocation data. '
+                        'Remove geolocation from all questions first.'
+                    )
+        return value
 
 
 class QuizDetailSerializer(QuizSerializer):

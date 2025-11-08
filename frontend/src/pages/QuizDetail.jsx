@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { getQuizDetail, startQuiz } from '../api/api';
+import { Edit2, Trash2 } from 'lucide-react';
+import { getQuizDetail, startQuiz, deleteQuiz } from '../api/api';
 
 export default function QuizDetail() {
   const { id } = useParams();
@@ -14,6 +15,7 @@ export default function QuizDetail() {
     setLoading(true);
     getQuizDetail(id)
       .then((data) => {
+        console.log('Quiz data:', data); // Debug: check creator structure
         setQuiz(data);
         setLoading(false);
       })
@@ -32,9 +34,32 @@ export default function QuizDetail() {
     }
   };
 
+  const handleDelete = async () => {
+    const questionCount = quiz.questions?.length || 0;
+    const confirmMessage = questionCount > 0
+      ? `Are you sure you want to delete this quiz? This will also delete ${questionCount} question${questionCount === 1 ? '' : 's'}. This action cannot be undone.`
+      : 'Are you sure you want to delete this quiz? This action cannot be undone.';
+
+    if (window.confirm(confirmMessage)) {
+      try {
+        await deleteQuiz(id);
+        navigate('/');
+      } catch (err) {
+        setError(err.message || 'Failed to delete quiz');
+      }
+    }
+  };
+
   if (loading) return <div className="p-4">Loading...</div>;
   if (error) return <div className="p-4 alert alert-danger">{error}</div>;
   if (!quiz) return null;
+
+  // Check if current user is the creator
+  const isCreator = quiz.creator_username && quiz.creator_username === username;
+
+  console.log('Current user:', username); // Debug
+  console.log('Quiz creator_username:', quiz.creator_username); // Debug
+  console.log('Is creator?', isCreator); // Debug
 
   return (
     <div className="container mt-4" style={{ maxWidth: '700px' }}>
@@ -44,10 +69,26 @@ export default function QuizDetail() {
           <p className="card-text mb-3">{quiz.description}</p>
           <div className="mb-3 text-muted">
             Category: {quiz.category} • Difficulty: {quiz.difficulty_level}
+            {quiz.is_geo && <span className="ms-2 badge bg-info">Geo Quiz</span>}
           </div>
 
           {username ? (
-            <button onClick={onStart} className="btn btn-primary">Start</button>
+            <div className="d-flex gap-2">
+              <button onClick={onStart} className="btn btn-primary">Start</button>
+
+              {isCreator && (
+                <>
+                  <Link to={`/quizzes/${id}/edit`} className="btn btn-warning">
+                    <Edit2 size={16} className="me-1" style={{ display: 'inline' }} />
+                    Edit
+                  </Link>
+                  <button onClick={handleDelete} className="btn btn-danger">
+                    <Trash2 size={16} className="me-1" style={{ display: 'inline' }} />
+                    Delete
+                  </button>
+                </>
+              )}
+            </div>
           ) : (
             <Link to="/login" className="btn btn-outline-primary">Login to start</Link>
           )}
