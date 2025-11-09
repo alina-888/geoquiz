@@ -62,14 +62,24 @@ class QuestionSerializer(serializers.ModelSerializer):
 
 class QuizSerializer(serializers.ModelSerializer):
     creator_username = serializers.CharField(source='creator.username', read_only=True)
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Quiz
         fields = [
             'id', 'creator', 'creator_username', 'title', 'description', 'difficulty_level', 'estimated_duration', 'category',
-            'is_published', 'is_geo', 'avg_rating'
+            'is_published', 'is_geo', 'avg_rating', 'image', 'image_url'
         ]
         read_only_fields = ['id', 'avg_rating', 'creator', 'creator_username']
+
+    def get_image_url(self, obj):
+        """Return full URL for the image"""
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
 
     def validate_is_geo(self, value):
         """Prevent changing is_geo to False if quiz has questions with geolocation"""

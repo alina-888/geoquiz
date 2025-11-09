@@ -30,18 +30,50 @@ export default function Home() {
         </Link>
       </div>
 
-      {/* Список викторин */}
-      <ul className="list-group">
+      {/* Quiz Grid */}
+      <div className="row g-4">
         {Array.isArray(quizzes?.results ?? quizzes) &&
           (quizzes.results || quizzes).map(quiz => (
-            <li key={quiz.id} className="list-group-item d-flex justify-content-between align-items-center">
-              <Link to={`/quizzes/${quiz.id}/`} className="text-decoration-none fw-semibold">
-                {quiz.title}
+            <div key={quiz.id} className="col-12 col-md-6 col-lg-4">
+              <Link to={`/quizzes/${quiz.id}/`} className="text-decoration-none">
+                <div className="card h-100 shadow-sm" style={{ transition: 'transform 0.2s' }}
+                     onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
+                     onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
+                  {quiz.image_url ? (
+                    <img
+                      src={quiz.image_url}
+                      alt={quiz.title}
+                      className="card-img-top"
+                      style={{ height: '180px', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <div className="card-img-top bg-secondary bg-opacity-10 d-flex align-items-center justify-content-center"
+                         style={{ height: '180px' }}>
+                      <span className="text-muted">No image</span>
+                    </div>
+                  )}
+                  <div className="card-body">
+                    <h5 className="card-title">{quiz.title}</h5>
+                    <p className="card-text text-muted small" style={{
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical'
+                    }}>
+                      {quiz.description || 'No description'}
+                    </p>
+                    <div className="d-flex gap-2 flex-wrap">
+                      <span className="badge bg-secondary">{quiz.category}</span>
+                      <span className="badge bg-info">Level {quiz.difficulty_level}</span>
+                      {quiz.is_geo && <span className="badge bg-success">Geo</span>}
+                    </div>
+                  </div>
+                </div>
               </Link>
-              <span className="badge bg-primary rounded-pill">Go</span>
-            </li>
+            </div>
           ))}
-      </ul>
+      </div>
     </div>
   );
 }

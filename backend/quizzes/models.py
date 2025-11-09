@@ -31,6 +31,7 @@ class Quiz(models.Model):
     is_published = models.BooleanField(default=False)
     avg_rating = models.FloatField(default=0.0)
     is_geo = models.BooleanField(default=False)
+    image = models.ImageField(upload_to='quiz_images/', null=True, blank=True)
 
     def __str__(self):
         return self.title

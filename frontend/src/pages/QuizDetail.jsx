@@ -77,6 +77,14 @@ export default function QuizDetail() {
   return (
     <div className="container mt-4" style={{ maxWidth: '700px' }}>
       <div className="card">
+        {quiz.image_url && (
+          <img
+            src={quiz.image_url}
+            alt={quiz.title}
+            className="card-img-top"
+            style={{ maxHeight: '300px', objectFit: 'cover' }}
+          />
+        )}
         <div className="card-body">
           <h1 className="card-title h4 mb-2">{quiz.title}</h1>
           <p className="card-text mb-3">{quiz.description}</p>

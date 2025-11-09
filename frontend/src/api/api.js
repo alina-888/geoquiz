@@ -63,10 +63,30 @@ export function getQuizDetail(quizId) {
 }
 
 export function createQuiz(payload) {
+  // If payload has an image file, use FormData
+  if (payload.image instanceof File) {
+    const form = new FormData();
+    Object.keys(payload).forEach(key => {
+      if (payload[key] !== null && payload[key] !== undefined) {
+        form.append(key, payload[key]);
+      }
+    });
+    return apiRequest('/quizzes/', { method: 'POST', body: form });
+  }
   return apiRequest('/quizzes/', { method: 'POST', body: JSON.stringify(payload) });
 }
 
 export function updateQuiz(quizId, payload) {
+  // If payload has an image file, use FormData
+  if (payload.image instanceof File) {
+    const form = new FormData();
+    Object.keys(payload).forEach(key => {
+      if (payload[key] !== null && payload[key] !== undefined) {
+        form.append(key, payload[key]);
+      }
+    });
+    return apiRequest(`/quizzes/${quizId}/`, { method: 'PUT', body: form });
+  }
   return apiRequest(`/quizzes/${quizId}/`, {
     method: 'PUT',
     body: JSON.stringify(payload)

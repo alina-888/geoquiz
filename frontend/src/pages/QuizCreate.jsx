@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Image } from 'lucide-react';
 import { createQuiz } from '../api/api';
 
 export default function QuizCreate() {
@@ -13,6 +14,8 @@ export default function QuizCreate() {
     is_published: false,
     is_geo: false,
   });
+  const [imageFile, setImageFile] = useState(null);
+  const imageInputRef = useRef(null);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [createdQuiz, setCreatedQuiz] = useState(null);
@@ -22,12 +25,30 @@ export default function QuizCreate() {
     setForm({ ...form, [name]: type === 'checkbox' ? checked : value });
   };
 
+  const handleImageSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+    }
+  };
+
+  const removeImage = () => {
+    setImageFile(null);
+    if (imageInputRef.current) {
+      imageInputRef.current.value = '';
+    }
+  };
+
   const onSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
     setError('');
     try {
-      const created = await createQuiz(form);
+      const payload = { ...form };
+      if (imageFile) {
+        payload.image = imageFile;
+      }
+      const created = await createQuiz(payload);
       setCreatedQuiz(created);
     } catch (err) {
       setError(err.message || 'Failed to create quiz');
@@ -82,6 +103,48 @@ export default function QuizCreate() {
         <div className="form-check mb-3">
           <input id="is_geo" type="checkbox" name="is_geo" checked={form.is_geo} onChange={onChange} className="form-check-input" />
           <label htmlFor="is_geo" className="form-check-label">This is a geo-quiz</label>
+        </div>
+
+        <div className="mb-3">
+          <label className="form-label d-block fw-semibold">Quiz Image</label>
+          <div
+            className={`border rounded p-3 text-center ${imageFile ? 'border-primary bg-primary bg-opacity-10' : 'border-secondary'}`}
+            style={{ cursor: 'pointer', transition: 'all 0.2s', maxWidth: '400px' }}
+            onClick={() => imageInputRef.current?.click()}
+            onMouseEnter={(e) => !imageFile && (e.currentTarget.style.borderColor = '#0d6efd')}
+            onMouseLeave={(e) => !imageFile && (e.currentTarget.style.borderColor = '')}
+          >
+            <Image size={32} className="mb-2 text-secondary" />
+            <div className="fw-semibold mb-2">Quiz Cover Image</div>
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={handleImageSelect}
+            />
+            {imageFile ? (
+              <div className="mt-2">
+                <img
+                  src={URL.createObjectURL(imageFile)}
+                  alt="Quiz cover"
+                  style={{ width: '100%', height: 'auto', maxHeight: '200px', objectFit: 'contain', borderRadius: '4px' }}
+                  className="mb-2"
+                />
+                <div className="d-flex align-items-center justify-content-between mt-2 px-2 py-1 bg-white rounded">
+                  <div className="small text-truncate flex-grow-1" title={imageFile.name}>{imageFile.name}</div>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); removeImage(); }}
+                    className="btn btn-sm btn-outline-danger ms-2"
+                    style={{ padding: '0.1rem 0.3rem', fontSize: '0.75rem' }}
+                  >×</button>
+                </div>
+              </div>
+            ) : (
+              <div className="small text-muted">Click to upload (optional)</div>
+            )}
+          </div>
         </div>
 
         {!createdQuiz ? (

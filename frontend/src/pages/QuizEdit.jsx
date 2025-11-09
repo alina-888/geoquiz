@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Image } from 'lucide-react';
 import { getQuizDetail, updateQuiz } from '../api/api';
 
 export default function QuizEdit() {
@@ -14,6 +15,9 @@ export default function QuizEdit() {
     is_published: false,
     is_geo: false,
   });
+  const [imageFile, setImageFile] = useState(null);
+  const [existingImageUrl, setExistingImageUrl] = useState(null);
+  const imageInputRef = useRef(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -49,6 +53,12 @@ export default function QuizEdit() {
           is_published: quizData.is_published || false,
           is_geo: quizData.is_geo || false,
         });
+
+        // Load existing image (backend now returns full URL)
+        if (quizData.image_url) {
+          setExistingImageUrl(quizData.image_url);
+        }
+
         setLoading(false);
       })
       .catch((err) => {
@@ -62,12 +72,31 @@ export default function QuizEdit() {
     setForm({ ...form, [name]: type === 'checkbox' ? checked : value });
   };
 
+  const handleImageSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+    }
+  };
+
+  const removeImage = () => {
+    setImageFile(null);
+    setExistingImageUrl(null);
+    if (imageInputRef.current) {
+      imageInputRef.current.value = '';
+    }
+  };
+
   const onSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
     setError('');
     try {
-      await updateQuiz(id, form);
+      const payload = { ...form };
+      if (imageFile) {
+        payload.image = imageFile;
+      }
+      await updateQuiz(id, payload);
       navigate(`/quizzes/${id}/`);
     } catch (err) {
       setError(err.message || 'Failed to update quiz');
@@ -147,6 +176,66 @@ export default function QuizEdit() {
               Cannot change: This quiz has {(quiz?.questions || []).filter(q => q.geolocation).length} question(s) with geolocation data
             </div>
           )}
+        </div>
+
+        <div className="mb-3">
+          <label className="form-label d-block fw-semibold">Quiz Image</label>
+          <div
+            className={`border rounded p-3 text-center ${imageFile || existingImageUrl ? 'border-primary bg-primary bg-opacity-10' : 'border-secondary'}`}
+            style={{ cursor: 'pointer', transition: 'all 0.2s', maxWidth: '400px' }}
+            onClick={() => imageInputRef.current?.click()}
+            onMouseEnter={(e) => !imageFile && !existingImageUrl && (e.currentTarget.style.borderColor = '#0d6efd')}
+            onMouseLeave={(e) => !imageFile && !existingImageUrl && (e.currentTarget.style.borderColor = '')}
+          >
+            <Image size={32} className="mb-2 text-secondary" />
+            <div className="fw-semibold mb-2">Quiz Cover Image</div>
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={handleImageSelect}
+            />
+            {imageFile ? (
+              <div className="mt-2">
+                <img
+                  src={URL.createObjectURL(imageFile)}
+                  alt="Quiz cover"
+                  style={{ width: '100%', height: 'auto', maxHeight: '200px', objectFit: 'contain', borderRadius: '4px' }}
+                  className="mb-2"
+                />
+                <div className="d-flex align-items-center justify-content-between mt-2 px-2 py-1 bg-white rounded">
+                  <div className="small text-truncate flex-grow-1" title={imageFile.name}>{imageFile.name}</div>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); removeImage(); }}
+                    className="btn btn-sm btn-outline-danger ms-2"
+                    style={{ padding: '0.1rem 0.3rem', fontSize: '0.75rem' }}
+                  >×</button>
+                </div>
+              </div>
+            ) : existingImageUrl ? (
+              <div className="mt-2">
+                <img
+                  src={existingImageUrl}
+                  alt="Existing quiz cover"
+                  style={{ width: '100%', height: 'auto', maxHeight: '200px', objectFit: 'contain', borderRadius: '4px' }}
+                  className="mb-2"
+                />
+                <div className="d-flex align-items-center justify-content-between mt-2 px-2 py-1 bg-white rounded">
+                  <div className="small text-info flex-grow-1">Current image</div>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); removeImage(); }}
+                    className="btn btn-sm btn-outline-danger ms-2"
+                    style={{ padding: '0.1rem 0.3rem', fontSize: '0.75rem' }}
+                  >×</button>
+                </div>
+              </div>
+            ) : (
+              <div className="small text-muted">Click to upload (optional)</div>
+            )}
+          </div>
         </div>
 
         <div className="d-flex gap-2">
