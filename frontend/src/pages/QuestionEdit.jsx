@@ -352,21 +352,40 @@ export default function QuestionEdit() {
                   <strong>Existing Media Files ({existingMediaFiles.length})</strong>
                 </div>
                 <div className="card-body p-2">
-                  {existingMediaFiles.map((media) => (
-                    <div key={media.id} className="d-flex align-items-center justify-content-between p-2 mb-1 bg-light rounded">
-                      <div className="d-flex align-items-center">
-                        <span className="badge bg-secondary me-2">{media.media_type}</span>
-                        <small className="text-muted">Uploaded {new Date(media.uploaded_at).toLocaleDateString()}</small>
+                  {existingMediaFiles.map((media) => {
+                    const resolveMediaUrl = (url) => {
+                      if (!url) return url;
+                      if (url.startsWith('http://') || url.startsWith('https://')) return url;
+                      if (url.startsWith('/media/')) return `http://localhost:8000${url}`;
+                      return url;
+                    };
+
+                    return (
+                      <div key={media.id} className="p-2 mb-2 bg-light rounded border">
+                        {media.media_type === 'image' && (
+                          <img
+                            src={resolveMediaUrl(media.file_url)}
+                            alt="Existing media"
+                            style={{ width: '100%', height: 'auto', maxHeight: '150px', objectFit: 'contain', borderRadius: '4px' }}
+                            className="mb-2"
+                          />
+                        )}
+                        <div className="d-flex align-items-center justify-content-between">
+                          <div className="d-flex align-items-center flex-grow-1">
+                            <span className="badge bg-secondary me-2">{media.media_type}</span>
+                            <small className="text-muted">Uploaded {new Date(media.uploaded_at).toLocaleDateString()}</small>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => deleteExistingMedia(media.id)}
+                            className="btn btn-sm btn-outline-danger"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => deleteExistingMedia(media.id)}
-                        className="btn btn-sm btn-outline-danger"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -405,14 +424,22 @@ export default function QuestionEdit() {
                       <div className="small text-muted">Click to upload</div>
                     )}
                     {imageFiles.map((file, idx) => (
-                      <div key={idx} className="d-flex align-items-center justify-content-between mt-2 px-2 py-1 bg-white rounded">
-                        <div className="small text-truncate flex-grow-1" title={file.name}>{file.name}</div>
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); removeImageFile(idx); }}
-                          className="btn btn-sm btn-outline-danger ms-2"
-                          style={{ padding: '0.1rem 0.3rem', fontSize: '0.75rem' }}
-                        >×</button>
+                      <div key={idx} className="mt-2 bg-white rounded border p-2">
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt={file.name}
+                          style={{ width: '100%', height: 'auto', maxHeight: '150px', objectFit: 'contain', borderRadius: '4px' }}
+                          className="mb-2"
+                        />
+                        <div className="d-flex align-items-center justify-content-between">
+                          <div className="small text-truncate flex-grow-1" title={file.name}>{file.name}</div>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); removeImageFile(idx); }}
+                            className="btn btn-sm btn-outline-danger ms-2"
+                            style={{ padding: '0.1rem 0.3rem', fontSize: '0.75rem' }}
+                          >×</button>
+                        </div>
                       </div>
                     ))}
                   </div>

@@ -385,14 +385,22 @@ export default function QuestionCreate() {
                       <div className="small text-muted">Click to upload</div>
                     )}
                     {imageFiles.map((file, idx) => (
-                      <div key={idx} className="d-flex align-items-center justify-content-between mt-2 px-2 py-1 bg-white rounded">
-                        <div className="small text-truncate flex-grow-1" title={file.name}>{file.name}</div>
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); removeImageFile(idx); }}
-                          className="btn btn-sm btn-outline-danger ms-2"
-                          style={{ padding: '0.1rem 0.3rem', fontSize: '0.75rem' }}
-                        >×</button>
+                      <div key={idx} className="mt-2 bg-white rounded border p-2">
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt={file.name}
+                          style={{ width: '100%', height: 'auto', maxHeight: '150px', objectFit: 'contain', borderRadius: '4px' }}
+                          className="mb-2"
+                        />
+                        <div className="d-flex align-items-center justify-content-between">
+                          <div className="small text-truncate flex-grow-1" title={file.name}>{file.name}</div>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); removeImageFile(idx); }}
+                            className="btn btn-sm btn-outline-danger ms-2"
+                            style={{ padding: '0.1rem 0.3rem', fontSize: '0.75rem' }}
+                          >×</button>
+                        </div>
                       </div>
                     ))}
                   </div>
