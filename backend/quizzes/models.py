@@ -121,6 +121,18 @@ class Question(models.Model):
         return None
 
 
+def question_media_upload_path(instance, filename):
+    """Generate upload path based on media type"""
+    if instance.media_type == 'image':
+        return f'question_media/images/{filename}'
+    elif instance.media_type == 'audio':
+        return f'question_media/audio/{filename}'
+    elif instance.media_type == 'video':
+        return f'question_media/videos/{filename}'
+    else:
+        return f'question_media/{filename}'
+
+
 class QuestionMedia(models.Model):
     """Model for storing multiple media files per question"""
     MEDIA_TYPE_CHOICES = [
@@ -131,7 +143,7 @@ class QuestionMedia(models.Model):
 
     question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='media_files')
     media_type = models.CharField(max_length=20, choices=MEDIA_TYPE_CHOICES)
-    file = models.FileField(upload_to='question_media/%Y/%m/')
+    file = models.FileField(upload_to=question_media_upload_path)
     display_order = models.PositiveIntegerField(default=0)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
