@@ -102,6 +102,9 @@ export default function QuestionEdit() {
   // Constants
   const MAX_FILES_PER_QUESTION = 8;
 
+  // Check if maximum files reached
+  const isMaxFilesReached = existingMediaFiles.length + imageFiles.length + audioFiles.length + videoFiles.length >= MAX_FILES_PER_QUESTION;
+
   // Helper functions for file management
   const handleImageSelect = (e) => {
     const newFiles = Array.from(e.target.files || []);
@@ -374,11 +377,11 @@ export default function QuestionEdit() {
               <div className="row g-3">
                 <div className="col-12 col-md-4">
                   <div
-                    className={`border rounded p-3 text-center ${imageFiles.length > 0 ? 'border-primary bg-primary bg-opacity-10' : existingMediaFiles.some(m => m.media_type === 'image') ? 'border-info bg-info bg-opacity-10' : 'border-secondary'}`}
-                    style={{ cursor: 'pointer', transition: 'all 0.2s' }}
-                    onClick={() => imageInputRef.current?.click()}
-                    onMouseEnter={(e) => imageFiles.length === 0 && (e.currentTarget.style.borderColor = '#0d6efd')}
-                    onMouseLeave={(e) => imageFiles.length === 0 && !existingMediaFiles.some(m => m.media_type === 'image') && (e.currentTarget.style.borderColor = '')}
+                    className={`border rounded p-3 text-center ${isMaxFilesReached ? 'border-secondary bg-secondary bg-opacity-10' : imageFiles.length > 0 ? 'border-primary bg-primary bg-opacity-10' : existingMediaFiles.some(m => m.media_type === 'image') ? 'border-info bg-info bg-opacity-10' : 'border-secondary'}`}
+                    style={{ cursor: isMaxFilesReached ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: isMaxFilesReached ? 0.5 : 1 }}
+                    onClick={() => !isMaxFilesReached && imageInputRef.current?.click()}
+                    onMouseEnter={(e) => !isMaxFilesReached && imageFiles.length === 0 && (e.currentTarget.style.borderColor = '#0d6efd')}
+                    onMouseLeave={(e) => !isMaxFilesReached && imageFiles.length === 0 && !existingMediaFiles.some(m => m.media_type === 'image') && (e.currentTarget.style.borderColor = '')}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-2 text-secondary">
                       <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
@@ -416,11 +419,11 @@ export default function QuestionEdit() {
                 </div>
                 <div className="col-12 col-md-4">
                   <div
-                    className={`border rounded p-3 text-center ${audioFiles.length > 0 ? 'border-primary bg-primary bg-opacity-10' : existingMediaFiles.some(m => m.media_type === 'audio') ? 'border-info bg-info bg-opacity-10' : 'border-secondary'}`}
-                    style={{ cursor: 'pointer', transition: 'all 0.2s' }}
-                    onClick={() => audioInputRef.current?.click()}
-                    onMouseEnter={(e) => audioFiles.length === 0 && (e.currentTarget.style.borderColor = '#0d6efd')}
-                    onMouseLeave={(e) => audioFiles.length === 0 && !existingMediaFiles.some(m => m.media_type === 'audio') && (e.currentTarget.style.borderColor = '')}
+                    className={`border rounded p-3 text-center ${isMaxFilesReached ? 'border-secondary bg-secondary bg-opacity-10' : audioFiles.length > 0 ? 'border-primary bg-primary bg-opacity-10' : existingMediaFiles.some(m => m.media_type === 'audio') ? 'border-info bg-info bg-opacity-10' : 'border-secondary'}`}
+                    style={{ cursor: isMaxFilesReached ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: isMaxFilesReached ? 0.5 : 1 }}
+                    onClick={() => !isMaxFilesReached && audioInputRef.current?.click()}
+                    onMouseEnter={(e) => !isMaxFilesReached && audioFiles.length === 0 && (e.currentTarget.style.borderColor = '#0d6efd')}
+                    onMouseLeave={(e) => !isMaxFilesReached && audioFiles.length === 0 && !existingMediaFiles.some(m => m.media_type === 'audio') && (e.currentTarget.style.borderColor = '')}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-2 text-secondary">
                       <path d="M9 18V5l12-2v13"></path>
@@ -458,11 +461,11 @@ export default function QuestionEdit() {
                 </div>
                 <div className="col-12 col-md-4">
                   <div
-                    className={`border rounded p-3 text-center ${videoFiles.length > 0 ? 'border-primary bg-primary bg-opacity-10' : existingMediaFiles.some(m => m.media_type === 'video') ? 'border-info bg-info bg-opacity-10' : 'border-secondary'}`}
-                    style={{ cursor: 'pointer', transition: 'all 0.2s' }}
-                    onClick={() => videoInputRef.current?.click()}
-                    onMouseEnter={(e) => videoFiles.length === 0 && (e.currentTarget.style.borderColor = '#0d6efd')}
-                    onMouseLeave={(e) => videoFiles.length === 0 && !existingMediaFiles.some(m => m.media_type === 'video') && (e.currentTarget.style.borderColor = '')}
+                    className={`border rounded p-3 text-center ${isMaxFilesReached ? 'border-secondary bg-secondary bg-opacity-10' : videoFiles.length > 0 ? 'border-primary bg-primary bg-opacity-10' : existingMediaFiles.some(m => m.media_type === 'video') ? 'border-info bg-info bg-opacity-10' : 'border-secondary'}`}
+                    style={{ cursor: isMaxFilesReached ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: isMaxFilesReached ? 0.5 : 1 }}
+                    onClick={() => !isMaxFilesReached && videoInputRef.current?.click()}
+                    onMouseEnter={(e) => !isMaxFilesReached && videoFiles.length === 0 && (e.currentTarget.style.borderColor = '#0d6efd')}
+                    onMouseLeave={(e) => !isMaxFilesReached && videoFiles.length === 0 && !existingMediaFiles.some(m => m.media_type === 'video') && (e.currentTarget.style.borderColor = '')}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-2 text-secondary">
                       <polygon points="23 7 16 12 23 17 23 7"></polygon>
