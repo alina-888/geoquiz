@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getQuizQuestion, answerQuizQuestion, getQuizDetail, getQuizProgress } from '../api/api';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import LocationStatus from '../components/LocationStatus';
+import AudioPlayer from '../components/AudioPlayer';
+import VideoPlayer from '../components/VideoPlayer';
 import { isDebugMode, getCurrentPosition, calculateDistance, isWithinRadius } from '../utils/geolocation';
 
 export default function Question() {
@@ -197,29 +199,13 @@ export default function Question() {
                       </div>
                     )}
                     {media.media_type === 'audio' && (
-                      <div className="d-flex align-items-center justify-content-center p-3">
-                        <div className="w-100" style={{ maxWidth: '500px' }}>
-                          <div className="text-center mb-2 text-muted small">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-1">
-                              <path d="M9 18V5l12-2v13"></path>
-                              <circle cx="6" cy="18" r="3"></circle>
-                              <circle cx="18" cy="16" r="3"></circle>
-                            </svg>
-                            <div>Audio Clip {question.media_files.length > 1 ? `#${idx + 1}` : ''}</div>
-                          </div>
-                          <audio src={resolveMediaUrl(media.file_url)} controls className="w-100" />
-                        </div>
-                      </div>
+                      <AudioPlayer
+                        src={resolveMediaUrl(media.file_url)}
+                        label={question.media_files.length > 1 ? `Audio Clip #${idx + 1}` : 'Audio Clip'}
+                      />
                     )}
                     {media.media_type === 'video' && (
-                      <div className="text-center">
-                        <video
-                          src={resolveMediaUrl(media.file_url)}
-                          controls
-                          className="rounded shadow-sm"
-                          style={{ maxWidth: '100%', maxHeight: '400px' }}
-                        />
-                      </div>
+                      <VideoPlayer src={resolveMediaUrl(media.file_url)} />
                     )}
                   </div>
                 </div>
@@ -242,29 +228,13 @@ export default function Question() {
                   </div>
                 )}
                 {question.media_type === 'audio' && (
-                  <div className="d-flex align-items-center justify-content-center p-3">
-                    <div className="w-100" style={{ maxWidth: '500px' }}>
-                      <div className="text-center mb-2 text-muted small">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-1">
-                          <path d="M9 18V5l12-2v13"></path>
-                          <circle cx="6" cy="18" r="3"></circle>
-                          <circle cx="18" cy="16" r="3"></circle>
-                        </svg>
-                        <div>Audio Clip</div>
-                      </div>
-                      <audio src={resolveMediaUrl(question.media_url)} controls className="w-100" />
-                    </div>
-                  </div>
+                  <AudioPlayer
+                    src={resolveMediaUrl(question.media_url)}
+                    label="Audio Clip"
+                  />
                 )}
                 {question.media_type === 'video' && (
-                  <div className="text-center">
-                    <video
-                      src={resolveMediaUrl(question.media_url)}
-                      controls
-                      className="rounded shadow-sm"
-                      style={{ maxWidth: '100%', maxHeight: '400px' }}
-                    />
-                  </div>
+                  <VideoPlayer src={resolveMediaUrl(question.media_url)} />
                 )}
               </div>
             </div>
