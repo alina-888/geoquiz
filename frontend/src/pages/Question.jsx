@@ -5,6 +5,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import LocationStatus from '../components/LocationStatus';
 import AudioPlayer from '../components/AudioPlayer';
 import VideoPlayer from '../components/VideoPlayer';
+import ImageModal from '../components/ImageModal';
 import { isDebugMode, getCurrentPosition, calculateDistance, isWithinRadius } from '../utils/geolocation';
 
 export default function Question() {
@@ -13,6 +14,8 @@ export default function Question() {
   const [question, setQuestion] = useState(null);
   const [quiz, setQuiz] = useState(null);
   const [attempt, setAttempt] = useState(null);
+  const [modalImages, setModalImages] = useState([]);
+  const [modalIndex, setModalIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState(null);
   const [textAnswer, setTextAnswer] = useState('');
   const [tfAnswer, setTfAnswer] = useState('');
@@ -194,7 +197,19 @@ export default function Question() {
                           src={resolveMediaUrl(media.file_url)}
                           alt={`Question media ${idx + 1}`}
                           className="img-fluid rounded shadow-sm"
-                          style={{ maxHeight: '400px', objectFit: 'contain' }}
+                          style={{ maxHeight: '400px', objectFit: 'contain', cursor: 'zoom-in' }}
+                          onClick={() => {
+                            const allImages = question.media_files
+                              .filter(m => m.media_type === 'image')
+                              .map((m, i) => ({
+                                src: resolveMediaUrl(m.file_url),
+                                alt: `Question media ${i + 1}`
+                              }));
+                            const clickedIndex = question.media_files.filter(m => m.media_type === 'image').findIndex(m => m.id === media.id);
+                            setModalImages(allImages);
+                            setModalIndex(clickedIndex);
+                          }}
+                          title="Click to enlarge"
                         />
                       </div>
                     )}
@@ -223,7 +238,12 @@ export default function Question() {
                       src={resolveMediaUrl(question.media_url)}
                       alt="Question media"
                       className="img-fluid rounded shadow-sm"
-                      style={{ maxHeight: '400px', objectFit: 'contain' }}
+                      style={{ maxHeight: '400px', objectFit: 'contain', cursor: 'zoom-in' }}
+                      onClick={() => {
+                        setModalImages([{ src: resolveMediaUrl(question.media_url), alt: 'Question media' }]);
+                        setModalIndex(0);
+                      }}
+                      title="Click to enlarge"
                     />
                   </div>
                 )}
@@ -305,6 +325,16 @@ export default function Question() {
           </form>
         </div>
       </div>
+      )}
+
+      {/* Image Modal */}
+      {modalImages.length > 0 && (
+        <ImageModal
+          images={modalImages}
+          currentIndex={modalIndex}
+          onClose={() => setModalImages([])}
+          onNavigate={setModalIndex}
+        />
       )}
     </div>
   );
