@@ -62,24 +62,69 @@ export default function QuestionCreate() {
   };
   const removeOption = (idx) => setOptions(options.filter((_, i) => i !== idx));
 
+  // Constants
+  const MAX_FILES_PER_QUESTION = 8;
+
   // Helper functions for file management
   const handleImageSelect = (e) => {
     const newFiles = Array.from(e.target.files || []);
-    setImageFiles([...imageFiles, ...newFiles]);
+    const currentTotal = imageFiles.length + audioFiles.length + videoFiles.length;
+    const remainingSlots = MAX_FILES_PER_QUESTION - currentTotal;
+
+    if (remainingSlots <= 0) {
+      setQuestionWarning(`Maximum ${MAX_FILES_PER_QUESTION} files per question reached.`);
+      if (imageInputRef.current) imageInputRef.current.value = '';
+      return;
+    }
+
+    const filesToAdd = newFiles.slice(0, remainingSlots);
+    if (filesToAdd.length < newFiles.length) {
+      setQuestionWarning(`Only ${filesToAdd.length} file(s) added. Maximum ${MAX_FILES_PER_QUESTION} files per question.`);
+    }
+
+    setImageFiles([...imageFiles, ...filesToAdd]);
     // Reset input value to allow selecting same file again
     if (imageInputRef.current) imageInputRef.current.value = '';
   };
 
   const handleAudioSelect = (e) => {
     const newFiles = Array.from(e.target.files || []);
-    setAudioFiles([...audioFiles, ...newFiles]);
+    const currentTotal = imageFiles.length + audioFiles.length + videoFiles.length;
+    const remainingSlots = MAX_FILES_PER_QUESTION - currentTotal;
+
+    if (remainingSlots <= 0) {
+      setQuestionWarning(`Maximum ${MAX_FILES_PER_QUESTION} files per question reached.`);
+      if (audioInputRef.current) audioInputRef.current.value = '';
+      return;
+    }
+
+    const filesToAdd = newFiles.slice(0, remainingSlots);
+    if (filesToAdd.length < newFiles.length) {
+      setQuestionWarning(`Only ${filesToAdd.length} file(s) added. Maximum ${MAX_FILES_PER_QUESTION} files per question.`);
+    }
+
+    setAudioFiles([...audioFiles, ...filesToAdd]);
     // Reset input value to allow selecting same file again
     if (audioInputRef.current) audioInputRef.current.value = '';
   };
 
   const handleVideoSelect = (e) => {
     const newFiles = Array.from(e.target.files || []);
-    setVideoFiles([...videoFiles, ...newFiles]);
+    const currentTotal = imageFiles.length + audioFiles.length + videoFiles.length;
+    const remainingSlots = MAX_FILES_PER_QUESTION - currentTotal;
+
+    if (remainingSlots <= 0) {
+      setQuestionWarning(`Maximum ${MAX_FILES_PER_QUESTION} files per question reached.`);
+      if (videoInputRef.current) videoInputRef.current.value = '';
+      return;
+    }
+
+    const filesToAdd = newFiles.slice(0, remainingSlots);
+    if (filesToAdd.length < newFiles.length) {
+      setQuestionWarning(`Only ${filesToAdd.length} file(s) added. Maximum ${MAX_FILES_PER_QUESTION} files per question.`);
+    }
+
+    setVideoFiles([...videoFiles, ...filesToAdd]);
     // Reset input value to allow selecting same file again
     if (videoInputRef.current) videoInputRef.current.value = '';
   };
@@ -303,6 +348,9 @@ export default function QuestionCreate() {
 
         <div className="mb-3">
           <label className="form-label d-block fw-semibold">Media Attachments</label>
+          {questionWarning && (
+            <div className="alert alert-warning py-2 mb-2">{questionWarning}</div>
+          )}
           <div className="card">
             <div className="card-body p-3">
               <div className="row g-3">
@@ -428,6 +476,12 @@ export default function QuestionCreate() {
               </div>
               <div className="form-text mt-2 text-center">
                 Click a card to upload multiple files. You can attach images, audio, and videos together.
+                <div className="mt-1">
+                  <strong>{imageFiles.length + audioFiles.length + videoFiles.length}/{MAX_FILES_PER_QUESTION}</strong> files attached
+                  {imageFiles.length + audioFiles.length + videoFiles.length >= MAX_FILES_PER_QUESTION && (
+                    <span className="text-warning ms-2">(Maximum reached)</span>
+                  )}
+                </div>
               </div>
             </div>
           </div>

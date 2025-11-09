@@ -4,7 +4,7 @@ from django.db.models import Avg, Count, Q
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from rest_framework import viewsets, permissions, status, filters
+from rest_framework import viewsets, permissions, status, filters, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
@@ -18,6 +18,10 @@ from .serializers import (
 )
 from .permissions import IsOwnerOrReadOnly
 from .filters import QuizFilter
+
+# Limits
+MAX_FILES_PER_QUESTION = 8
+MAX_FILES_PER_QUIZ = 100
 
 class StandardResultsSetPagination(PageNumberPagination):
     page_size = 20
@@ -376,6 +380,23 @@ class QuestionViewSet(viewsets.ModelViewSet):
         audio_files = self.request.FILES.getlist('audios')  # Note: plural
         video_files = self.request.FILES.getlist('videos')  # Note: plural
 
+        # Validate total file count per question
+        total_files = len(image_files) + len(audio_files) + len(video_files)
+        if total_files > MAX_FILES_PER_QUESTION:
+            raise serializers.ValidationError(
+                f'Maximum {MAX_FILES_PER_QUESTION} files per question allowed. You tried to upload {total_files} files.'
+            )
+
+        # Validate total file count per quiz
+        existing_quiz_files = QuestionMedia.objects.filter(question__quiz=quiz).count()
+        total_quiz_files = existing_quiz_files + total_files
+        if total_quiz_files > MAX_FILES_PER_QUIZ:
+            raise serializers.ValidationError(
+                f'Maximum {MAX_FILES_PER_QUIZ} files per quiz allowed. '
+                f'This quiz already has {existing_quiz_files} file(s). '
+                f'Adding {total_files} more would exceed the limit.'
+            )
+
         display_order = 0
 
         # Create QuestionMedia objects for each uploaded file
@@ -451,6 +472,28 @@ class QuestionViewSet(viewsets.ModelViewSet):
             image_files = request.FILES.getlist('images')  # Note: plural
             audio_files = request.FILES.getlist('audios')  # Note: plural
             video_files = request.FILES.getlist('videos')  # Note: plural
+
+            # Validate total file count per question (existing + new files)
+            existing_count = instance.media_files.count()
+            new_files_count = len(image_files) + len(audio_files) + len(video_files)
+            total_files = existing_count + new_files_count
+
+            if total_files > MAX_FILES_PER_QUESTION:
+                raise serializers.ValidationError(
+                    f'Maximum {MAX_FILES_PER_QUESTION} files per question allowed. '
+                    f'This question already has {existing_count} file(s). '
+                    f'You tried to add {new_files_count} more, which would exceed the limit.'
+                )
+
+            # Validate total file count per quiz
+            existing_quiz_files = QuestionMedia.objects.filter(question__quiz=quiz).count()
+            total_quiz_files = existing_quiz_files + new_files_count
+            if total_quiz_files > MAX_FILES_PER_QUIZ:
+                raise serializers.ValidationError(
+                    f'Maximum {MAX_FILES_PER_QUIZ} files per quiz allowed. '
+                    f'This quiz currently has {existing_quiz_files} file(s) across all questions. '
+                    f'Adding {new_files_count} more would exceed the limit.'
+                )
 
             # Get the current max display_order for this question
             max_order = instance.media_files.aggregate(models.Max('display_order'))['display_order__max']

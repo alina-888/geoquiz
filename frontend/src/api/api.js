@@ -29,7 +29,20 @@ export async function apiRequest(endpoint, options = {}) {
     let errorMessage = 'API error';
     try {
       const errorData = await response.json();
-      errorMessage = errorData.detail || errorData.error || JSON.stringify(errorData);
+      // Handle various DRF error formats
+      if (Array.isArray(errorData)) {
+        errorMessage = errorData.join(', ');
+      } else if (errorData.detail) {
+        errorMessage = errorData.detail;
+      } else if (errorData.error) {
+        errorMessage = errorData.error;
+      } else if (errorData.non_field_errors) {
+        errorMessage = Array.isArray(errorData.non_field_errors)
+          ? errorData.non_field_errors.join(', ')
+          : errorData.non_field_errors;
+      } else {
+        errorMessage = JSON.stringify(errorData);
+      }
     } catch (_) {}
     throw new Error(errorMessage);
   }
