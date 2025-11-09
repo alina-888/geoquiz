@@ -5,6 +5,7 @@ from . import views
 router = DefaultRouter()
 router.register(r'quizzes', views.QuizViewSet)
 router.register(r'questions', views.QuestionViewSet)
+router.register(r'question-media', views.QuestionMediaViewSet, basename='question-media')
 router.register(r'attempts', views.QuizAttemptViewSet, basename='attempts')
 
 urlpatterns = [

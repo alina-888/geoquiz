@@ -129,17 +129,34 @@ export default function QuizDetail() {
                             <MapPin size={12} style={{ display: 'inline' }} /> Geo
                           </span>
                         )}
-                        {q.media_type === 'image' && (
+                        {/* Show badges for new media_files array */}
+                        {q.media_files && q.media_files.filter(m => m.media_type === 'image').length > 0 && (
+                          <span className="badge bg-success">
+                            <Image size={12} style={{ display: 'inline' }} /> {q.media_files.filter(m => m.media_type === 'image').length} Image{q.media_files.filter(m => m.media_type === 'image').length > 1 ? 's' : ''}
+                          </span>
+                        )}
+                        {q.media_files && q.media_files.filter(m => m.media_type === 'audio').length > 0 && (
+                          <span className="badge bg-success">
+                            <Music size={12} style={{ display: 'inline' }} /> {q.media_files.filter(m => m.media_type === 'audio').length} Audio
+                          </span>
+                        )}
+                        {q.media_files && q.media_files.filter(m => m.media_type === 'video').length > 0 && (
+                          <span className="badge bg-success">
+                            <Video size={12} style={{ display: 'inline' }} /> {q.media_files.filter(m => m.media_type === 'video').length} Video{q.media_files.filter(m => m.media_type === 'video').length > 1 ? 's' : ''}
+                          </span>
+                        )}
+                        {/* Fallback for legacy single media */}
+                        {(!q.media_files || q.media_files.length === 0) && q.media_type === 'image' && (
                           <span className="badge bg-success">
                             <Image size={12} style={{ display: 'inline' }} /> Image
                           </span>
                         )}
-                        {q.media_type === 'audio' && (
+                        {(!q.media_files || q.media_files.length === 0) && q.media_type === 'audio' && (
                           <span className="badge bg-success">
                             <Music size={12} style={{ display: 'inline' }} /> Audio
                           </span>
                         )}
-                        {q.media_type === 'video' && (
+                        {(!q.media_files || q.media_files.length === 0) && q.media_type === 'video' && (
                           <span className="badge bg-success">
                             <Video size={12} style={{ display: 'inline' }} /> Video
                           </span>

@@ -10,11 +10,11 @@ from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import (
-    Quiz, Question, Option, QuizAttempt, UserAnswer,
+    Quiz, Question, Option, QuizAttempt, UserAnswer, QuestionMedia,
 )
 from .serializers import (
     QuizSerializer, QuizDetailSerializer, QuestionSerializer,
-    OptionSerializer, QuizAttemptSerializer, UserAnswerSerializer,
+    OptionSerializer, QuizAttemptSerializer, UserAnswerSerializer, QuestionMediaSerializer,
 )
 from .permissions import IsOwnerOrReadOnly
 from .filters import QuizFilter
@@ -341,7 +341,7 @@ class QuestionViewSet(viewsets.ModelViewSet):
     API endpoint for questions
     Allows managing quiz questions
     """
-    queryset = Question.objects.select_related('quiz').prefetch_related('options')
+    queryset = Question.objects.select_related('quiz').prefetch_related('options', 'media_files')
     serializer_class = QuestionSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
 
@@ -355,6 +355,8 @@ class QuestionViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """Ensure the question is added to the end of the quiz"""
+        from .models import QuestionMedia
+
         quiz_id = self.request.data.get('quiz')
         quiz = get_object_or_404(Quiz, id=quiz_id)
 
@@ -366,26 +368,48 @@ class QuestionViewSet(viewsets.ModelViewSet):
         max_order = quiz.questions.aggregate(models.Max('question_order'))['question_order__max']
         next_order = (max_order or 0) + 1
 
-        # Handle media files
-        image_file = self.request.FILES.get('image')
-        audio_file = self.request.FILES.get('audio')
-        video_file = self.request.FILES.get('video')
+        # Save the question first
+        question = serializer.save(question_order=next_order)
 
-        # Validate that only one media type is provided
-        media_files = [f for f in [image_file, audio_file, video_file] if f is not None]
-        if len(media_files) > 1:
-            from rest_framework.exceptions import ValidationError
-            raise ValidationError("Only one media type can be attached per question")
+        # Handle multiple media files using QuestionMedia model
+        image_files = self.request.FILES.getlist('images')  # Note: plural
+        audio_files = self.request.FILES.getlist('audios')  # Note: plural
+        video_files = self.request.FILES.getlist('videos')  # Note: plural
 
-        serializer.save(
-            question_order=next_order,
-            image=image_file,
-            audio=audio_file,
-            video=video_file,
-        )
+        display_order = 0
+
+        # Create QuestionMedia objects for each uploaded file
+        for image_file in image_files:
+            QuestionMedia.objects.create(
+                question=question,
+                media_type='image',
+                file=image_file,
+                display_order=display_order
+            )
+            display_order += 1
+
+        for audio_file in audio_files:
+            QuestionMedia.objects.create(
+                question=question,
+                media_type='audio',
+                file=audio_file,
+                display_order=display_order
+            )
+            display_order += 1
+
+        for video_file in video_files:
+            QuestionMedia.objects.create(
+                question=question,
+                media_type='video',
+                file=video_file,
+                display_order=display_order
+            )
+            display_order += 1
 
     def update(self, request, *args, **kwargs):
         """Custom update to handle options and media files"""
+        from .models import QuestionMedia
+
         try:
             instance = self.get_object()
             quiz = instance.quiz
@@ -393,17 +417,6 @@ class QuestionViewSet(viewsets.ModelViewSet):
             # Only allow quiz creator to update questions
             if quiz.creator != request.user:
                 self.permission_denied(request)
-
-            # Handle media files
-            image_file = request.FILES.get('image')
-            audio_file = request.FILES.get('audio')
-            video_file = request.FILES.get('video')
-
-            # Validate that only one media type is provided
-            media_files = [f for f in [image_file, audio_file, video_file] if f is not None]
-            if len(media_files) > 1:
-                from rest_framework.exceptions import ValidationError
-                raise ValidationError("Only one media type can be attached per question")
 
             # Handle options for multiple choice questions
             question_type = request.data.get('question_type', instance.question_type)
@@ -432,16 +445,44 @@ class QuestionViewSet(viewsets.ModelViewSet):
             # Update the question instance
             serializer = self.get_serializer(instance, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
+            serializer.save()
 
-            # Handle media updates
-            if image_file:
-                serializer.save(image=image_file, audio=None, video=None)
-            elif audio_file:
-                serializer.save(audio=audio_file, image=None, video=None)
-            elif video_file:
-                serializer.save(video=video_file, image=None, audio=None)
-            else:
-                serializer.save()
+            # Handle multiple media files using QuestionMedia model
+            image_files = request.FILES.getlist('images')  # Note: plural
+            audio_files = request.FILES.getlist('audios')  # Note: plural
+            video_files = request.FILES.getlist('videos')  # Note: plural
+
+            # Get the current max display_order for this question
+            max_order = instance.media_files.aggregate(models.Max('display_order'))['display_order__max']
+            display_order = (max_order or -1) + 1
+
+            # Create QuestionMedia objects for each new uploaded file
+            for image_file in image_files:
+                QuestionMedia.objects.create(
+                    question=instance,
+                    media_type='image',
+                    file=image_file,
+                    display_order=display_order
+                )
+                display_order += 1
+
+            for audio_file in audio_files:
+                QuestionMedia.objects.create(
+                    question=instance,
+                    media_type='audio',
+                    file=audio_file,
+                    display_order=display_order
+                )
+                display_order += 1
+
+            for video_file in video_files:
+                QuestionMedia.objects.create(
+                    question=instance,
+                    media_type='video',
+                    file=video_file,
+                    display_order=display_order
+                )
+                display_order += 1
 
             return Response(serializer.data)
         except Exception as e:
@@ -619,3 +660,29 @@ class QuizAttemptViewSet(viewsets.ModelViewSet):
 
         serializer = QuizAttemptSerializer(attempt)
         return Response(serializer.data)
+
+
+class QuestionMediaViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for managing question media files
+    Allows deleting individual media files
+    """
+    queryset = QuestionMedia.objects.all()
+    serializer_class = QuestionMediaSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """Only return media for questions in quizzes created by the user"""
+        return QuestionMedia.objects.filter(question__quiz__creator=self.request.user)
+
+    def destroy(self, request, *args, **kwargs):
+        """Delete a media file"""
+        instance = self.get_object()
+        # Check permission: only quiz creator can delete
+        if instance.question.quiz.creator != request.user:
+            return Response(
+                {"error": "You don't have permission to delete this media"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        instance.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

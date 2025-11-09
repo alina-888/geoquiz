@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Option, Question, Quiz, QuizAttempt, UserAnswer
+from .models import Option, Question, Quiz, QuizAttempt, UserAnswer, QuestionMedia
 
 
 class OptionSerializer(serializers.ModelSerializer):
@@ -10,8 +10,18 @@ class OptionSerializer(serializers.ModelSerializer):
         read_only_fields = ['id']
 
 
+class QuestionMediaSerializer(serializers.ModelSerializer):
+    file_url = serializers.ReadOnlyField()
+
+    class Meta:
+        model = QuestionMedia
+        fields = ['id', 'question', 'media_type', 'file', 'file_url', 'display_order', 'uploaded_at']
+        read_only_fields = ['id', 'uploaded_at']
+
+
 class QuestionSerializer(serializers.ModelSerializer):
     options = OptionSerializer(many=True, read_only=True)
+    media_files = QuestionMediaSerializer(many=True, read_only=True)
     has_media = serializers.ReadOnlyField()
     media_type = serializers.ReadOnlyField()
     media_url = serializers.SerializerMethodField()
@@ -21,7 +31,7 @@ class QuestionSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'quiz', 'question_text', 'question_order', 'points_value',
             'question_type', 'image', 'audio', 'video', 'has_media', 'media_type', 'media_url',
-            'options', 'geolocation', 'correct_answer'
+            'options', 'media_files', 'geolocation', 'correct_answer'
         ]
         read_only_fields = ['id', 'question_order']
 

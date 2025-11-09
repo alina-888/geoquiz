@@ -18,9 +18,9 @@ export default function QuestionCreate() {
   const [qType, setQType] = useState('multiple_choice');
   const [qPoints, setQPoints] = useState(10);
   const [qCorrect, setQCorrect] = useState('');
-  const [imageFile, setImageFile] = useState(null);
-  const [audioFile, setAudioFile] = useState(null);
-  const [videoFile, setVideoFile] = useState(null);
+  const [imageFiles, setImageFiles] = useState([]);
+  const [audioFiles, setAudioFiles] = useState([]);
+  const [videoFiles, setVideoFiles] = useState([]);
   const [qGeolocation, setQGeolocation] = useState(null);
   const [options, setOptions] = useState([
     { option_text: '', is_correct: false },
@@ -62,15 +62,49 @@ export default function QuestionCreate() {
   };
   const removeOption = (idx) => setOptions(options.filter((_, i) => i !== idx));
 
+  // Helper functions for file management
+  const handleImageSelect = (e) => {
+    const newFiles = Array.from(e.target.files || []);
+    setImageFiles([...imageFiles, ...newFiles]);
+    // Reset input value to allow selecting same file again
+    if (imageInputRef.current) imageInputRef.current.value = '';
+  };
+
+  const handleAudioSelect = (e) => {
+    const newFiles = Array.from(e.target.files || []);
+    setAudioFiles([...audioFiles, ...newFiles]);
+    // Reset input value to allow selecting same file again
+    if (audioInputRef.current) audioInputRef.current.value = '';
+  };
+
+  const handleVideoSelect = (e) => {
+    const newFiles = Array.from(e.target.files || []);
+    setVideoFiles([...videoFiles, ...newFiles]);
+    // Reset input value to allow selecting same file again
+    if (videoInputRef.current) videoInputRef.current.value = '';
+  };
+
+  const removeImageFile = (idx) => {
+    setImageFiles(imageFiles.filter((_, i) => i !== idx));
+  };
+
+  const removeAudioFile = (idx) => {
+    setAudioFiles(audioFiles.filter((_, i) => i !== idx));
+  };
+
+  const removeVideoFile = (idx) => {
+    setVideoFiles(videoFiles.filter((_, i) => i !== idx));
+  };
+
   // Helper function to reset all form fields
   const resetForm = () => {
     setQText('');
     setQPoints(10);
     setQType('multiple_choice');
     setQCorrect('');
-    setImageFile(null);
-    setAudioFile(null);
-    setVideoFile(null);
+    setImageFiles([]);
+    setAudioFiles([]);
+    setVideoFiles([]);
     setQGeolocation(null);
     setOptions([
       { option_text: '', is_correct: false },
@@ -107,9 +141,9 @@ export default function QuestionCreate() {
         question_type: qType,
         correct_answer: qType !== 'multiple_choice' ? qCorrect : undefined,
         options: qType === 'multiple_choice' ? options.filter(o => o.option_text.trim().length > 0) : [],
-        image: imageFile || undefined,
-        audio: audioFile || undefined,
-        video: videoFile || undefined,
+        images: imageFiles,
+        audios: audioFiles,
+        videos: videoFiles,
         geolocation: quiz?.is_geo ? qGeolocation : undefined,
       };
       await createQuestion(quiz.id, payload);
@@ -161,9 +195,9 @@ export default function QuestionCreate() {
         question_type: qType,
         correct_answer: qType !== 'multiple_choice' ? qCorrect : undefined,
         options: qType === 'multiple_choice' ? options.filter(o => o.option_text.trim().length > 0) : [],
-        image: imageFile || undefined,
-        audio: audioFile || undefined,
-        video: videoFile || undefined,
+        images: imageFiles,
+        audios: audioFiles,
+        videos: videoFiles,
         geolocation: quiz?.is_geo ? qGeolocation : undefined,
       };
       await createQuestion(quiz.id, payload);
@@ -268,54 +302,57 @@ export default function QuestionCreate() {
         )}
 
         <div className="mb-3">
-          <label className="form-label d-block fw-semibold">Media Attachment</label>
+          <label className="form-label d-block fw-semibold">Media Attachments</label>
           <div className="card">
             <div className="card-body p-3">
               <div className="row g-3">
                 <div className="col-12 col-md-4">
                   <div
-                    className={`border rounded p-3 text-center ${imageFile ? 'border-primary bg-primary bg-opacity-10' : 'border-secondary'}`}
+                    className={`border rounded p-3 text-center ${imageFiles.length > 0 ? 'border-primary bg-primary bg-opacity-10' : 'border-secondary'}`}
                     style={{ cursor: 'pointer', transition: 'all 0.2s' }}
                     onClick={() => imageInputRef.current?.click()}
-                    onMouseEnter={(e) => !imageFile && (e.currentTarget.style.borderColor = '#0d6efd')}
-                    onMouseLeave={(e) => !imageFile && (e.currentTarget.style.borderColor = '')}
+                    onMouseEnter={(e) => imageFiles.length === 0 && (e.currentTarget.style.borderColor = '#0d6efd')}
+                    onMouseLeave={(e) => imageFiles.length === 0 && (e.currentTarget.style.borderColor = '')}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-2 text-secondary">
                       <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                       <circle cx="8.5" cy="8.5" r="1.5"></circle>
                       <polyline points="21 15 16 10 5 21"></polyline>
                     </svg>
-                    <div className="fw-semibold mb-2">Image</div>
+                    <div className="fw-semibold mb-2">Images</div>
                     <input
                       ref={imageInputRef}
                       type="file"
                       accept="image/*"
+                      multiple
                       style={{ display: 'none' }}
-                      onChange={(e)=>{
-                        setImageFile(e.target.files?.[0] || null);
-                        setAudioFile(null);
-                        setVideoFile(null);
-                        if (audioInputRef.current) audioInputRef.current.value = '';
-                        if (videoInputRef.current) videoInputRef.current.value = '';
-                      }}
+                      onChange={handleImageSelect}
                     />
-                    {imageFile ? (
-                      <>
-                        <div className="small text-success fw-semibold mb-1">✓ Selected</div>
-                        <div className="small text-truncate text-muted" title={imageFile.name}>{imageFile.name}</div>
-                      </>
+                    {imageFiles.length > 0 ? (
+                      <div className="small text-success fw-semibold mb-1">✓ {imageFiles.length} file{imageFiles.length > 1 ? 's' : ''}</div>
                     ) : (
                       <div className="small text-muted">Click to upload</div>
                     )}
+                    {imageFiles.map((file, idx) => (
+                      <div key={idx} className="d-flex align-items-center justify-content-between mt-2 px-2 py-1 bg-white rounded">
+                        <div className="small text-truncate flex-grow-1" title={file.name}>{file.name}</div>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); removeImageFile(idx); }}
+                          className="btn btn-sm btn-outline-danger ms-2"
+                          style={{ padding: '0.1rem 0.3rem', fontSize: '0.75rem' }}
+                        >×</button>
+                      </div>
+                    ))}
                   </div>
                 </div>
                 <div className="col-12 col-md-4">
                   <div
-                    className={`border rounded p-3 text-center ${audioFile ? 'border-primary bg-primary bg-opacity-10' : 'border-secondary'}`}
+                    className={`border rounded p-3 text-center ${audioFiles.length > 0 ? 'border-primary bg-primary bg-opacity-10' : 'border-secondary'}`}
                     style={{ cursor: 'pointer', transition: 'all 0.2s' }}
                     onClick={() => audioInputRef.current?.click()}
-                    onMouseEnter={(e) => !audioFile && (e.currentTarget.style.borderColor = '#0d6efd')}
-                    onMouseLeave={(e) => !audioFile && (e.currentTarget.style.borderColor = '')}
+                    onMouseEnter={(e) => audioFiles.length === 0 && (e.currentTarget.style.borderColor = '#0d6efd')}
+                    onMouseLeave={(e) => audioFiles.length === 0 && (e.currentTarget.style.borderColor = '')}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-2 text-secondary">
                       <path d="M9 18V5l12-2v13"></path>
@@ -327,64 +364,70 @@ export default function QuestionCreate() {
                       ref={audioInputRef}
                       type="file"
                       accept="audio/*"
+                      multiple
                       style={{ display: 'none' }}
-                      onChange={(e)=>{
-                        setAudioFile(e.target.files?.[0] || null);
-                        setImageFile(null);
-                        setVideoFile(null);
-                        if (imageInputRef.current) imageInputRef.current.value = '';
-                        if (videoInputRef.current) videoInputRef.current.value = '';
-                      }}
+                      onChange={handleAudioSelect}
                     />
-                    {audioFile ? (
-                      <>
-                        <div className="small text-success fw-semibold mb-1">✓ Selected</div>
-                        <div className="small text-truncate text-muted" title={audioFile.name}>{audioFile.name}</div>
-                      </>
+                    {audioFiles.length > 0 ? (
+                      <div className="small text-success fw-semibold mb-1">✓ {audioFiles.length} file{audioFiles.length > 1 ? 's' : ''}</div>
                     ) : (
                       <div className="small text-muted">Click to upload</div>
                     )}
+                    {audioFiles.map((file, idx) => (
+                      <div key={idx} className="d-flex align-items-center justify-content-between mt-2 px-2 py-1 bg-white rounded">
+                        <div className="small text-truncate flex-grow-1" title={file.name}>{file.name}</div>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); removeAudioFile(idx); }}
+                          className="btn btn-sm btn-outline-danger ms-2"
+                          style={{ padding: '0.1rem 0.3rem', fontSize: '0.75rem' }}
+                        >×</button>
+                      </div>
+                    ))}
                   </div>
                 </div>
                 <div className="col-12 col-md-4">
                   <div
-                    className={`border rounded p-3 text-center ${videoFile ? 'border-primary bg-primary bg-opacity-10' : 'border-secondary'}`}
+                    className={`border rounded p-3 text-center ${videoFiles.length > 0 ? 'border-primary bg-primary bg-opacity-10' : 'border-secondary'}`}
                     style={{ cursor: 'pointer', transition: 'all 0.2s' }}
                     onClick={() => videoInputRef.current?.click()}
-                    onMouseEnter={(e) => !videoFile && (e.currentTarget.style.borderColor = '#0d6efd')}
-                    onMouseLeave={(e) => !videoFile && (e.currentTarget.style.borderColor = '')}
+                    onMouseEnter={(e) => videoFiles.length === 0 && (e.currentTarget.style.borderColor = '#0d6efd')}
+                    onMouseLeave={(e) => videoFiles.length === 0 && (e.currentTarget.style.borderColor = '')}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-2 text-secondary">
                       <polygon points="23 7 16 12 23 17 23 7"></polygon>
                       <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
                     </svg>
-                    <div className="fw-semibold mb-2">Video</div>
+                    <div className="fw-semibold mb-2">Videos</div>
                     <input
                       ref={videoInputRef}
                       type="file"
                       accept="video/*"
+                      multiple
                       style={{ display: 'none' }}
-                      onChange={(e)=>{
-                        setVideoFile(e.target.files?.[0] || null);
-                        setImageFile(null);
-                        setAudioFile(null);
-                        if (imageInputRef.current) imageInputRef.current.value = '';
-                        if (audioInputRef.current) audioInputRef.current.value = '';
-                      }}
+                      onChange={handleVideoSelect}
                     />
-                    {videoFile ? (
-                      <>
-                        <div className="small text-success fw-semibold mb-1">✓ Selected</div>
-                        <div className="small text-truncate text-muted" title={videoFile.name}>{videoFile.name}</div>
-                      </>
+                    {videoFiles.length > 0 ? (
+                      <div className="small text-success fw-semibold mb-1">✓ {videoFiles.length} file{videoFiles.length > 1 ? 's' : ''}</div>
                     ) : (
                       <div className="small text-muted">Click to upload</div>
                     )}
+                    {videoFiles.map((file, idx) => (
+                      <div key={idx} className="d-flex align-items-center justify-content-between mt-2 px-2 py-1 bg-white rounded">
+                        <div className="small text-truncate flex-grow-1" title={file.name}>{file.name}</div>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); removeVideoFile(idx); }}
+                          className="btn btn-sm btn-outline-danger ms-2"
+                          style={{ padding: '0.1rem 0.3rem', fontSize: '0.75rem' }}
+                        >×</button>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
               <div className="form-text mt-2 text-center">
-                Click a card to upload. Selecting a new file will clear the others.
+                Click a card to upload multiple files. You can attach images, audio, and videos together.
               </div>
             </div>
           </div>

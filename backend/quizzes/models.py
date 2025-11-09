@@ -62,14 +62,11 @@ class Question(models.Model):
         return f"{self.quiz.title} - Question {self.question_order}"
 
     def clean(self):
-        """Validate that only one media type is uploaded"""
-        media_fields = [self.image, self.audio, self.video]
-        uploaded_count = sum(1 for field in media_fields if field)
-        
-        if uploaded_count > 1:
-            raise ValidationError("Only one media type can be attached per question.")
-        
-        # Optional: Validate file extensions
+        """Validate file extensions for legacy media fields"""
+        # Note: The single media restriction has been removed.
+        # New uploads should use QuestionMedia model for multiple files.
+        # Legacy fields (image, audio, video) are kept for backward compatibility.
+
         if self.audio:
             ext = self.audio.name.split('.')[-1].lower()
             valid_audio = ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac']
@@ -77,7 +74,7 @@ class Question(models.Model):
                 raise ValidationError(
                     f"Invalid audio file extension. Allowed: {', '.join(valid_audio)}"
                 )
-        
+
         if self.video:
             ext = self.video.name.split('.')[-1].lower()
             valid_video = ['mp4', 'webm', 'avi', 'mov', 'mkv']
@@ -122,6 +119,62 @@ class Question(models.Model):
         elif self.video:
             return self.video
         return None
+
+
+class QuestionMedia(models.Model):
+    """Model for storing multiple media files per question"""
+    MEDIA_TYPE_CHOICES = [
+        ('image', 'Image'),
+        ('audio', 'Audio'),
+        ('video', 'Video'),
+    ]
+
+    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='media_files')
+    media_type = models.CharField(max_length=20, choices=MEDIA_TYPE_CHOICES)
+    file = models.FileField(upload_to='question_media/%Y/%m/')
+    display_order = models.PositiveIntegerField(default=0)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['display_order', 'uploaded_at']
+        verbose_name = 'Question Media'
+        verbose_name_plural = 'Question Media'
+
+    def __str__(self):
+        return f"{self.question} - {self.media_type} ({self.display_order})"
+
+    @property
+    def file_url(self):
+        """Get URL of the media file"""
+        if self.file:
+            return self.file.url
+        return None
+
+    def clean(self):
+        """Validate file extensions based on media type"""
+        if self.file:
+            ext = self.file.name.split('.')[-1].lower()
+
+            if self.media_type == 'audio':
+                valid_audio = ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac']
+                if ext not in valid_audio:
+                    raise ValidationError(
+                        f"Invalid audio file extension. Allowed: {', '.join(valid_audio)}"
+                    )
+
+            elif self.media_type == 'video':
+                valid_video = ['mp4', 'webm', 'avi', 'mov', 'mkv']
+                if ext not in valid_video:
+                    raise ValidationError(
+                        f"Invalid video file extension. Allowed: {', '.join(valid_video)}"
+                    )
+
+            elif self.media_type == 'image':
+                valid_image = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']
+                if ext not in valid_image:
+                    raise ValidationError(
+                        f"Invalid image file extension. Allowed: {', '.join(valid_image)}"
+                    )
 
 
 class Option(models.Model):

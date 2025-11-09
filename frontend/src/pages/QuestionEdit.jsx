@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { MapPin } from 'lucide-react';
-import { getQuestion, updateQuestion, getQuizDetail } from '../api/api';
+import { getQuestion, updateQuestion, getQuizDetail, deleteQuestionMedia } from '../api/api';
 import LocationPicker from './LocationPicker';
 
 export default function QuestionEdit() {
@@ -19,11 +19,11 @@ export default function QuestionEdit() {
   const [qType, setQType] = useState('multiple_choice');
   const [qPoints, setQPoints] = useState(10);
   const [qCorrect, setQCorrect] = useState('');
-  const [imageFile, setImageFile] = useState(null);
-  const [audioFile, setAudioFile] = useState(null);
-  const [videoFile, setVideoFile] = useState(null);
+  const [imageFiles, setImageFiles] = useState([]);
+  const [audioFiles, setAudioFiles] = useState([]);
+  const [videoFiles, setVideoFiles] = useState([]);
   const [qGeolocation, setQGeolocation] = useState(null);
-  const [existingMedia, setExistingMedia] = useState(null);
+  const [existingMediaFiles, setExistingMediaFiles] = useState([]);
   const [options, setOptions] = useState([
     { option_text: '', is_correct: false },
     { option_text: '', is_correct: false },
@@ -64,12 +64,9 @@ export default function QuestionEdit() {
         setQCorrect(questionDetail.correct_answer || '');
         setQGeolocation(questionDetail.geolocation);
 
-        // Set existing media info
-        if (questionDetail.has_media) {
-          setExistingMedia({
-            type: questionDetail.media_type,
-            url: questionDetail.media_url
-          });
+        // Set existing media files from the new media_files array
+        if (questionDetail.media_files && questionDetail.media_files.length > 0) {
+          setExistingMediaFiles(questionDetail.media_files);
         }
 
         // Load options for multiple choice
@@ -102,6 +99,54 @@ export default function QuestionEdit() {
   };
   const removeOption = (idx) => setOptions(options.filter((_, i) => i !== idx));
 
+  // Helper functions for file management
+  const handleImageSelect = (e) => {
+    const newFiles = Array.from(e.target.files || []);
+    setImageFiles([...imageFiles, ...newFiles]);
+    // Reset input value to allow selecting same file again
+    if (imageInputRef.current) imageInputRef.current.value = '';
+  };
+
+  const handleAudioSelect = (e) => {
+    const newFiles = Array.from(e.target.files || []);
+    setAudioFiles([...audioFiles, ...newFiles]);
+    // Reset input value to allow selecting same file again
+    if (audioInputRef.current) audioInputRef.current.value = '';
+  };
+
+  const handleVideoSelect = (e) => {
+    const newFiles = Array.from(e.target.files || []);
+    setVideoFiles([...videoFiles, ...newFiles]);
+    // Reset input value to allow selecting same file again
+    if (videoInputRef.current) videoInputRef.current.value = '';
+  };
+
+  const removeImageFile = (idx) => {
+    setImageFiles(imageFiles.filter((_, i) => i !== idx));
+  };
+
+  const removeAudioFile = (idx) => {
+    setAudioFiles(audioFiles.filter((_, i) => i !== idx));
+  };
+
+  const removeVideoFile = (idx) => {
+    setVideoFiles(videoFiles.filter((_, i) => i !== idx));
+  };
+
+  // Delete existing media file
+  const deleteExistingMedia = async (mediaId) => {
+    if (!window.confirm('Are you sure you want to delete this media file?')) {
+      return;
+    }
+    try {
+      await deleteQuestionMedia(mediaId);
+      // Remove from state
+      setExistingMediaFiles(existingMediaFiles.filter(m => m.id !== mediaId));
+    } catch (err) {
+      setError('Failed to delete media file: ' + (err.message || 'Unknown error'));
+    }
+  };
+
   const onUpdate = async (e) => {
     e.preventDefault();
     if (!quiz) return;
@@ -129,9 +174,9 @@ export default function QuestionEdit() {
         question_type: qType,
         correct_answer: qType !== 'multiple_choice' ? qCorrect : undefined,
         options: qType === 'multiple_choice' ? options.filter(o => o.option_text.trim().length > 0) : [],
-        image: imageFile || undefined,
-        audio: audioFile || undefined,
-        video: videoFile || undefined,
+        images: imageFiles,
+        audios: audioFiles,
+        videos: videoFiles,
         geolocation: quiz?.is_geo ? qGeolocation : undefined,
       };
       await updateQuestion(questionId, payload);
@@ -247,16 +292,32 @@ export default function QuestionEdit() {
         )}
 
         <div className="mb-3">
-          <label className="form-label d-block fw-semibold">Media Attachment</label>
+          <label className="form-label d-block fw-semibold">Media Attachments</label>
 
-          {existingMedia && !imageFile && !audioFile && !videoFile && (
-            <div className="alert alert-info py-2 mb-2 d-flex align-items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="me-2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="16" x2="12" y2="12"></line>
-                <line x1="12" y1="8" x2="12.01" y2="8"></line>
-              </svg>
-              <span>Current media: <strong>{existingMedia.type}</strong> <small className="text-muted">(Upload new file to replace)</small></span>
+          {existingMediaFiles.length > 0 && (
+            <div className="mb-3">
+              <div className="card border-info">
+                <div className="card-header bg-info bg-opacity-10">
+                  <strong>Existing Media Files ({existingMediaFiles.length})</strong>
+                </div>
+                <div className="card-body p-2">
+                  {existingMediaFiles.map((media) => (
+                    <div key={media.id} className="d-flex align-items-center justify-content-between p-2 mb-1 bg-light rounded">
+                      <div className="d-flex align-items-center">
+                        <span className="badge bg-secondary me-2">{media.media_type}</span>
+                        <small className="text-muted">Uploaded {new Date(media.uploaded_at).toLocaleDateString()}</small>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => deleteExistingMedia(media.id)}
+                        className="btn btn-sm btn-outline-danger"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
@@ -265,50 +326,53 @@ export default function QuestionEdit() {
               <div className="row g-3">
                 <div className="col-12 col-md-4">
                   <div
-                    className={`border rounded p-3 text-center ${imageFile ? 'border-primary bg-primary bg-opacity-10' : existingMedia?.type === 'image' ? 'border-info bg-info bg-opacity-10' : 'border-secondary'}`}
+                    className={`border rounded p-3 text-center ${imageFiles.length > 0 ? 'border-primary bg-primary bg-opacity-10' : existingMediaFiles.some(m => m.media_type === 'image') ? 'border-info bg-info bg-opacity-10' : 'border-secondary'}`}
                     style={{ cursor: 'pointer', transition: 'all 0.2s' }}
                     onClick={() => imageInputRef.current?.click()}
-                    onMouseEnter={(e) => !imageFile && (e.currentTarget.style.borderColor = '#0d6efd')}
-                    onMouseLeave={(e) => !imageFile && existingMedia?.type !== 'image' && (e.currentTarget.style.borderColor = '')}
+                    onMouseEnter={(e) => imageFiles.length === 0 && (e.currentTarget.style.borderColor = '#0d6efd')}
+                    onMouseLeave={(e) => imageFiles.length === 0 && !existingMediaFiles.some(m => m.media_type === 'image') && (e.currentTarget.style.borderColor = '')}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-2 text-secondary">
                       <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                       <circle cx="8.5" cy="8.5" r="1.5"></circle>
                       <polyline points="21 15 16 10 5 21"></polyline>
                     </svg>
-                    <div className="fw-semibold mb-2">Image</div>
+                    <div className="fw-semibold mb-2">Images</div>
                     <input
                       ref={imageInputRef}
                       type="file"
                       accept="image/*"
+                      multiple
                       style={{ display: 'none' }}
-                      onChange={(e)=>{
-                        setImageFile(e.target.files?.[0] || null);
-                        setAudioFile(null);
-                        setVideoFile(null);
-                        if (audioInputRef.current) audioInputRef.current.value = '';
-                        if (videoInputRef.current) videoInputRef.current.value = '';
-                      }}
+                      onChange={handleImageSelect}
                     />
-                    {imageFile ? (
-                      <>
-                        <div className="small text-success fw-semibold mb-1">✓ New file</div>
-                        <div className="small text-truncate text-muted" title={imageFile.name}>{imageFile.name}</div>
-                      </>
-                    ) : existingMedia?.type === 'image' ? (
-                      <div className="small text-info">Current file</div>
+                    {imageFiles.length > 0 ? (
+                      <div className="small text-success fw-semibold mb-1">✓ {imageFiles.length} new file{imageFiles.length > 1 ? 's' : ''}</div>
+                    ) : existingMediaFiles.filter(m => m.media_type === 'image').length > 0 ? (
+                      <div className="small text-info">{existingMediaFiles.filter(m => m.media_type === 'image').length} existing</div>
                     ) : (
                       <div className="small text-muted">Click to upload</div>
                     )}
+                    {imageFiles.map((file, idx) => (
+                      <div key={idx} className="d-flex align-items-center justify-content-between mt-2 px-2 py-1 bg-white rounded">
+                        <div className="small text-truncate flex-grow-1" title={file.name}>{file.name}</div>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); removeImageFile(idx); }}
+                          className="btn btn-sm btn-outline-danger ms-2"
+                          style={{ padding: '0.1rem 0.3rem', fontSize: '0.75rem' }}
+                        >×</button>
+                      </div>
+                    ))}
                   </div>
                 </div>
                 <div className="col-12 col-md-4">
                   <div
-                    className={`border rounded p-3 text-center ${audioFile ? 'border-primary bg-primary bg-opacity-10' : existingMedia?.type === 'audio' ? 'border-info bg-info bg-opacity-10' : 'border-secondary'}`}
+                    className={`border rounded p-3 text-center ${audioFiles.length > 0 ? 'border-primary bg-primary bg-opacity-10' : existingMediaFiles.some(m => m.media_type === 'audio') ? 'border-info bg-info bg-opacity-10' : 'border-secondary'}`}
                     style={{ cursor: 'pointer', transition: 'all 0.2s' }}
                     onClick={() => audioInputRef.current?.click()}
-                    onMouseEnter={(e) => !audioFile && (e.currentTarget.style.borderColor = '#0d6efd')}
-                    onMouseLeave={(e) => !audioFile && existingMedia?.type !== 'audio' && (e.currentTarget.style.borderColor = '')}
+                    onMouseEnter={(e) => audioFiles.length === 0 && (e.currentTarget.style.borderColor = '#0d6efd')}
+                    onMouseLeave={(e) => audioFiles.length === 0 && !existingMediaFiles.some(m => m.media_type === 'audio') && (e.currentTarget.style.borderColor = '')}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-2 text-secondary">
                       <path d="M9 18V5l12-2v13"></path>
@@ -320,68 +384,74 @@ export default function QuestionEdit() {
                       ref={audioInputRef}
                       type="file"
                       accept="audio/*"
+                      multiple
                       style={{ display: 'none' }}
-                      onChange={(e)=>{
-                        setAudioFile(e.target.files?.[0] || null);
-                        setImageFile(null);
-                        setVideoFile(null);
-                        if (imageInputRef.current) imageInputRef.current.value = '';
-                        if (videoInputRef.current) videoInputRef.current.value = '';
-                      }}
+                      onChange={handleAudioSelect}
                     />
-                    {audioFile ? (
-                      <>
-                        <div className="small text-success fw-semibold mb-1">✓ New file</div>
-                        <div className="small text-truncate text-muted" title={audioFile.name}>{audioFile.name}</div>
-                      </>
-                    ) : existingMedia?.type === 'audio' ? (
-                      <div className="small text-info">Current file</div>
+                    {audioFiles.length > 0 ? (
+                      <div className="small text-success fw-semibold mb-1">✓ {audioFiles.length} new file{audioFiles.length > 1 ? 's' : ''}</div>
+                    ) : existingMediaFiles.filter(m => m.media_type === 'audio').length > 0 ? (
+                      <div className="small text-info">{existingMediaFiles.filter(m => m.media_type === 'audio').length} existing</div>
                     ) : (
                       <div className="small text-muted">Click to upload</div>
                     )}
+                    {audioFiles.map((file, idx) => (
+                      <div key={idx} className="d-flex align-items-center justify-content-between mt-2 px-2 py-1 bg-white rounded">
+                        <div className="small text-truncate flex-grow-1" title={file.name}>{file.name}</div>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); removeAudioFile(idx); }}
+                          className="btn btn-sm btn-outline-danger ms-2"
+                          style={{ padding: '0.1rem 0.3rem', fontSize: '0.75rem' }}
+                        >×</button>
+                      </div>
+                    ))}
                   </div>
                 </div>
                 <div className="col-12 col-md-4">
                   <div
-                    className={`border rounded p-3 text-center ${videoFile ? 'border-primary bg-primary bg-opacity-10' : existingMedia?.type === 'video' ? 'border-info bg-info bg-opacity-10' : 'border-secondary'}`}
+                    className={`border rounded p-3 text-center ${videoFiles.length > 0 ? 'border-primary bg-primary bg-opacity-10' : existingMediaFiles.some(m => m.media_type === 'video') ? 'border-info bg-info bg-opacity-10' : 'border-secondary'}`}
                     style={{ cursor: 'pointer', transition: 'all 0.2s' }}
                     onClick={() => videoInputRef.current?.click()}
-                    onMouseEnter={(e) => !videoFile && (e.currentTarget.style.borderColor = '#0d6efd')}
-                    onMouseLeave={(e) => !videoFile && existingMedia?.type !== 'video' && (e.currentTarget.style.borderColor = '')}
+                    onMouseEnter={(e) => videoFiles.length === 0 && (e.currentTarget.style.borderColor = '#0d6efd')}
+                    onMouseLeave={(e) => videoFiles.length === 0 && !existingMediaFiles.some(m => m.media_type === 'video') && (e.currentTarget.style.borderColor = '')}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-2 text-secondary">
                       <polygon points="23 7 16 12 23 17 23 7"></polygon>
                       <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
                     </svg>
-                    <div className="fw-semibold mb-2">Video</div>
+                    <div className="fw-semibold mb-2">Videos</div>
                     <input
                       ref={videoInputRef}
                       type="file"
                       accept="video/*"
+                      multiple
                       style={{ display: 'none' }}
-                      onChange={(e)=>{
-                        setVideoFile(e.target.files?.[0] || null);
-                        setImageFile(null);
-                        setAudioFile(null);
-                        if (imageInputRef.current) imageInputRef.current.value = '';
-                        if (audioInputRef.current) audioInputRef.current.value = '';
-                      }}
+                      onChange={handleVideoSelect}
                     />
-                    {videoFile ? (
-                      <>
-                        <div className="small text-success fw-semibold mb-1">✓ New file</div>
-                        <div className="small text-truncate text-muted" title={videoFile.name}>{videoFile.name}</div>
-                      </>
-                    ) : existingMedia?.type === 'video' ? (
-                      <div className="small text-info">Current file</div>
+                    {videoFiles.length > 0 ? (
+                      <div className="small text-success fw-semibold mb-1">✓ {videoFiles.length} new file{videoFiles.length > 1 ? 's' : ''}</div>
+                    ) : existingMediaFiles.filter(m => m.media_type === 'video').length > 0 ? (
+                      <div className="small text-info">{existingMediaFiles.filter(m => m.media_type === 'video').length} existing</div>
                     ) : (
                       <div className="small text-muted">Click to upload</div>
                     )}
+                    {videoFiles.map((file, idx) => (
+                      <div key={idx} className="d-flex align-items-center justify-content-between mt-2 px-2 py-1 bg-white rounded">
+                        <div className="small text-truncate flex-grow-1" title={file.name}>{file.name}</div>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); removeVideoFile(idx); }}
+                          className="btn btn-sm btn-outline-danger ms-2"
+                          style={{ padding: '0.1rem 0.3rem', fontSize: '0.75rem' }}
+                        >×</button>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
               <div className="form-text mt-2 text-center">
-                Click a card to upload. Selecting a new file will clear the others.
+                Click a card to upload multiple files. You can attach images, audio, and videos together.
               </div>
             </div>
           </div>

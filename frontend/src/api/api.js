@@ -69,6 +69,7 @@ export function deleteQuiz(quizId) {
 export function createQuestion(quizId, payload) {
   // Accepts plain object; converts to FormData for file upload support
   const form = new FormData();
+  form.append('quiz', String(quizId)); // IMPORTANT: Backend needs this!
   form.append('question_text', payload.question_text || '');
   form.append('points_value', String(payload.points_value ?? 10));
   form.append('question_type', payload.question_type || 'multiple_choice');
@@ -92,12 +93,18 @@ export function createQuestion(quizId, payload) {
     }
   }
 
-  // attach at most one media file (one of: image, audio, video)
-  if (payload.image) form.append('image', payload.image);
-  if (payload.audio) form.append('audio', payload.audio);
-  if (payload.video) form.append('video', payload.video);
+  // attach multiple media files (arrays of images, audios, videos)
+  if (payload.images && payload.images.length > 0) {
+    payload.images.forEach(file => form.append('images', file));
+  }
+  if (payload.audios && payload.audios.length > 0) {
+    payload.audios.forEach(file => form.append('audios', file));
+  }
+  if (payload.videos && payload.videos.length > 0) {
+    payload.videos.forEach(file => form.append('videos', file));
+  }
 
-  return apiRequest(`/quizzes/${quizId}/questions/`, {
+  return apiRequest(`/questions/`, {
     method: 'POST',
     body: form,
   });
@@ -133,10 +140,16 @@ export function updateQuestion(questionId, payload) {
     }
   }
 
-  // attach at most one media file (one of: image, audio, video)
-  if (payload.image) form.append('image', payload.image);
-  if (payload.audio) form.append('audio', payload.audio);
-  if (payload.video) form.append('video', payload.video);
+  // attach multiple media files (arrays of images, audios, videos)
+  if (payload.images && payload.images.length > 0) {
+    payload.images.forEach(file => form.append('images', file));
+  }
+  if (payload.audios && payload.audios.length > 0) {
+    payload.audios.forEach(file => form.append('audios', file));
+  }
+  if (payload.videos && payload.videos.length > 0) {
+    payload.videos.forEach(file => form.append('videos', file));
+  }
 
   return apiRequest(`/questions/${questionId}/`, {
     method: 'PUT',
@@ -146,6 +159,12 @@ export function updateQuestion(questionId, payload) {
 
 export function deleteQuestion(questionId) {
   return apiRequest(`/questions/${questionId}/`, {
+    method: 'DELETE'
+  });
+}
+
+export function deleteQuestionMedia(mediaId) {
+  return apiRequest(`/question-media/${mediaId}/`, {
     method: 'DELETE'
   });
 }
