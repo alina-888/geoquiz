@@ -190,8 +190,8 @@ export default function Question() {
             <div className="mb-4">
               {question.media_files.map((media, idx) => (
                 <div key={media.id || idx} className="mb-3">
-                  <div className="border rounded p-3 bg-light">
-                    {media.media_type === 'image' && (
+                  {media.media_type === 'image' && (
+                    <div className="border rounded p-3 bg-light">
                       <div className="text-center">
                         <img
                           src={resolveMediaUrl(media.file_url)}
@@ -212,17 +212,17 @@ export default function Question() {
                           title="Click to enlarge"
                         />
                       </div>
-                    )}
-                    {media.media_type === 'audio' && (
-                      <AudioPlayer
-                        src={resolveMediaUrl(media.file_url)}
-                        label={question.media_files.length > 1 ? `Audio Clip #${idx + 1}` : 'Audio Clip'}
-                      />
-                    )}
-                    {media.media_type === 'video' && (
-                      <VideoPlayer src={resolveMediaUrl(media.file_url)} />
-                    )}
-                  </div>
+                    </div>
+                  )}
+                  {media.media_type === 'audio' && (
+                    <AudioPlayer
+                      src={resolveMediaUrl(media.file_url)}
+                      label={question.media_files.length > 1 ? `Audio Clip #${idx + 1}` : 'Audio Clip'}
+                    />
+                  )}
+                  {media.media_type === 'video' && (
+                    <VideoPlayer src={resolveMediaUrl(media.file_url)} />
+                  )}
                 </div>
               ))}
             </div>
@@ -231,8 +231,8 @@ export default function Question() {
           {/* Fallback: Display legacy single media if no media_files array */}
           {(!question.media_files || question.media_files.length === 0) && question.has_media && (
             <div className="mb-4">
-              <div className="border rounded p-3 bg-light">
-                {question.media_type === 'image' && (
+              {question.media_type === 'image' && (
+                <div className="border rounded p-3 bg-light">
                   <div className="text-center">
                     <img
                       src={resolveMediaUrl(question.media_url)}
@@ -246,17 +246,17 @@ export default function Question() {
                       title="Click to enlarge"
                     />
                   </div>
-                )}
-                {question.media_type === 'audio' && (
-                  <AudioPlayer
-                    src={resolveMediaUrl(question.media_url)}
-                    label="Audio Clip"
-                  />
-                )}
-                {question.media_type === 'video' && (
-                  <VideoPlayer src={resolveMediaUrl(question.media_url)} />
-                )}
-              </div>
+                </div>
+              )}
+              {question.media_type === 'audio' && (
+                <AudioPlayer
+                  src={resolveMediaUrl(question.media_url)}
+                  label="Audio Clip"
+                />
+              )}
+              {question.media_type === 'video' && (
+                <VideoPlayer src={resolveMediaUrl(question.media_url)} />
+              )}
             </div>
           )}
 
