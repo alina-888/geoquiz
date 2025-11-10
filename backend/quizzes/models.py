@@ -2,6 +2,12 @@ from django.db import models
 from users.models import CustomUser
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, MaxValueValidator
+from .validators import (
+    validate_image_file,
+    validate_audio_file,
+    validate_video_file,
+    sanitize_filename,
+)
 
 
 
@@ -31,7 +37,12 @@ class Quiz(models.Model):
     is_published = models.BooleanField(default=False)
     avg_rating = models.FloatField(default=0.0)
     is_geo = models.BooleanField(default=False)
-    image = models.ImageField(upload_to='quiz_images/', null=True, blank=True)
+    image = models.ImageField(
+        upload_to='quiz_images/',
+        null=True,
+        blank=True,
+        validators=[validate_image_file]
+    )
 
     def __str__(self):
         return self.title
@@ -49,9 +60,24 @@ class Question(models.Model):
     question_order = models.PositiveIntegerField()
     points_value = models.PositiveIntegerField(default=10)
     question_type = models.CharField(max_length=20, choices=QUESTION_TYPES, default='multiple_choice')
-    image = models.ImageField(upload_to='question_media/images/', null=True, blank=True)
-    audio = models.FileField(upload_to='question_media/audio/', null=True, blank=True)
-    video = models.FileField(upload_to='question_media/videos/', null=True, blank=True)
+    image = models.ImageField(
+        upload_to='question_media/images/',
+        null=True,
+        blank=True,
+        validators=[validate_image_file]
+    )
+    audio = models.FileField(
+        upload_to='question_media/audio/',
+        null=True,
+        blank=True,
+        validators=[validate_audio_file]
+    )
+    video = models.FileField(
+        upload_to='question_media/videos/',
+        null=True,
+        blank=True,
+        validators=[validate_video_file]
+    )
     geolocation = models.JSONField(null=True, blank=True)
     correct_answer = models.TextField(null=True, blank=True)  # for text and true/false questions
 
@@ -63,26 +89,10 @@ class Question(models.Model):
         return f"{self.quiz.title} - Question {self.question_order}"
 
     def clean(self):
-        """Validate file extensions for legacy media fields"""
-        # Note: The single media restriction has been removed.
-        # New uploads should use QuestionMedia model for multiple files.
-        # Legacy fields (image, audio, video) are kept for backward compatibility.
-
-        if self.audio:
-            ext = self.audio.name.split('.')[-1].lower()
-            valid_audio = ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac']
-            if ext not in valid_audio:
-                raise ValidationError(
-                    f"Invalid audio file extension. Allowed: {', '.join(valid_audio)}"
-                )
-
-        if self.video:
-            ext = self.video.name.split('.')[-1].lower()
-            valid_video = ['mp4', 'webm', 'avi', 'mov', 'mkv']
-            if ext not in valid_video:
-                raise ValidationError(
-                    f"Invalid video file extension. Allowed: {', '.join(valid_video)}"
-                )
+        """Validate media files using comprehensive validators"""
+        # Validators are now applied at the field level
+        # This clean() method is kept for any additional custom validation
+        pass
 
 
     @property
@@ -164,30 +174,15 @@ class QuestionMedia(models.Model):
         return None
 
     def clean(self):
-        """Validate file extensions based on media type"""
+        """Validate file based on media type using comprehensive validators"""
         if self.file:
-            ext = self.file.name.split('.')[-1].lower()
-
-            if self.media_type == 'audio':
-                valid_audio = ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac']
-                if ext not in valid_audio:
-                    raise ValidationError(
-                        f"Invalid audio file extension. Allowed: {', '.join(valid_audio)}"
-                    )
-
+            # Apply appropriate validator based on media type
+            if self.media_type == 'image':
+                validate_image_file(self.file)
+            elif self.media_type == 'audio':
+                validate_audio_file(self.file)
             elif self.media_type == 'video':
-                valid_video = ['mp4', 'webm', 'avi', 'mov', 'mkv']
-                if ext not in valid_video:
-                    raise ValidationError(
-                        f"Invalid video file extension. Allowed: {', '.join(valid_video)}"
-                    )
-
-            elif self.media_type == 'image':
-                valid_image = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']
-                if ext not in valid_image:
-                    raise ValidationError(
-                        f"Invalid image file extension. Allowed: {', '.join(valid_image)}"
-                    )
+                validate_video_file(self.file)
 
 
 class Option(models.Model):

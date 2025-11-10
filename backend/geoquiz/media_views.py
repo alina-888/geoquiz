@@ -3,23 +3,37 @@ import mimetypes
 from django.http import FileResponse, HttpResponse, Http404
 from django.conf import settings
 from django.views.decorators.http import require_http_methods
+from urllib.parse import unquote
 
 
 @require_http_methods(["GET", "HEAD"])
 def serve_media(request, path):
     """
     Serve media files with HTTP Range request support for video/audio seeking.
+    Includes security measures against path traversal attacks.
     """
+    # Decode URL-encoded path
+    path = unquote(path)
+
+    # Security: Block path traversal attempts
+    if '..' in path or path.startswith('/') or path.startswith('\\'):
+        raise Http404("Invalid path")
+
+    # Security: Block null bytes
+    if '\x00' in path:
+        raise Http404("Invalid path")
+
     # Build the full file path
     full_path = os.path.join(settings.MEDIA_ROOT, path)
 
-    # Security check: ensure the path is within MEDIA_ROOT
-    full_path = os.path.abspath(full_path)
-    media_root = os.path.abspath(settings.MEDIA_ROOT)
-    if not full_path.startswith(media_root):
+    # Security check: ensure the path is within MEDIA_ROOT (after resolving symlinks)
+    full_path = os.path.abspath(os.path.realpath(full_path))
+    media_root = os.path.abspath(os.path.realpath(settings.MEDIA_ROOT))
+
+    if not full_path.startswith(media_root + os.sep) and full_path != media_root:
         raise Http404("Invalid path")
 
-    # Check if file exists
+    # Check if file exists and is a regular file (not a directory or symlink to outside)
     if not os.path.exists(full_path) or not os.path.isfile(full_path):
         raise Http404("File not found")
 
@@ -72,5 +86,19 @@ def serve_media(request, path):
     # Add CORS headers for cross-origin requests
     response['Access-Control-Allow-Origin'] = '*'
     response['Access-Control-Expose-Headers'] = 'Content-Length, Content-Range, Accept-Ranges'
+
+    # Security headers
+    response['X-Content-Type-Options'] = 'nosniff'  # Prevent MIME type sniffing
+    response['X-Frame-Options'] = 'SAMEORIGIN'  # Prevent clickjacking
+
+    # Cache headers (cache for 1 hour for better performance)
+    response['Cache-Control'] = 'public, max-age=3600'
+
+    # Content-Disposition header to prevent some XSS vectors with uploaded files
+    # Force download for potentially dangerous file types
+    dangerous_types = ['text/html', 'application/javascript', 'text/javascript']
+    if content_type in dangerous_types:
+        filename = os.path.basename(full_path)
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
 
     return response

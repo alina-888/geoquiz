@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Option, Question, Quiz, QuizAttempt, UserAnswer, QuestionMedia
+from .validators import validate_user_storage_quota
 
 
 class OptionSerializer(serializers.ModelSerializer):
@@ -17,6 +18,17 @@ class QuestionMediaSerializer(serializers.ModelSerializer):
         model = QuestionMedia
         fields = ['id', 'question', 'media_type', 'file', 'file_url', 'display_order', 'uploaded_at']
         read_only_fields = ['id', 'uploaded_at']
+
+    def validate(self, attrs):
+        """Check storage quota before allowing file upload"""
+        file = attrs.get('file')
+        if file:
+            # Get the user from the question's quiz creator
+            question = attrs.get('question')
+            if question and hasattr(question, 'quiz') and hasattr(question.quiz, 'creator'):
+                user = question.quiz.creator
+                validate_user_storage_quota(user, file.size)
+        return super().validate(attrs)
 
 
 class QuestionSerializer(serializers.ModelSerializer):
@@ -80,6 +92,24 @@ class QuizSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.image.url)
             return obj.image.url
         return None
+
+    def validate(self, attrs):
+        """Check storage quota for quiz image uploads"""
+        image = attrs.get('image')
+        if image:
+            # Get user from instance or context
+            user = None
+            if self.instance:
+                user = self.instance.creator
+            else:
+                request = self.context.get('request')
+                if request and hasattr(request, 'user'):
+                    user = request.user
+
+            if user:
+                validate_user_storage_quota(user, image.size)
+
+        return super().validate(attrs)
 
     def validate_is_geo(self, value):
         """Prevent changing is_geo to False if quiz has questions with geolocation"""

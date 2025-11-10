@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import CustomUser
 from django.contrib.auth.password_validation import validate_password
+from quizzes.validators import validate_user_storage_quota
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -27,6 +28,13 @@ class UserSerializer(serializers.ModelSerializer):
         model = CustomUser
         fields = ['id', 'username', 'email', 'profile_picture', 'total_points', 'bio', 'date_joined']
         read_only_fields = ['id', 'date_joined', 'email', 'total_points']
+
+    def validate(self, attrs):
+        """Check storage quota for profile picture uploads"""
+        profile_picture = attrs.get('profile_picture')
+        if profile_picture and self.instance:
+            validate_user_storage_quota(self.instance, profile_picture.size)
+        return super().validate(attrs)
 
     def update(self, instance, validated_data):
         instance.username = validated_data.get('username', instance.username)
