@@ -532,32 +532,25 @@ class QuestionViewSet(viewsets.ModelViewSet):
 
         # Handle hints if provided
         hints_raw = self.request.data.get('hints')
-        print(f"DEBUG perform_create: hints_raw = {hints_raw}")
-        print(f"DEBUG perform_create: request.FILES keys = {list(self.request.FILES.keys())}")
         if hints_raw:
             # Parse hints JSON if it's a string
             if isinstance(hints_raw, str):
                 try:
                     hints_data = json.loads(hints_raw)
-                    print(f"DEBUG perform_create: Parsed hints_data from JSON = {hints_data}")
                 except json.JSONDecodeError:
-                    print(f"DEBUG perform_create: JSON decode error for hints_raw")
                     hints_data = []
             else:
                 hints_data = hints_raw if isinstance(hints_raw, list) else []
-                print(f"DEBUG perform_create: hints_data (not string) = {hints_data}")
 
             # Create hints
             for idx, hint_data in enumerate(hints_data):
-                print(f"DEBUG perform_create: Processing hint {idx}: {hint_data}")
                 if isinstance(hint_data, dict):
                     # Get hint media files from request.FILES using index-based keys
                     hint_image = self.request.FILES.get(f'hint_{idx}_image')
                     hint_audio = self.request.FILES.get(f'hint_{idx}_audio')
                     hint_video = self.request.FILES.get(f'hint_{idx}_video')
-                    print(f"DEBUG perform_create: hint_{idx} files - image: {hint_image}, audio: {hint_audio}, video: {hint_video}")
 
-                    hint_obj = Hint.objects.create(
+                    Hint.objects.create(
                         question=question,
                         hint_text=hint_data.get('hint_text', ''),
                         points_penalty=hint_data.get('points_penalty', 5),
@@ -566,9 +559,6 @@ class QuestionViewSet(viewsets.ModelViewSet):
                         hint_audio=hint_audio,
                         hint_video=hint_video,
                     )
-                    print(f"DEBUG perform_create: Created hint {hint_obj.id} for question {question.id}")
-        else:
-            print(f"DEBUG perform_create: No hints_raw found in request.data")
 
     def update(self, request, *args, **kwargs):
         """Custom update to handle options and media files"""
@@ -672,36 +662,28 @@ class QuestionViewSet(viewsets.ModelViewSet):
 
             # Handle hints if provided - delete existing and create new ones
             hints_raw = request.data.get('hints')
-            print(f"DEBUG update: hints_raw = {hints_raw}")
-            print(f"DEBUG update: request.FILES keys = {list(request.FILES.keys())}")
             if hints_raw:
                 # Delete existing hints for this question
-                deleted_count = instance.hints.all().delete()[0]
-                print(f"DEBUG update: Deleted {deleted_count} existing hints")
+                instance.hints.all().delete()
 
                 # Parse hints JSON if it's a string
                 if isinstance(hints_raw, str):
                     try:
                         hints_data = json.loads(hints_raw)
-                        print(f"DEBUG update: Parsed hints_data from JSON = {hints_data}")
                     except json.JSONDecodeError:
-                        print(f"DEBUG update: JSON decode error for hints_raw")
                         hints_data = []
                 else:
                     hints_data = hints_raw if isinstance(hints_raw, list) else []
-                    print(f"DEBUG update: hints_data (not string) = {hints_data}")
 
                 # Create new hints
                 for idx, hint_data in enumerate(hints_data):
-                    print(f"DEBUG update: Processing hint {idx}: {hint_data}")
                     if isinstance(hint_data, dict):
                         # Get hint media files from request.FILES using index-based keys
                         hint_image = request.FILES.get(f'hint_{idx}_image')
                         hint_audio = request.FILES.get(f'hint_{idx}_audio')
                         hint_video = request.FILES.get(f'hint_{idx}_video')
-                        print(f"DEBUG update: hint_{idx} files - image: {hint_image}, audio: {hint_audio}, video: {hint_video}")
 
-                        hint_obj = Hint.objects.create(
+                        Hint.objects.create(
                             question=instance,
                             hint_text=hint_data.get('hint_text', ''),
                             points_penalty=hint_data.get('points_penalty', 5),
@@ -710,9 +692,6 @@ class QuestionViewSet(viewsets.ModelViewSet):
                             hint_audio=hint_audio,
                             hint_video=hint_video,
                         )
-                        print(f"DEBUG update: Created hint {hint_obj.id} for question {instance.id}")
-            else:
-                print(f"DEBUG update: No hints_raw found in request.data")
 
             return Response(serializer.data)
         except Exception as e:

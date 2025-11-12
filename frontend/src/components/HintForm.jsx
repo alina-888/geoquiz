@@ -6,8 +6,6 @@ import { Lightbulb, Plus, Trash2 } from 'lucide-react';
  * Works like media files - collects data and sends with question save
  */
 export default function HintForm({ hints, onChange }) {
-  console.log('DEBUG HintForm: current hints =', hints);
-
   const addHint = () => {
     if (hints.length >= 3) {
       alert('Maximum 3 hints per question');
@@ -23,14 +21,12 @@ export default function HintForm({ hints, onChange }) {
       hint_video: null,
     };
 
-    console.log('DEBUG HintForm: addHint called, new hints array =', [...hints, newHint]);
     onChange([...hints, newHint]);
   };
 
   const updateHint = (index, field, value) => {
     const updated = [...hints];
     updated[index] = { ...updated[index], [field]: value };
-    console.log('DEBUG HintForm: updateHint called, updated hints =', updated);
     onChange(updated);
   };
 

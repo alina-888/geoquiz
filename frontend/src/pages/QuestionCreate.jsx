@@ -186,7 +186,6 @@ export default function QuestionCreate() {
     setError('');
     setQuestionWarning('');
     try {
-      console.log('DEBUG QuestionCreate onAddQuestion: hints state =', hints);
       const payload = {
         question_text: qText,
         points_value: qPoints,
@@ -199,7 +198,6 @@ export default function QuestionCreate() {
         geolocation: quiz?.is_geo ? qGeolocation : undefined,
         hints: hints,
       };
-      console.log('DEBUG QuestionCreate onAddQuestion: payload.hints =', payload.hints);
       await createQuestion(quiz.id, payload);
       resetForm(); // Use the helper function
       // Refresh quiz details to update question count
@@ -243,7 +241,6 @@ export default function QuestionCreate() {
     setError('');
     setQuestionWarning('');
     try {
-      console.log('DEBUG QuestionCreate: hints state before payload =', hints);
       const payload = {
         question_text: qText,
         points_value: qPoints,
@@ -256,7 +253,6 @@ export default function QuestionCreate() {
         geolocation: quiz?.is_geo ? qGeolocation : undefined,
         hints: hints,
       };
-      console.log('DEBUG QuestionCreate: payload.hints =', payload.hints);
       await createQuestion(quiz.id, payload);
       // After successful save, navigate back to quiz
       navigate(`/quizzes/${quizId}/`);
