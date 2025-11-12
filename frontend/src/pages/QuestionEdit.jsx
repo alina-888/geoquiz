@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { MapPin } from 'lucide-react';
+import { MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getQuestion, updateQuestion, getQuizDetail, deleteQuestionMedia } from '../api/api';
 import LocationPicker from './LocationPicker';
 import HintForm from '../components/HintForm';
@@ -15,6 +15,9 @@ export default function QuestionEdit() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [questionWarning, setQuestionWarning] = useState('');
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(-1);
+  const [prevQuestionId, setPrevQuestionId] = useState(null);
+  const [nextQuestionId, setNextQuestionId] = useState(null);
 
   const [qText, setQText] = useState('');
   const [qType, setQType] = useState('multiple_choice');
@@ -58,6 +61,24 @@ export default function QuestionEdit() {
 
         setQuiz(quizDetail);
         setQuestion(questionDetail);
+
+        // Find current question's position and adjacent questions
+        if (quizDetail.questions && quizDetail.questions.length > 0) {
+          const currentIndex = quizDetail.questions.findIndex(q => q.id === parseInt(questionId));
+          setCurrentQuestionIndex(currentIndex);
+
+          if (currentIndex > 0) {
+            setPrevQuestionId(quizDetail.questions[currentIndex - 1].id);
+          } else {
+            setPrevQuestionId(null);
+          }
+
+          if (currentIndex >= 0 && currentIndex < quizDetail.questions.length - 1) {
+            setNextQuestionId(quizDetail.questions[currentIndex + 1].id);
+          } else {
+            setNextQuestionId(null);
+          }
+        }
 
         // Pre-populate form with question data
         setQText(questionDetail.question_text || '');
@@ -277,7 +298,34 @@ export default function QuestionEdit() {
 
   return (
     <div className="container mt-4" style={{ maxWidth: '700px' }}>
-      <h1 className="h4 fw-bold mb-2">Edit Question</h1>
+      <div className="d-flex justify-content-between align-items-center mb-2">
+        <h1 className="h4 fw-bold mb-0">Edit Question</h1>
+        {quiz && quiz.questions && quiz.questions.length > 1 && (
+          <div className="d-flex gap-2">
+            <button
+              type="button"
+              onClick={() => navigate(`/quizzes/${quizId}/questions/${prevQuestionId}/edit`)}
+              disabled={!prevQuestionId}
+              className="btn btn-sm btn-outline-secondary"
+              title="Previous question"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <span className="align-self-center text-muted" style={{ fontSize: '0.875rem' }}>
+              {currentQuestionIndex + 1} / {quiz.questions.length}
+            </span>
+            <button
+              type="button"
+              onClick={() => navigate(`/quizzes/${quizId}/questions/${nextQuestionId}/edit`)}
+              disabled={!nextQuestionId}
+              className="btn btn-sm btn-outline-secondary"
+              title="Next question"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        )}
+      </div>
       {quiz && (
         <div className="alert alert-info">Editing question in: <strong>{quiz.title}</strong></div>
       )}
