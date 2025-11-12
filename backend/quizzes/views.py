@@ -549,10 +549,17 @@ class QuestionViewSet(viewsets.ModelViewSet):
                     hint_image = self.request.FILES.get(f'hint_{idx}_image')
                     hint_audio = self.request.FILES.get(f'hint_{idx}_audio')
                     hint_video = self.request.FILES.get(f'hint_{idx}_video')
+                    hint_text = hint_data.get('hint_text', '').strip()
+
+                    # Validate: hint must have text or media
+                    if not hint_text and not hint_image and not hint_audio and not hint_video:
+                        raise serializers.ValidationError(
+                            f'Hint {idx + 1} is empty. Each hint must have text or media.'
+                        )
 
                     Hint.objects.create(
                         question=question,
-                        hint_text=hint_data.get('hint_text', ''),
+                        hint_text=hint_text,
                         points_penalty=hint_data.get('points_penalty', 5),
                         hint_order=hint_data.get('hint_order', 1),
                         hint_image=hint_image,
@@ -682,10 +689,17 @@ class QuestionViewSet(viewsets.ModelViewSet):
                         hint_image = request.FILES.get(f'hint_{idx}_image')
                         hint_audio = request.FILES.get(f'hint_{idx}_audio')
                         hint_video = request.FILES.get(f'hint_{idx}_video')
+                        hint_text = hint_data.get('hint_text', '').strip()
+
+                        # Validate: hint must have text or media
+                        if not hint_text and not hint_image and not hint_audio and not hint_video:
+                            raise serializers.ValidationError(
+                                f'Hint {idx + 1} is empty. Each hint must have text or media.'
+                            )
 
                         Hint.objects.create(
                             question=instance,
-                            hint_text=hint_data.get('hint_text', ''),
+                            hint_text=hint_text,
                             points_penalty=hint_data.get('points_penalty', 5),
                             hint_order=hint_data.get('hint_order', 1),
                             hint_image=hint_image,

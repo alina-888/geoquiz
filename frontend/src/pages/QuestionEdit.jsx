@@ -226,6 +226,17 @@ export default function QuestionEdit() {
       return;
     }
 
+    // Validate hints - each hint must have text or media
+    for (let i = 0; i < hints.length; i++) {
+      const hint = hints[i];
+      const hasText = hint.hint_text && hint.hint_text.trim().length > 0;
+      const hasMedia = hint.hint_image || hint.hint_audio || hint.hint_video;
+      if (!hasText && !hasMedia) {
+        setQuestionWarning(`Hint ${i + 1} is empty. Please add text or media, or remove it.`);
+        return;
+      }
+    }
+
     setSaving(true);
     setError('');
     setQuestionWarning('');
@@ -301,7 +312,7 @@ export default function QuestionEdit() {
         ) : qType === 'true_false' ? (
           <div className="mb-3">
             <label className="form-label d-block">Correct answer</label>
-            {questionWarning && (
+            {questionWarning && !questionWarning.includes('Hint') && (
               <div className="alert alert-warning py-2 mb-2">{questionWarning}</div>
             )}
             <div className="form-check form-check-inline">
@@ -332,7 +343,7 @@ export default function QuestionEdit() {
         ) : (
           <div className="mb-3">
             <label className="form-label">Options</label>
-            {questionWarning && (
+            {questionWarning && !questionWarning.includes('Hint') && (
               <div className="alert alert-warning py-2 mb-2">{questionWarning}</div>
             )}
             {options.map((opt, idx) => (
@@ -356,7 +367,7 @@ export default function QuestionEdit() {
 
         <div className="mb-3">
           <label className="form-label d-block fw-semibold">Media Attachments</label>
-          {questionWarning && (
+          {questionWarning && !questionWarning.includes('Hint') && (
             <div className="alert alert-warning py-2 mb-2">{questionWarning}</div>
           )}
 
@@ -595,6 +606,9 @@ export default function QuestionEdit() {
         )}
 
         {/* Hints Section */}
+        {questionWarning && questionWarning.includes('Hint') && (
+          <div className="alert alert-warning py-2 mb-2">{questionWarning}</div>
+        )}
         <HintForm hints={hints} onChange={setHints} />
 
         <div className="d-flex gap-2">

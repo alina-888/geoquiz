@@ -182,6 +182,18 @@ export default function QuestionCreate() {
       setQuestionWarning('Please select True or False as the correct answer.');
       return;
     }
+
+    // Validate hints - each hint must have text or media
+    for (let i = 0; i < hints.length; i++) {
+      const hint = hints[i];
+      const hasText = hint.hint_text && hint.hint_text.trim().length > 0;
+      const hasMedia = hint.hint_image || hint.hint_audio || hint.hint_video;
+      if (!hasText && !hasMedia) {
+        setQuestionWarning(`Hint ${i + 1} is empty. Please add text or media, or remove it.`);
+        return;
+      }
+    }
+
     setSaving(true);
     setError('');
     setQuestionWarning('');
@@ -235,6 +247,17 @@ export default function QuestionCreate() {
     if (qType === 'true_false' && (!qCorrect || String(qCorrect).trim() === '')) {
       setQuestionWarning('Please select True or False as the correct answer.');
       return; // stay on page
+    }
+
+    // Validate hints - each hint must have text or media
+    for (let i = 0; i < hints.length; i++) {
+      const hint = hints[i];
+      const hasText = hint.hint_text && hint.hint_text.trim().length > 0;
+      const hasMedia = hint.hint_image || hint.hint_audio || hint.hint_video;
+      if (!hasText && !hasMedia) {
+        setQuestionWarning(`Hint ${i + 1} is empty. Please add text or media, or remove it.`);
+        return;
+      }
     }
 
     setSaving(true);
@@ -301,7 +324,7 @@ export default function QuestionCreate() {
         ) : qType === 'true_false' ? (
           <div className="mb-3">
             <label className="form-label d-block">Correct answer</label>
-            {questionWarning && (
+            {questionWarning && !questionWarning.includes('Hint') && (
               <div className="alert alert-warning py-2 mb-2">{questionWarning}</div>
             )}
             <div className="form-check form-check-inline">
@@ -332,7 +355,7 @@ export default function QuestionCreate() {
         ) : (
           <div className="mb-3">
             <label className="form-label">Options</label>
-            {questionWarning && (
+            {questionWarning && !questionWarning.includes('Hint') && (
               <div className="alert alert-warning py-2 mb-2">{questionWarning}</div>
             )}
             {options.map((opt, idx) => (
@@ -356,7 +379,7 @@ export default function QuestionCreate() {
 
         <div className="mb-3">
           <label className="form-label d-block fw-semibold">Media Attachments</label>
-          {questionWarning && (
+          {questionWarning && !questionWarning.includes('Hint') && (
             <div className="alert alert-warning py-2 mb-2">{questionWarning}</div>
           )}
           <div className="card">
@@ -544,6 +567,9 @@ export default function QuestionCreate() {
         )}
 
         {/* Hints Section */}
+        {questionWarning && questionWarning.includes('Hint') && (
+          <div className="alert alert-warning py-2 mb-2">{questionWarning}</div>
+        )}
         <HintForm hints={hints} onChange={setHints} />
 
         <div className="d-flex gap-2">
