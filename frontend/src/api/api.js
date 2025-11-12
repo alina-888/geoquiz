@@ -137,6 +137,37 @@ export function createQuestion(quizId, payload) {
     payload.videos.forEach(file => form.append('videos', file));
   }
 
+  // attach hints if provided
+  if (payload.hints && Array.isArray(payload.hints)) {
+    console.log('DEBUG createQuestion: Sending hints:', payload.hints);
+    // Send hints metadata as JSON
+    const hintsMetadata = payload.hints.map(h => ({
+      hint_text: h.hint_text || '',
+      points_penalty: h.points_penalty || 5,
+      hint_order: h.hint_order || 1
+    }));
+    console.log('DEBUG createQuestion: Hints metadata:', hintsMetadata);
+    form.append('hints', JSON.stringify(hintsMetadata));
+
+    // Attach hint media files with indexed keys
+    payload.hints.forEach((hint, idx) => {
+      if (hint.hint_image instanceof File) {
+        console.log(`DEBUG createQuestion: Adding hint_${idx}_image:`, hint.hint_image.name);
+        form.append(`hint_${idx}_image`, hint.hint_image);
+      }
+      if (hint.hint_audio instanceof File) {
+        console.log(`DEBUG createQuestion: Adding hint_${idx}_audio:`, hint.hint_audio.name);
+        form.append(`hint_${idx}_audio`, hint.hint_audio);
+      }
+      if (hint.hint_video instanceof File) {
+        console.log(`DEBUG createQuestion: Adding hint_${idx}_video:`, hint.hint_video.name);
+        form.append(`hint_${idx}_video`, hint.hint_video);
+      }
+    });
+  } else {
+    console.log('DEBUG createQuestion: No hints to send');
+  }
+
   return apiRequest(`/questions/`, {
     method: 'POST',
     body: form,
@@ -184,6 +215,37 @@ export function updateQuestion(questionId, payload) {
     payload.videos.forEach(file => form.append('videos', file));
   }
 
+  // attach hints if provided
+  if (payload.hints && Array.isArray(payload.hints)) {
+    console.log('DEBUG updateQuestion: Sending hints:', payload.hints);
+    // Send hints metadata as JSON
+    const hintsMetadata = payload.hints.map(h => ({
+      hint_text: h.hint_text || '',
+      points_penalty: h.points_penalty || 5,
+      hint_order: h.hint_order || 1
+    }));
+    console.log('DEBUG updateQuestion: Hints metadata:', hintsMetadata);
+    form.append('hints', JSON.stringify(hintsMetadata));
+
+    // Attach hint media files with indexed keys
+    payload.hints.forEach((hint, idx) => {
+      if (hint.hint_image instanceof File) {
+        console.log(`DEBUG updateQuestion: Adding hint_${idx}_image:`, hint.hint_image.name);
+        form.append(`hint_${idx}_image`, hint.hint_image);
+      }
+      if (hint.hint_audio instanceof File) {
+        console.log(`DEBUG updateQuestion: Adding hint_${idx}_audio:`, hint.hint_audio.name);
+        form.append(`hint_${idx}_audio`, hint.hint_audio);
+      }
+      if (hint.hint_video instanceof File) {
+        console.log(`DEBUG updateQuestion: Adding hint_${idx}_video:`, hint.hint_video.name);
+        form.append(`hint_${idx}_video`, hint.hint_video);
+      }
+    });
+  } else {
+    console.log('DEBUG updateQuestion: No hints to send');
+  }
+
   return apiRequest(`/questions/${questionId}/`, {
     method: 'PUT',
     body: form,
@@ -223,6 +285,12 @@ export function answerQuizQuestion(quizId, questionId, data) {
 
 export function completeQuiz(quizId) {
   return apiRequest(`/quizzes/${quizId}/complete/`, { method: 'POST' });
+}
+
+export function unlockHint(quizId, questionId, hintId) {
+  return apiRequest(`/quizzes/${quizId}/question/${questionId}/hint/${hintId}/unlock/`, {
+    method: 'POST',
+  });
 }
 
 // Получить викторины, созданные конкретным пользователем

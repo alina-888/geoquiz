@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { MapPin } from 'lucide-react';
 import { getQuestion, updateQuestion, getQuizDetail, deleteQuestionMedia } from '../api/api';
 import LocationPicker from './LocationPicker';
+import HintForm from '../components/HintForm';
 
 export default function QuestionEdit() {
   const navigate = useNavigate();
@@ -24,6 +25,7 @@ export default function QuestionEdit() {
   const [videoFiles, setVideoFiles] = useState([]);
   const [qGeolocation, setQGeolocation] = useState(null);
   const [existingMediaFiles, setExistingMediaFiles] = useState([]);
+  const [hints, setHints] = useState([]);
   const [options, setOptions] = useState([
     { option_text: '', is_correct: false },
     { option_text: '', is_correct: false },
@@ -74,6 +76,18 @@ export default function QuestionEdit() {
           setOptions(questionDetail.options.map(opt => ({
             option_text: opt.option_text,
             is_correct: opt.is_correct
+          })));
+        }
+
+        // Load existing hints
+        if (questionDetail.hints && questionDetail.hints.length > 0) {
+          setHints(questionDetail.hints.map(hint => ({
+            hint_text: hint.hint_text || '',
+            points_penalty: hint.points_penalty,
+            hint_order: hint.hint_order,
+            hint_image: null,  // Existing files stay on server
+            hint_audio: null,
+            hint_video: null,
           })));
         }
 
@@ -226,6 +240,7 @@ export default function QuestionEdit() {
         audios: audioFiles,
         videos: videoFiles,
         geolocation: quiz?.is_geo ? qGeolocation : undefined,
+        hints: hints,
       };
       await updateQuestion(questionId, payload);
       navigate(`/quizzes/${quizId}/`);
@@ -578,6 +593,9 @@ export default function QuestionEdit() {
             )}
           </>
         )}
+
+        {/* Hints Section */}
+        <HintForm hints={hints} onChange={setHints} />
 
         <div className="d-flex gap-2">
           <button type="submit" disabled={saving} className="btn btn-primary">

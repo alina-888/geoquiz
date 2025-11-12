@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Option, Question, Quiz, QuizAttempt, UserAnswer, QuestionMedia
+from .models import Option, Question, Quiz, QuizAttempt, UserAnswer, QuestionMedia, Hint, HintUnlock
 from .validators import validate_user_storage_quota
 
 
@@ -31,9 +31,88 @@ class QuestionMediaSerializer(serializers.ModelSerializer):
         return super().validate(attrs)
 
 
+class HintSerializer(serializers.ModelSerializer):
+    """
+    Serializer for hints - shows different data based on whether hint is unlocked
+    """
+    media_url = serializers.SerializerMethodField()
+    has_media = serializers.ReadOnlyField()
+    media_type = serializers.ReadOnlyField()
+    is_unlocked = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Hint
+        fields = [
+            'id', 'question', 'hint_text', 'hint_image', 'hint_audio', 'hint_video',
+            'points_penalty', 'hint_order', 'has_media', 'media_type', 'media_url',
+            'is_unlocked'
+        ]
+        read_only_fields = ['id']
+
+    def get_media_url(self, obj):
+        """Return media URL only if hint is unlocked"""
+        request = self.context.get('request')
+        if not request:
+            return None
+
+        # Check if hint is unlocked for current user's attempt
+        attempt = self.context.get('attempt')
+        if not attempt:
+            return obj.get_media_url()  # Creator view, show everything
+
+        is_unlocked = HintUnlock.objects.filter(attempt=attempt, hint=obj).exists()
+        if is_unlocked:
+            return obj.get_media_url()
+
+        return None
+
+    def get_is_unlocked(self, obj):
+        """Check if hint is unlocked for current attempt"""
+        attempt = self.context.get('attempt')
+        if not attempt:
+            return False  # No attempt context
+
+        return HintUnlock.objects.filter(attempt=attempt, hint=obj).exists()
+
+    def to_representation(self, instance):
+        """Hide hint content if not unlocked (for players)"""
+        representation = super().to_representation(instance)
+
+        attempt = self.context.get('attempt')
+        if not attempt:
+            # Creator view, return everything
+            return representation
+
+        # Player view - check if unlocked
+        is_unlocked = HintUnlock.objects.filter(attempt=attempt, hint=instance).exists()
+
+        if not is_unlocked:
+            # Hide content for locked hints
+            representation['hint_text'] = None
+            representation['hint_image'] = None
+            representation['hint_audio'] = None
+            representation['hint_video'] = None
+            representation['media_url'] = None
+
+        return representation
+
+
+class HintUnlockSerializer(serializers.ModelSerializer):
+    """
+    Serializer for tracking unlocked hints
+    """
+    hint_details = HintSerializer(source='hint', read_only=True)
+
+    class Meta:
+        model = HintUnlock
+        fields = ['id', 'attempt', 'hint', 'hint_details', 'unlocked_at', 'points_deducted']
+        read_only_fields = ['id', 'unlocked_at', 'points_deducted']
+
+
 class QuestionSerializer(serializers.ModelSerializer):
     options = OptionSerializer(many=True, read_only=True)
     media_files = QuestionMediaSerializer(many=True, read_only=True)
+    hints = serializers.SerializerMethodField()
     has_media = serializers.ReadOnlyField()
     media_type = serializers.ReadOnlyField()
     media_url = serializers.SerializerMethodField()
@@ -43,9 +122,15 @@ class QuestionSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'quiz', 'question_text', 'question_order', 'points_value',
             'question_type', 'image', 'audio', 'video', 'has_media', 'media_type', 'media_url',
-            'options', 'media_files', 'geolocation', 'correct_answer'
+            'options', 'media_files', 'hints', 'geolocation', 'correct_answer'
         ]
         read_only_fields = ['id', 'question_order']
+
+    def get_hints(self, obj):
+        """Get hints for this question with proper context"""
+        hints = obj.hints.all()
+        attempt = self.context.get('attempt')
+        return HintSerializer(hints, many=True, context={'attempt': attempt}).data
 
     def get_media_url(self, obj):
         return obj.get_media_url()

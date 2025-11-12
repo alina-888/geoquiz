@@ -10,11 +10,12 @@ from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import (
-    Quiz, Question, Option, QuizAttempt, UserAnswer, QuestionMedia,
+    Quiz, Question, Option, QuizAttempt, UserAnswer, QuestionMedia, Hint, HintUnlock,
 )
 from .serializers import (
     QuizSerializer, QuizDetailSerializer, QuestionSerializer,
     OptionSerializer, QuizAttemptSerializer, UserAnswerSerializer, QuestionMediaSerializer,
+    HintSerializer,
 )
 from .permissions import IsOwnerOrReadOnly
 from .filters import QuizFilter
@@ -236,6 +237,15 @@ class QuizViewSet(viewsets.ModelViewSet):
         attempt = QuizAttempt.objects.filter(user=request.user, quiz=quiz).order_by('-start_time').first()
         if not attempt:
             return Response({"detail": "No attempt found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Update current score if quiz is still in progress
+        if attempt.status == 'in_progress':
+            earned_points = attempt.answers.aggregate(total=models.Sum('points_earned'))['total'] or 0
+            hint_penalties = attempt.unlocked_hints.aggregate(total=models.Sum('points_deducted'))['total'] or 0
+            current_score = max(0, earned_points - hint_penalties)
+            attempt.score = current_score
+            attempt.save()
+
         serializer = QuizAttemptSerializer(attempt)
         return Response(serializer.data)
 
@@ -244,7 +254,15 @@ class QuizViewSet(viewsets.ModelViewSet):
         """Get a specific question within this quiz"""
         quiz = self.get_object()
         question = get_object_or_404(Question, id=question_id, quiz=quiz)
-        serializer = QuestionSerializer(question)
+
+        # Get current attempt for hints context
+        attempt = QuizAttempt.objects.filter(
+            user=request.user,
+            quiz=quiz,
+            status='in_progress'
+        ).first()
+
+        serializer = QuestionSerializer(question, context={'attempt': attempt, 'request': request})
         return Response(serializer.data)
 
     @action(detail=True, methods=['post'], url_path=r'question/(?P<question_id>[^/.]+)/answer', permission_classes=[permissions.IsAuthenticated])
@@ -301,7 +319,9 @@ class QuizViewSet(viewsets.ModelViewSet):
         total_questions = attempt.quiz.questions.count()
         answered_questions = attempt.answers.count()
         if answered_questions >= total_questions:
-            total_points = attempt.answers.aggregate(total=models.Sum('points_earned'))['total'] or 0
+            earned_points = attempt.answers.aggregate(total=models.Sum('points_earned'))['total'] or 0
+            hint_penalties = attempt.unlocked_hints.aggregate(total=models.Sum('points_deducted'))['total'] or 0
+            total_points = max(0, earned_points - hint_penalties)
             completion_percent = (answered_questions / total_questions) * 100 if total_questions else 0
             attempt.score = total_points
             attempt.completion_percentage = completion_percent
@@ -324,7 +344,9 @@ class QuizViewSet(viewsets.ModelViewSet):
 
         total_questions = attempt.quiz.questions.count()
         answered_questions = attempt.answers.count()
-        total_points = attempt.answers.aggregate(total=models.Sum('points_earned'))['total'] or 0
+        earned_points = attempt.answers.aggregate(total=models.Sum('points_earned'))['total'] or 0
+        hint_penalties = attempt.unlocked_hints.aggregate(total=models.Sum('points_deducted'))['total'] or 0
+        total_points = max(0, earned_points - hint_penalties)
         completion_percent = (answered_questions / total_questions) * 100 if total_questions else 0
 
         attempt.score = total_points
@@ -338,6 +360,87 @@ class QuizViewSet(viewsets.ModelViewSet):
 
         serializer = QuizAttemptSerializer(attempt)
         return Response(serializer.data)
+
+    @action(detail=True, methods=['post'], url_path=r'question/(?P<question_id>[^/.]+)/hint/(?P<hint_id>[^/.]+)/unlock', permission_classes=[permissions.IsAuthenticated])
+    def unlock_hint(self, request, pk=None, question_id=None, hint_id=None):
+        """
+        Unlock a hint for a question during an active quiz attempt.
+        Deducts points and reveals hint content.
+        """
+        from .models import Hint, HintUnlock
+
+        quiz = self.get_object()
+
+        # Get the user's active attempt
+        attempt = QuizAttempt.objects.filter(
+            user=request.user,
+            quiz=quiz,
+            status='in_progress'
+        ).first()
+
+        if not attempt:
+            return Response(
+                {"error": "No active attempt found for this quiz"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Get the hint
+        try:
+            hint = Hint.objects.get(id=hint_id, question_id=question_id, question__quiz=quiz)
+        except Hint.DoesNotExist:
+            return Response(
+                {"error": "Hint not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Check if hint is already unlocked
+        if HintUnlock.objects.filter(attempt=attempt, hint=hint).exists():
+            return Response(
+                {"error": "Hint already unlocked"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Check sequential unlocking: must unlock in order
+        if hint.hint_order > 1:
+            previous_hint_order = hint.hint_order - 1
+            previous_hint = Hint.objects.filter(
+                question=hint.question,
+                hint_order=previous_hint_order
+            ).first()
+
+            if previous_hint and not HintUnlock.objects.filter(attempt=attempt, hint=previous_hint).exists():
+                return Response(
+                    {"error": f"You must unlock Hint {previous_hint_order} before unlocking Hint {hint.hint_order}"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        # Create unlock record with points penalty
+        points_to_deduct = hint.points_penalty
+        hint_unlock = HintUnlock.objects.create(
+            attempt=attempt,
+            hint=hint,
+            points_deducted=points_to_deduct
+        )
+
+        # Calculate current score: earned points minus hint penalties
+        earned_points = attempt.answers.aggregate(total=models.Sum('points_earned'))['total'] or 0
+        hint_penalties = attempt.unlocked_hints.aggregate(total=models.Sum('points_deducted'))['total'] or 0
+        current_score = max(0, earned_points - hint_penalties)
+
+        # Update attempt score
+        attempt.score = current_score
+        attempt.save()
+
+        # Return the unlocked hint with full content
+        from .serializers import HintSerializer
+        serializer = HintSerializer(hint, context={'attempt': attempt, 'request': request})
+
+        return Response({
+            "message": f"Hint unlocked! {points_to_deduct} points deducted.",
+            "hint": serializer.data,
+            "points_deducted": points_to_deduct,
+            "new_score": current_score
+        }, status=status.HTTP_200_OK)
 
 
 class QuestionViewSet(viewsets.ModelViewSet):
@@ -426,6 +529,46 @@ class QuestionViewSet(viewsets.ModelViewSet):
                 display_order=display_order
             )
             display_order += 1
+
+        # Handle hints if provided
+        hints_raw = self.request.data.get('hints')
+        print(f"DEBUG perform_create: hints_raw = {hints_raw}")
+        print(f"DEBUG perform_create: request.FILES keys = {list(self.request.FILES.keys())}")
+        if hints_raw:
+            # Parse hints JSON if it's a string
+            if isinstance(hints_raw, str):
+                try:
+                    hints_data = json.loads(hints_raw)
+                    print(f"DEBUG perform_create: Parsed hints_data from JSON = {hints_data}")
+                except json.JSONDecodeError:
+                    print(f"DEBUG perform_create: JSON decode error for hints_raw")
+                    hints_data = []
+            else:
+                hints_data = hints_raw if isinstance(hints_raw, list) else []
+                print(f"DEBUG perform_create: hints_data (not string) = {hints_data}")
+
+            # Create hints
+            for idx, hint_data in enumerate(hints_data):
+                print(f"DEBUG perform_create: Processing hint {idx}: {hint_data}")
+                if isinstance(hint_data, dict):
+                    # Get hint media files from request.FILES using index-based keys
+                    hint_image = self.request.FILES.get(f'hint_{idx}_image')
+                    hint_audio = self.request.FILES.get(f'hint_{idx}_audio')
+                    hint_video = self.request.FILES.get(f'hint_{idx}_video')
+                    print(f"DEBUG perform_create: hint_{idx} files - image: {hint_image}, audio: {hint_audio}, video: {hint_video}")
+
+                    hint_obj = Hint.objects.create(
+                        question=question,
+                        hint_text=hint_data.get('hint_text', ''),
+                        points_penalty=hint_data.get('points_penalty', 5),
+                        hint_order=hint_data.get('hint_order', 1),
+                        hint_image=hint_image,
+                        hint_audio=hint_audio,
+                        hint_video=hint_video,
+                    )
+                    print(f"DEBUG perform_create: Created hint {hint_obj.id} for question {question.id}")
+        else:
+            print(f"DEBUG perform_create: No hints_raw found in request.data")
 
     def update(self, request, *args, **kwargs):
         """Custom update to handle options and media files"""
@@ -526,6 +669,50 @@ class QuestionViewSet(viewsets.ModelViewSet):
                     display_order=display_order
                 )
                 display_order += 1
+
+            # Handle hints if provided - delete existing and create new ones
+            hints_raw = request.data.get('hints')
+            print(f"DEBUG update: hints_raw = {hints_raw}")
+            print(f"DEBUG update: request.FILES keys = {list(request.FILES.keys())}")
+            if hints_raw:
+                # Delete existing hints for this question
+                deleted_count = instance.hints.all().delete()[0]
+                print(f"DEBUG update: Deleted {deleted_count} existing hints")
+
+                # Parse hints JSON if it's a string
+                if isinstance(hints_raw, str):
+                    try:
+                        hints_data = json.loads(hints_raw)
+                        print(f"DEBUG update: Parsed hints_data from JSON = {hints_data}")
+                    except json.JSONDecodeError:
+                        print(f"DEBUG update: JSON decode error for hints_raw")
+                        hints_data = []
+                else:
+                    hints_data = hints_raw if isinstance(hints_raw, list) else []
+                    print(f"DEBUG update: hints_data (not string) = {hints_data}")
+
+                # Create new hints
+                for idx, hint_data in enumerate(hints_data):
+                    print(f"DEBUG update: Processing hint {idx}: {hint_data}")
+                    if isinstance(hint_data, dict):
+                        # Get hint media files from request.FILES using index-based keys
+                        hint_image = request.FILES.get(f'hint_{idx}_image')
+                        hint_audio = request.FILES.get(f'hint_{idx}_audio')
+                        hint_video = request.FILES.get(f'hint_{idx}_video')
+                        print(f"DEBUG update: hint_{idx} files - image: {hint_image}, audio: {hint_audio}, video: {hint_video}")
+
+                        hint_obj = Hint.objects.create(
+                            question=instance,
+                            hint_text=hint_data.get('hint_text', ''),
+                            points_penalty=hint_data.get('points_penalty', 5),
+                            hint_order=hint_data.get('hint_order', 1),
+                            hint_image=hint_image,
+                            hint_audio=hint_audio,
+                            hint_video=hint_video,
+                        )
+                        print(f"DEBUG update: Created hint {hint_obj.id} for question {instance.id}")
+            else:
+                print(f"DEBUG update: No hints_raw found in request.data")
 
             return Response(serializer.data)
         except Exception as e:
@@ -652,7 +839,9 @@ class QuizAttemptViewSet(viewsets.ModelViewSet):
         if answered_questions >= total_questions:
             # Calculate score and completion
             correct_answers = attempt.answers.filter(is_correct=True).count()
-            total_points = attempt.answers.aggregate(total=models.Sum('points_earned'))['total'] or 0
+            earned_points = attempt.answers.aggregate(total=models.Sum('points_earned'))['total'] or 0
+            hint_penalties = attempt.unlocked_hints.aggregate(total=models.Sum('points_deducted'))['total'] or 0
+            total_points = max(0, earned_points - hint_penalties)
             completion_percent = (answered_questions / total_questions) * 100
 
             # Update attempt
@@ -687,7 +876,9 @@ class QuizAttemptViewSet(viewsets.ModelViewSet):
         total_questions = attempt.quiz.questions.count()
         answered_questions = attempt.answers.count()
         correct_answers = attempt.answers.filter(is_correct=True).count()
-        total_points = attempt.answers.aggregate(total=models.Sum('points_earned'))['total'] or 0
+        earned_points = attempt.answers.aggregate(total=models.Sum('points_earned'))['total'] or 0
+        hint_penalties = attempt.unlocked_hints.aggregate(total=models.Sum('points_deducted'))['total'] or 0
+        total_points = max(0, earned_points - hint_penalties)
         completion_percent = (answered_questions / total_questions) * 100
 
         # Update attempt
@@ -729,3 +920,5 @@ class QuestionMediaViewSet(viewsets.ModelViewSet):
             )
         instance.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+

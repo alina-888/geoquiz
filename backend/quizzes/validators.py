@@ -3,6 +3,11 @@ File upload validators for security hardening
 """
 import os
 from django.core.exceptions import ValidationError
+from utils.image_compression import (
+    compress_profile_picture,
+    compress_quiz_image,
+    compress_question_image,
+)
 
 
 # File size limits (in bytes)
@@ -158,9 +163,14 @@ def validate_magic_bytes(file, expected_mime):
     )
 
 
-def validate_image_file(file):
+def validate_image_file(file, compress=True, image_type='question'):
     """
-    Comprehensive validation for image files.
+    Comprehensive validation for image files with optional compression.
+
+    Args:
+        file: Uploaded file
+        compress: Whether to compress the image (default True)
+        image_type: Type of image - 'question', 'quiz', or 'profile'
     """
     # 1. Size validation
     validate_file_size(file, MAX_IMAGE_SIZE, 'image')
@@ -170,6 +180,15 @@ def validate_image_file(file):
 
     # 3. Extension validation
     validate_file_extension(file.name, ALLOWED_IMAGE_EXTENSIONS, 'image')
+
+    # 4. Compress image if requested
+    if compress:
+        if image_type == 'profile':
+            file = compress_profile_picture(file)
+        elif image_type == 'quiz':
+            file = compress_quiz_image(file)
+        else:  # question or default
+            file = compress_question_image(file)
 
     # Note: MIME type validation disabled due to dependency conflicts
     # Security maintained via extension whitelist and file size limits
@@ -215,9 +234,23 @@ def validate_video_file(file):
     return file
 
 
+def validate_quiz_image(file):
+    """
+    Validation and compression for quiz images.
+    """
+    return validate_image_file(file, compress=True, image_type='quiz')
+
+
+def validate_question_image(file):
+    """
+    Validation and compression for question images.
+    """
+    return validate_image_file(file, compress=True, image_type='question')
+
+
 def validate_profile_picture(file):
     """
-    Validation specifically for profile pictures (stricter size limit).
+    Validation and compression for profile pictures (stricter size limit).
     """
     # 1. Size validation (smaller limit for profile pictures)
     validate_file_size(file, MAX_PROFILE_PICTURE_SIZE, 'profile picture')
@@ -228,8 +261,8 @@ def validate_profile_picture(file):
     # 3. Extension validation
     validate_file_extension(file.name, ALLOWED_IMAGE_EXTENSIONS, 'profile picture')
 
-    # Note: MIME type validation disabled due to dependency conflicts
-    # Security maintained via extension whitelist and file size limits
+    # 4. Compress profile picture
+    file = compress_profile_picture(file)
 
     return file
 

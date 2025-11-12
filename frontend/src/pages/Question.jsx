@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getQuizQuestion, answerQuizQuestion, getQuizDetail, getQuizProgress } from '../api/api';
+import { getQuizQuestion, answerQuizQuestion, getQuizDetail, getQuizProgress, unlockHint } from '../api/api';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import LocationStatus from '../components/LocationStatus';
 import AudioPlayer from '../components/AudioPlayer';
 import VideoPlayer from '../components/VideoPlayer';
 import ImageModal from '../components/ImageModal';
+import HintsMenu from '../components/HintsMenu';
 import { isDebugMode, getCurrentPosition, calculateDistance, isWithinRadius } from '../utils/geolocation';
 
 export default function Question() {
@@ -144,6 +145,21 @@ export default function Question() {
       setError(err.message || 'Failed to submit answer');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleUnlockHint = async (hintId) => {
+    try {
+      await unlockHint(id, questionId, hintId);
+      // Refresh question and attempt data to show updated hints and score
+      const [updatedQuestion, updatedAttempt] = await Promise.all([
+        getQuizQuestion(id, questionId),
+        getQuizProgress(id)
+      ]);
+      setQuestion(updatedQuestion);
+      setAttempt(updatedAttempt);
+    } catch (err) {
+      setError(err.message || 'Failed to unlock hint');
     }
   };
 
@@ -334,6 +350,15 @@ export default function Question() {
           currentIndex={modalIndex}
           onClose={() => setModalImages([])}
           onNavigate={setModalIndex}
+        />
+      )}
+
+      {/* Hints Menu - only show if question is unlocked and has hints */}
+      {!isLocked && question.hints && question.hints.length > 0 && (
+        <HintsMenu
+          hints={question.hints}
+          onUnlockHint={handleUnlockHint}
+          currentScore={attempt?.score}
         />
       )}
     </div>

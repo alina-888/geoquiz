@@ -3,7 +3,8 @@ from users.models import CustomUser
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, MaxValueValidator
 from .validators import (
-    validate_image_file,
+    validate_quiz_image,
+    validate_question_image,
     validate_audio_file,
     validate_video_file,
     sanitize_filename,
@@ -41,7 +42,7 @@ class Quiz(models.Model):
         upload_to='quiz_images/',
         null=True,
         blank=True,
-        validators=[validate_image_file]
+        validators=[validate_quiz_image]
     )
 
     def __str__(self):
@@ -64,7 +65,7 @@ class Question(models.Model):
         upload_to='question_media/images/',
         null=True,
         blank=True,
-        validators=[validate_image_file]
+        validators=[validate_question_image]
     )
     audio = models.FileField(
         upload_to='question_media/audio/',
@@ -178,11 +179,100 @@ class QuestionMedia(models.Model):
         if self.file:
             # Apply appropriate validator based on media type
             if self.media_type == 'image':
-                validate_image_file(self.file)
+                validate_question_image(self.file)
             elif self.media_type == 'audio':
                 validate_audio_file(self.file)
             elif self.media_type == 'video':
                 validate_video_file(self.file)
+
+
+class Hint(models.Model):
+    """
+    Hints for questions. Each question can have up to 3 hints.
+    Hints must be unlocked sequentially and cost points.
+    """
+    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='hints')
+    hint_text = models.TextField(blank=True)
+    hint_image = models.ImageField(
+        upload_to='question_media/hints/images/',
+        null=True,
+        blank=True,
+        validators=[validate_question_image]
+    )
+    hint_audio = models.FileField(
+        upload_to='question_media/hints/audio/',
+        null=True,
+        blank=True,
+        validators=[validate_audio_file]
+    )
+    hint_video = models.FileField(
+        upload_to='question_media/hints/videos/',
+        null=True,
+        blank=True,
+        validators=[validate_video_file]
+    )
+    points_penalty = models.PositiveIntegerField(
+        help_text="Points deducted when hint is unlocked"
+    )
+    hint_order = models.PositiveIntegerField(help_text="Display order (1, 2, or 3)")
+
+    class Meta:
+        ordering = ['hint_order']
+        unique_together = ['question', 'hint_order']
+
+    def __str__(self):
+        return f"Hint {self.hint_order} for {self.question}"
+
+    def clean(self):
+        """Validate hint constraints"""
+        # Validate hint order (1, 2, or 3)
+        if self.hint_order not in [1, 2, 3]:
+            raise ValidationError({'hint_order': 'Hint order must be 1, 2, or 3'})
+
+        # Validate max 3 hints per question
+        if self.question:
+            existing_hints = Hint.objects.filter(question=self.question).exclude(pk=self.pk)
+            if existing_hints.count() >= 3:
+                raise ValidationError('A question can have maximum 3 hints')
+
+        # Validate points penalty
+        if self.points_penalty <= 0:
+            raise ValidationError({'points_penalty': 'Points penalty must be greater than 0'})
+
+        if self.question and self.points_penalty > self.question.points_value:
+            raise ValidationError({
+                'points_penalty': f'Points penalty cannot exceed question value ({self.question.points_value} points)'
+            })
+
+        # Validate that at least text or media is provided
+        if not self.hint_text and not self.hint_image and not self.hint_audio and not self.hint_video:
+            raise ValidationError('Hint must have at least text or media content')
+
+    @property
+    def has_media(self):
+        """Check if hint has any media attached"""
+        return bool(self.hint_image or self.hint_audio or self.hint_video)
+
+    @property
+    def media_type(self):
+        """Return the type of media attached"""
+        if self.hint_image:
+            return 'image'
+        elif self.hint_audio:
+            return 'audio'
+        elif self.hint_video:
+            return 'video'
+        return None
+
+    def get_media_url(self):
+        """Get URL of attached media"""
+        if self.hint_image:
+            return self.hint_image.url
+        elif self.hint_audio:
+            return self.hint_audio.url
+        elif self.hint_video:
+            return self.hint_video.url
+        return None
 
 
 class Option(models.Model):
@@ -236,3 +326,21 @@ class UserAnswer(models.Model):
 
     def __str__(self):
         return f"Answer to {self.question} by {self.attempt.user.username}"
+
+
+class HintUnlock(models.Model):
+    """
+    Tracks which hints have been unlocked by users during quiz attempts.
+    Records the point penalty applied.
+    """
+    attempt = models.ForeignKey(QuizAttempt, on_delete=models.CASCADE, related_name='unlocked_hints')
+    hint = models.ForeignKey(Hint, on_delete=models.CASCADE, related_name='unlocks')
+    unlocked_at = models.DateTimeField(auto_now_add=True)
+    points_deducted = models.PositiveIntegerField(help_text="Points deducted when unlocked")
+
+    class Meta:
+        unique_together = ['attempt', 'hint']
+        ordering = ['unlocked_at']
+
+    def __str__(self):
+        return f"{self.attempt.user.username} unlocked hint {self.hint.hint_order} for {self.hint.question}"

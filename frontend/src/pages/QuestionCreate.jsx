@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { MapPin } from 'lucide-react';
 import { createQuestion, getQuizDetail } from '../api/api';
 import LocationPicker from './LocationPicker';
+import HintForm from '../components/HintForm';
 
 export default function QuestionCreate() {
   const navigate = useNavigate();
@@ -22,6 +23,7 @@ export default function QuestionCreate() {
   const [audioFiles, setAudioFiles] = useState([]);
   const [videoFiles, setVideoFiles] = useState([]);
   const [qGeolocation, setQGeolocation] = useState(null);
+  const [hints, setHints] = useState([]);
   const [options, setOptions] = useState([
     { option_text: '', is_correct: false },
     { option_text: '', is_correct: false },
@@ -154,6 +156,7 @@ export default function QuestionCreate() {
     setAudioFiles([]);
     setVideoFiles([]);
     setQGeolocation(null);
+    setHints([]);
     setOptions([
       { option_text: '', is_correct: false },
       { option_text: '', is_correct: false },
@@ -183,6 +186,7 @@ export default function QuestionCreate() {
     setError('');
     setQuestionWarning('');
     try {
+      console.log('DEBUG QuestionCreate onAddQuestion: hints state =', hints);
       const payload = {
         question_text: qText,
         points_value: qPoints,
@@ -193,7 +197,9 @@ export default function QuestionCreate() {
         audios: audioFiles,
         videos: videoFiles,
         geolocation: quiz?.is_geo ? qGeolocation : undefined,
+        hints: hints,
       };
+      console.log('DEBUG QuestionCreate onAddQuestion: payload.hints =', payload.hints);
       await createQuestion(quiz.id, payload);
       resetForm(); // Use the helper function
       // Refresh quiz details to update question count
@@ -237,6 +243,7 @@ export default function QuestionCreate() {
     setError('');
     setQuestionWarning('');
     try {
+      console.log('DEBUG QuestionCreate: hints state before payload =', hints);
       const payload = {
         question_text: qText,
         points_value: qPoints,
@@ -247,9 +254,11 @@ export default function QuestionCreate() {
         audios: audioFiles,
         videos: videoFiles,
         geolocation: quiz?.is_geo ? qGeolocation : undefined,
+        hints: hints,
       };
+      console.log('DEBUG QuestionCreate: payload.hints =', payload.hints);
       await createQuestion(quiz.id, payload);
-      // After successful save, navigate away
+      // After successful save, navigate back to quiz
       navigate(`/quizzes/${quizId}/`);
     } catch (err) {
       setError(err.message || 'Failed to add question');
@@ -537,6 +546,9 @@ export default function QuestionCreate() {
             )}
           </>
         )}
+
+        {/* Hints Section */}
+        <HintForm hints={hints} onChange={setHints} />
 
         <div className="d-flex gap-2">
           <button type="submit" disabled={saving} className="btn btn-primary">{saving ? 'Adding...' : 'Add question'}</button>
