@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { getQuizzes } from '../api/api';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 export default function Home() {
   const [quizzes, setQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { t } = useTranslation();
 
   useEffect(() => {
     getQuizzes()
@@ -18,15 +20,15 @@ export default function Home() {
       });
   }, []);
 
-  if (loading) return <p className="text-center mt-4">Loading...</p>;
+  if (loading) return <p className="text-center mt-4">{t('home.loading')}</p>;
 
   return (
     <div className="container mt-4">
       {/* Заголовок и кнопка */}
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="h3 fw-bold">Available Quizzes</h1>
+        <h1 className="h3 fw-bold">{t('home.title')}</h1>
         <Link to="/quizzes/create/" className="btn btn-success">
-          Create Quiz
+          {t('home.createQuiz')}
         </Link>
       </div>
 
@@ -49,7 +51,7 @@ export default function Home() {
                   ) : (
                     <div className="card-img-top bg-secondary bg-opacity-10 d-flex align-items-center justify-content-center"
                          style={{ height: '180px' }}>
-                      <span className="text-muted">No image</span>
+                      <span className="text-muted">{t('home.noImage')}</span>
                     </div>
                   )}
                   <div className="card-body">
@@ -64,8 +66,8 @@ export default function Home() {
                       {quiz.description || 'No description'}
                     </p>
                     <div className="d-flex gap-2 flex-wrap">
-                      <span className="badge bg-secondary">{quiz.category}</span>
-                      <span className="badge bg-info">Level {quiz.difficulty_level}</span>
+                      <span className="badge bg-secondary">{t(`categories.${quiz.category}`)}</span>
+                      <span className="badge bg-info">{t(`difficulty.${quiz.difficulty_level}`)}</span>
                       {quiz.is_geo && <span className="badge bg-success">Geo</span>}
                     </div>
                   </div>

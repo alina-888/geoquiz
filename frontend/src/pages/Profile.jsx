@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { fetchUserProfile, updateUserProfile, getQuizzesByCreator } from '../api/api';
 import { isDebugMode, toggleDebugMode } from '../utils/geolocation';
+import { useTranslation } from 'react-i18next';
 
 export default function Profile() {
   const { username } = useParams();
   const authUsername = localStorage.getItem('auth.username');
   const canEdit = authUsername === username;
+  const { t } = useTranslation();
 
   const [profile, setProfile] = useState(null);
   const [form, setForm] = useState({ username: '', bio: '' });
@@ -25,10 +27,10 @@ export default function Profile() {
         setLoading(false);
       })
       .catch((err) => {
-        setError(err.message || 'Failed to load profile');
+        setError(err.message || t('profile.failed'));
         setLoading(false);
       });
-  }, [username]);
+  }, [username, t]);
 
   useEffect(() => {
     if (!profile || !profile.id) return;
@@ -57,29 +59,29 @@ export default function Profile() {
       const updated = await updateUserProfile(username, { username: form.username, bio: form.bio });
       setProfile(updated);
     } catch (err) {
-      setError(err.message || 'Failed to update profile');
+      setError(err.message || t('profile.failed'));
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) return <p className="text-center mt-4">Loading...</p>;
+  if (loading) return <p className="text-center mt-4">{t('profile.loading')}</p>;
   if (error) return <div className="alert alert-danger mt-4">{error}</div>;
   if (!profile) return null;
 
   return (
     <div className="container mt-4" style={{ maxWidth: '600px' }}>
-      <h1 className="h3 fw-bold mb-4">Profile</h1>
+      <h1 className="h3 fw-bold mb-4">{t('profile.title')}</h1>
 
       <div className="card shadow-sm">
         <div className="card-body">
-          <p><strong>Email:</strong> {profile.email}</p>
-          <p><strong>Total points:</strong> {profile.total_points}</p>
+          <p><strong>{t('profile.email')}:</strong> {profile.email}</p>
+          <p><strong>{t('profile.totalPoints')}:</strong> {profile.total_points}</p>
 
           {canEdit ? (
             <form onSubmit={onSave}>
               <div className="mb-3">
-                <label className="form-label">Username</label>
+                <label className="form-label">{t('auth.register.username')}</label>
                 <input
                   name="username"
                   value={form.username}
@@ -88,7 +90,7 @@ export default function Profile() {
                 />
               </div>
               <div className="mb-3">
-                <label className="form-label">Bio</label>
+                <label className="form-label">{t('profile.bio')}</label>
                 <textarea
                   name="bio"
                   value={form.bio}
@@ -98,14 +100,14 @@ export default function Profile() {
                 />
               </div>
               <button type="submit" disabled={saving} className="btn btn-primary">
-                {saving ? 'Saving...' : 'Save'}
+                {saving ? t('common.save') + '...' : t('common.save')}
               </button>
               {error && <div className="alert alert-danger mt-3">{error}</div>}
             </form>
           ) : (
             <>
-              <p><strong>Username:</strong> {profile.username}</p>
-              <p><strong>Bio:</strong> {profile.bio || '—'}</p>
+              <p><strong>{t('auth.register.username')}:</strong> {profile.username}</p>
+              <p><strong>{t('profile.bio')}:</strong> {profile.bio || '—'}</p>
             </>
           )}
         </div>
@@ -148,7 +150,7 @@ export default function Profile() {
 
       <div className="card shadow-sm mt-4">
         <div className="card-body">
-          <h2 className="h5 mb-3">Created quizzes</h2>
+          <h2 className="h5 mb-3">{t('profile.createdQuizzes')}</h2>
           {quizzesError && <div className="alert alert-danger">{quizzesError}</div>}
           {createdQuizzes.length === 0 ? (
             <p className="text-muted mb-0">No quizzes yet.</p>
@@ -158,7 +160,7 @@ export default function Profile() {
                 <li key={q.id} className="list-group-item px-0 d-flex justify-content-between align-items-center">
                   <div>
                     <Link to={`/quizzes/${q.id}/`} className="text-decoration-none">{q.title}</Link>
-                    <div className="small text-muted">{q.category} • Difficulty {q.difficulty_level}</div>
+                    <div className="small text-muted">{t(`categories.${q.category}`)} • {t('quiz.detail.difficulty')} {t(`difficulty.${q.difficulty_level}`)}</div>
                   </div>
                 </li>
               ))}

@@ -1,14 +1,17 @@
 import React from 'react';
 import { Lightbulb, Plus, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Simple hint form component that manages hints in local state
  * Works like media files - collects data and sends with question save
  */
 export default function HintForm({ hints, onChange }) {
+  const { t } = useTranslation();
+
   const addHint = () => {
     if (hints.length >= 3) {
-      alert('Maximum 3 hints per question');
+      alert(t('hints.maxHints'));
       return;
     }
 
@@ -44,7 +47,7 @@ export default function HintForm({ hints, onChange }) {
       <div className="card-header d-flex justify-content-between align-items-center bg-light">
         <h6 className="mb-0">
           <Lightbulb size={18} className="me-2" style={{ display: 'inline' }} />
-          Hints ({hints.length}/3) <span className="text-muted small">- Optional</span>
+          {t('hints.title')} ({hints.length}/3) <span className="text-muted small">{t('hints.optional')}</span>
         </h6>
         {hints.length < 3 && (
           <button
@@ -53,7 +56,7 @@ export default function HintForm({ hints, onChange }) {
             onClick={addHint}
           >
             <Plus size={14} className="me-1" />
-            Add Hint
+            {t('hints.addHint')}
           </button>
         )}
       </div>
@@ -64,9 +67,9 @@ export default function HintForm({ hints, onChange }) {
             <div key={index} className="border rounded p-3 mb-3 bg-light">
               <div className="d-flex justify-content-between align-items-start mb-2">
                 <h6 className="mb-0">
-                  Hint {hint.hint_order}
+                  {t('hints.hint')} {hint.hint_order}
                   <span className="badge bg-warning text-dark ms-2">
-                    -{hint.points_penalty} points
+                    -{hint.points_penalty} {t('hints.points')}
                   </span>
                 </h6>
                 <button
@@ -80,7 +83,7 @@ export default function HintForm({ hints, onChange }) {
 
               <div className="row g-2 mb-2">
                 <div className="col-md-6">
-                  <label className="form-label small mb-1">Points Penalty *</label>
+                  <label className="form-label small mb-1">{t('hints.pointsPenalty')} *</label>
                   <input
                     type="number"
                     className="form-control form-control-sm"
@@ -91,24 +94,24 @@ export default function HintForm({ hints, onChange }) {
                     }
                     required
                   />
-                  <small className="text-muted">Points deducted when unlocked</small>
+                  <small className="text-muted">{t('hints.pointsDeducted')}</small>
                 </div>
               </div>
 
               <div className="mb-2">
-                <label className="form-label small mb-1">Hint Text</label>
+                <label className="form-label small mb-1">{t('hints.hintText')}</label>
                 <textarea
                   className="form-control form-control-sm"
                   rows={2}
                   value={hint.hint_text}
                   onChange={(e) => updateHint(index, 'hint_text', e.target.value)}
-                  placeholder="Enter hint text (at least text or media required)"
+                  placeholder={t('hints.hintTextPlaceholder')}
                 />
               </div>
 
               <div className="row g-2">
                 <div className="col-md-4">
-                  <label className="form-label small mb-1">Image</label>
+                  <label className="form-label small mb-1">{t('question.create.image')}</label>
                   <input
                     type="file"
                     className="form-control form-control-sm"
@@ -125,7 +128,7 @@ export default function HintForm({ hints, onChange }) {
                 </div>
 
                 <div className="col-md-4">
-                  <label className="form-label small mb-1">Audio</label>
+                  <label className="form-label small mb-1">{t('question.create.audio')}</label>
                   <input
                     type="file"
                     className="form-control form-control-sm"
@@ -142,7 +145,7 @@ export default function HintForm({ hints, onChange }) {
                 </div>
 
                 <div className="col-md-4">
-                  <label className="form-label small mb-1">Video</label>
+                  <label className="form-label small mb-1">{t('question.create.video')}</label>
                   <input
                     type="file"
                     className="form-control form-control-sm"
@@ -166,7 +169,7 @@ export default function HintForm({ hints, onChange }) {
       {hints.length === 0 && (
         <div className="card-body text-center text-muted py-4">
           <Lightbulb size={32} className="mb-2 opacity-50" />
-          <p className="mb-0 small">No hints added yet. Hints help players without giving away the answer.</p>
+          <p className="mb-0 small">{t('hints.noHints')}</p>
         </div>
       )}
     </div>

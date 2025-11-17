@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { loginUser } from '../api/api';
+import { useTranslation } from 'react-i18next';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -8,6 +9,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const { t } = useTranslation();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,14 +22,14 @@ export default function Login() {
       window.location.href = '/';
       // Alternatively: navigate('/');
     } catch (err) {
-      setError(err.message || 'Login failed');
+      setError(err.message || t('auth.login.failed'));
       setSubmitting(false);
     }
   };
 
   return (
     <div className="container mt-5" style={{ maxWidth: 420 }}>
-      <h1 className="h3 mb-4">Login</h1>
+      <h1 className="h3 mb-4">{t('auth.login.title')}</h1>
       {error && (
         <div className="alert alert-danger" role="alert">
           {error}
@@ -35,7 +37,7 @@ export default function Login() {
       )}
       <form onSubmit={handleSubmit}>
         <div className="mb-3">
-          <label htmlFor="username" className="form-label">Username</label>
+          <label htmlFor="username" className="form-label">{t('auth.login.username')}</label>
           <input
             id="username"
             type="text"
@@ -47,7 +49,7 @@ export default function Login() {
           />
         </div>
         <div className="mb-3">
-          <label htmlFor="password" className="form-label">Password</label>
+          <label htmlFor="password" className="form-label">{t('auth.login.password')}</label>
           <input
             id="password"
             type="password"
@@ -59,12 +61,12 @@ export default function Login() {
           />
         </div>
         <button type="submit" className="btn btn-primary w-100" disabled={submitting}>
-          {submitting ? 'Signing in…' : 'Login'}
+          {submitting ? t('auth.login.submitting') : t('auth.login.submit')}
         </button>
       </form>
       <div className="mt-3 text-center">
-        <span className="text-muted">No account? </span>
-        <Link to="/register">Register</Link>
+        <span className="text-muted">{t('auth.login.noAccount')} </span>
+        <Link to="/register">{t('auth.login.registerLink')}</Link>
       </div>
     </div>
   );

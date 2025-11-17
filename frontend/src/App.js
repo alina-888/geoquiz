@@ -14,9 +14,12 @@ import Register from './pages/Register';
 import Profile from './pages/Profile';
 import { logoutUser } from './api/api';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from './components/LanguageSwitcher';
 
 function App() {
   const [username, setUsername] = React.useState(localStorage.getItem('auth.username'));
+  const { t } = useTranslation();
 
   const handleLogout = async () => {
     try {
@@ -56,12 +59,12 @@ function App() {
                 <>
                   <li className="nav-item">
                     <Link to="/login" className="nav-link">
-                      Login
+                      {t('navbar.login')}
                     </Link>
                   </li>
                   <li className="nav-item">
                     <Link to="/register" className="nav-link">
-                      Register
+                      {t('navbar.register')}
                     </Link>
                   </li>
                 </>
@@ -77,11 +80,14 @@ function App() {
                   </li>
                   <li className="nav-item">
                     <button onClick={handleLogout} className="btn btn-outline-danger ms-2">
-                      Logout
+                      {t('navbar.logout')}
                     </button>
                   </li>
                 </>
               )}
+              <li className="nav-item ms-2">
+                <LanguageSwitcher />
+              </li>
             </ul>
           </div>
         </div>

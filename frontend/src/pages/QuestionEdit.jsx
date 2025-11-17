@@ -4,10 +4,12 @@ import { MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getQuestion, updateQuestion, getQuizDetail, deleteQuestionMedia } from '../api/api';
 import LocationPicker from './LocationPicker';
 import HintForm from '../components/HintForm';
+import { useTranslation } from 'react-i18next';
 
 export default function QuestionEdit() {
   const navigate = useNavigate();
   const { quizId, questionId } = useParams();
+  const { t } = useTranslation();
 
   const [quiz, setQuiz] = useState(null);
   const [question, setQuestion] = useState(null);
@@ -283,14 +285,14 @@ export default function QuestionEdit() {
     }
   };
 
-  if (loading) return <p className="text-center mt-4">Loading...</p>;
+  if (loading) return <p className="text-center mt-4">{t('common.loading')}</p>;
 
   if (error && !question) {
     return (
       <div className="container mt-4" style={{ maxWidth: '700px' }}>
         <div className="alert alert-danger">{error}</div>
         <button onClick={() => navigate(`/quizzes/${quizId}/`)} className="btn btn-secondary">
-          Go Back
+          {t('common.back')}
         </button>
       </div>
     );
@@ -299,7 +301,7 @@ export default function QuestionEdit() {
   return (
     <div className="container mt-4" style={{ maxWidth: '700px' }}>
       <div className="d-flex justify-content-between align-items-center mb-2">
-        <h1 className="h4 fw-bold mb-0">Edit Question</h1>
+        <h1 className="h4 fw-bold mb-0">{t('question.edit.title')}</h1>
         {quiz && quiz.questions && quiz.questions.length > 1 && (
           <div className="d-flex gap-2">
             <button

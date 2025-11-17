@@ -1,0 +1,216 @@
+{
+  "navbar": {
+    "brand": "GeoQuiz",
+    "login": "Prijava",
+    "register": "Registracija",
+    "logout": "Odjava"
+  },
+  "home": {
+    "title": "Dostupni kvizovi",
+    "createQuiz": "Napravi kviz",
+    "loading": "Učitavanje...",
+    "noImage": "Nema slike"
+  },
+  "auth": {
+    "login": {
+      "title": "Prijava",
+      "username": "Korisničko ime",
+      "password": "Lozinka",
+      "submit": "Prijavi se",
+      "submitting": "Prijavljivanje...",
+      "noAccount": "Nemate nalog?",
+      "registerLink": "Registruj se",
+      "failed": "Neuspešna prijava"
+    },
+    "register": {
+      "title": "Registracija",
+      "username": "Korisničko ime",
+      "email": "Email",
+      "password": "Lozinka",
+      "confirmPassword": "Potvrdite lozinku",
+      "submit": "Registruj se",
+      "submitting": "Kreiranje naloga...",
+      "haveAccount": "Već imate nalog?",
+      "loginLink": "Prijavi se",
+      "passwordMismatch": "Lozinke se ne poklapaju",
+      "failed": "Neuspešna registracija"
+    }
+  },
+  "quiz": {
+    "detail": {
+      "loading": "Učitavanje...",
+      "category": "Kategorija",
+      "difficulty": "Težina",
+      "geoQuiz": "Geo-kviz",
+      "start": "Počni",
+      "edit": "Izmeni",
+      "delete": "Obriši",
+      "loginToStart": "Prijavite se da počnete",
+      "questions": "Pitanja",
+      "addQuestions": "+ Dodaj pitanja",
+      "deleteConfirm": "Da li ste sigurni da želite da obrišete ovaj kviz?",
+      "deleteWithQuestions": "Da li ste sigurni da želite da obrišete ovaj kviz? Ovo će takođe obrisati {{count}} pitanje. Ova radnja se ne može poništiti.",
+      "deleteWithQuestions_plural": "Da li ste sigurni da želite da obrišete ovaj kviz? Ovo će takođe obrisati {{count}} pitanja. Ova radnja se ne može poništiti.",
+      "deleteQuestionConfirm": "Obrisati ovo pitanje: \"{{text}}\"?",
+      "failedToLoad": "Neuspešno učitavanje kviza",
+      "failedToStart": "Neuspešno pokretanje kviza",
+      "failedToDelete": "Neuspešno brisanje kviza",
+      "failedToDeleteQuestion": "Neuspešno brisanje pitanja",
+      "points": "poena",
+      "geo": "Geo",
+      "image": "Slika",
+      "images": "Slike",
+      "audio": "Audio",
+      "video": "Video",
+      "videos": "Video snimci"
+    },
+    "create": {
+      "title": "Napravi kviz",
+      "titleField": "Naslov",
+      "description": "Opis",
+      "difficulty": "Težina",
+      "easy": "Lako",
+      "medium": "Srednje",
+      "hard": "Teško",
+      "duration": "Procenjeno trajanje (minuti)",
+      "category": "Kategorija",
+      "categoryHistory": "Istorija",
+      "categoryLandmarks": "Znamenitosti",
+      "categoryCulture": "Kultura",
+      "categoryNature": "Priroda",
+      "categoryOther": "Ostalo",
+      "publishImmediately": "Objavi odmah",
+      "isGeoQuiz": "Ovo je geo-kviz",
+      "quizImage": "Slika kviza",
+      "quizCoverImage": "Naslovna slika kviza",
+      "clickToUpload": "Kliknite za učitavanje (opciono)",
+      "create": "Napravi",
+      "creating": "Kreiranje...",
+      "success": "Kviz je napravljen! Možete dodati pitanja na sledećoj stranici.",
+      "goToQuestionBuilder": "Idi na kreiranje pitanja",
+      "failed": "Neuspešno kreiranje kviza"
+    },
+    "edit": {
+      "title": "Izmeni kviz",
+      "save": "Sačuvaj izmene",
+      "saving": "Čuvanje...",
+      "success": "Kviz je uspešno ažuriran!",
+      "failed": "Neuspešno ažuriranje kviza"
+    }
+  },
+  "question": {
+    "create": {
+      "title": "Dodaj pitanja",
+      "questionText": "Tekst pitanja",
+      "questionType": "Tip pitanja",
+      "typeText": "Tekstualni odgovor",
+      "typeMultipleChoice": "Višestruki izbor",
+      "typeTrueFalse": "Tačno/Netačno",
+      "points": "Poeni",
+      "addOption": "+ Dodaj opciju",
+      "correctAnswer": "Tačan odgovor",
+      "options": "Opcije",
+      "geolocation": "Geolokacija",
+      "pickLocation": "Izaberi lokaciju",
+      "latitude": "Geografska širina",
+      "longitude": "Geografska dužina",
+      "media": "Mediji",
+      "image": "Slika",
+      "audio": "Audio",
+      "video": "Video",
+      "clickToUpload": "Kliknite za učitavanje",
+      "addAnother": "Dodaj još jedno pitanje",
+      "finish": "Završi i pogledaj kviz",
+      "creating": "Kreiranje...",
+      "failed": "Neuspešno kreiranje pitanja",
+      "geoNotAllowed": "Ovo nije geo-kviz. Geolokacija nije dozvoljena.",
+      "optionPlaceholder": "Opcija {{number}}"
+    },
+    "edit": {
+      "title": "Izmeni pitanje",
+      "save": "Sačuvaj izmene",
+      "saving": "Čuvanje...",
+      "success": "Pitanje je uspešno ažurirano!",
+      "failed": "Neuspešno ažuriranje pitanja"
+    },
+    "view": {
+      "question": "Pitanje",
+      "of": "od",
+      "points": "poena",
+      "yourAnswer": "Vaš odgovor",
+      "selectAnswer": "Izaberite odgovor",
+      "submit": "Pošalji odgovor",
+      "submitting": "Slanje...",
+      "next": "Sledeće pitanje",
+      "finish": "Završi kviz",
+      "failed": "Neuspešno slanje odgovora"
+    }
+  },
+  "profile": {
+    "title": "Profil",
+    "totalPoints": "Ukupno poena",
+    "bio": "Biografija",
+    "email": "Email",
+    "loading": "Učitavanje...",
+    "failed": "Neuspešno učitavanje profila",
+    "createdQuizzes": "Kreirani kvizovi"
+  },
+  "results": {
+    "title": "Kviz završen!",
+    "score": "Vaš rezultat",
+    "percentage": "Procenat",
+    "timeTaken": "Vreme",
+    "viewResults": "Pogledaj detaljne rezultate",
+    "backToQuizzes": "Nazad na kvizove",
+    "retake": "Ponovi kviz"
+  },
+  "common": {
+    "loading": "Učitavanje...",
+    "error": "Greška",
+    "save": "Sačuvaj",
+    "cancel": "Otkaži",
+    "delete": "Obriši",
+    "edit": "Izmeni",
+    "create": "Napravi",
+    "submit": "Pošalji",
+    "back": "Nazad",
+    "next": "Sledeće",
+    "previous": "Prethodno",
+    "close": "Zatvori",
+    "confirm": "Potvrdi",
+    "yes": "Da",
+    "no": "Ne",
+    "true": "Tačno",
+    "false": "Netačno"
+  },
+  "difficulty": {
+    "1": "Lako",
+    "2": "Srednje",
+    "3": "Teško"
+  },
+  "categories": {
+    "history": "Istorija",
+    "landmarks": "Znamenitosti",
+    "culture": "Kultura",
+    "nature": "Priroda",
+    "other": "Ostalo"
+  },
+  "questionTypes": {
+    "text": "Tekstualni odgovor",
+    "multiple_choice": "Višestruki izbor",
+    "true_false": "Tačno/Netačno"
+  },
+  "hints": {
+    "title": "Saveti",
+    "optional": "- Opciono",
+    "addHint": "Dodaj savet",
+    "maxHints": "Maksimalno 3 saveta po pitanju",
+    "hint": "Savet",
+    "points": "poena",
+    "pointsPenalty": "Kazna u poenima",
+    "pointsDeducted": "Poeni odbijeni pri otključavanju",
+    "hintText": "Tekst saveta",
+    "hintTextPlaceholder": "Unesite tekst saveta (potreban je tekst ili medij)",
+    "noHints": "Još nema dodatih saveta. Saveti pomažu igračima bez otkrivanja odgovora."
+  }
+}

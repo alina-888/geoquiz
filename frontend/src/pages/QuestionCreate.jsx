@@ -4,11 +4,13 @@ import { MapPin } from 'lucide-react';
 import { createQuestion, getQuizDetail } from '../api/api';
 import LocationPicker from './LocationPicker';
 import HintForm from '../components/HintForm';
+import { useTranslation } from 'react-i18next';
 
 export default function QuestionCreate() {
   const navigate = useNavigate();
   const { id } = useParams();
   const quizId = Number(id);
+  const { t } = useTranslation();
 
   const [quiz, setQuiz] = useState(null);
   const [error, setError] = useState('');
@@ -288,7 +290,7 @@ export default function QuestionCreate() {
 
   return (
     <div className="container mt-4" style={{ maxWidth: '700px' }}>
-      <h1 className="h4 fw-bold mb-2">Add Questions</h1>
+      <h1 className="h4 fw-bold mb-2">{t('question.create.title')}</h1>
       <div className="text-muted mb-3">Creating question #{(quiz?.questions?.length || 0) + 1}</div>
       {quiz && (
         <div className="alert alert-info">Adding questions to: <strong>{quiz.title}</strong></div>
@@ -297,33 +299,33 @@ export default function QuestionCreate() {
 
       <form onSubmit={onAddQuestion}>
         <div className="mb-3">
-          <label className="form-label">Question text</label>
+          <label className="form-label">{t('question.create.questionText')}</label>
           <textarea value={qText} onChange={(e)=>setQText(e.target.value)} className="form-control" rows={3} required />
         </div>
 
         <div className="row mb-3">
           <div className="col">
-            <label className="form-label">Type</label>
+            <label className="form-label">{t('question.create.questionType')}</label>
             <select value={qType} onChange={(e)=>setQType(e.target.value)} className="form-select">
-              <option value="multiple_choice">Multiple Choice</option>
-              <option value="text">Text</option>
-              <option value="true_false">True/False</option>
+              <option value="multiple_choice">{t('question.create.typeMultipleChoice')}</option>
+              <option value="text">{t('question.create.typeText')}</option>
+              <option value="true_false">{t('question.create.typeTrueFalse')}</option>
             </select>
           </div>
           <div className="col">
-            <label className="form-label">Points</label>
+            <label className="form-label">{t('question.create.points')}</label>
             <input type="number" value={qPoints} onChange={(e)=>setQPoints(Number(e.target.value))} className="form-control" />
           </div>
         </div>
 
         {qType === 'text' ? (
           <div className="mb-3">
-            <label className="form-label">Correct answer</label>
+            <label className="form-label">{t('question.create.correctAnswer')}</label>
             <input value={qCorrect} onChange={(e)=>setQCorrect(e.target.value)} className="form-control" />
           </div>
         ) : qType === 'true_false' ? (
           <div className="mb-3">
-            <label className="form-label d-block">Correct answer</label>
+            <label className="form-label d-block">{t('question.create.correctAnswer')}</label>
             {questionWarning && !questionWarning.includes('Hint') && (
               <div className="alert alert-warning py-2 mb-2">{questionWarning}</div>
             )}
@@ -337,7 +339,7 @@ export default function QuestionCreate() {
                 checked={qCorrect === 'true'}
                 onChange={(e)=>setQCorrect(e.target.value)}
               />
-              <label className="form-check-label" htmlFor="tf-true">True</label>
+              <label className="form-check-label" htmlFor="tf-true">{t('common.true')}</label>
             </div>
             <div className="form-check form-check-inline">
               <input
@@ -349,12 +351,12 @@ export default function QuestionCreate() {
                 checked={qCorrect === 'false'}
                 onChange={(e)=>setQCorrect(e.target.value)}
               />
-              <label className="form-check-label" htmlFor="tf-false">False</label>
+              <label className="form-check-label" htmlFor="tf-false">{t('common.false')}</label>
             </div>
           </div>
         ) : (
           <div className="mb-3">
-            <label className="form-label">Options</label>
+            <label className="form-label">{t('question.create.options')}</label>
             {questionWarning && !questionWarning.includes('Hint') && (
               <div className="alert alert-warning py-2 mb-2">{questionWarning}</div>
             )}
@@ -364,21 +366,21 @@ export default function QuestionCreate() {
                   value={opt.option_text}
                   onChange={(e)=>updateOption(idx, 'option_text', e.target.value)}
                   className="form-control"
-                  placeholder={`Option ${idx+1}`}
+                  placeholder={t('question.create.optionPlaceholder', { number: idx+1 })}
                 />
                 <div className="form-check mb-0">
                   <input type="checkbox" checked={opt.is_correct} onChange={(e)=>updateOption(idx, 'is_correct', e.target.checked)} className="form-check-input" id={`opt-${idx}`} />
-                  <label className="form-check-label" htmlFor={`opt-${idx}`}>Correct</label>
+                  <label className="form-check-label" htmlFor={`opt-${idx}`}>{t('question.create.correctAnswer')}</label>
                 </div>
-                <button type="button" onClick={()=>removeOption(idx)} className="btn btn-outline-danger btn-sm">Remove</button>
+                <button type="button" onClick={()=>removeOption(idx)} className="btn btn-outline-danger btn-sm">{t('common.delete')}</button>
               </div>
             ))}
-            <button type="button" onClick={addOption} className="btn btn-link p-0">+ Add option</button>
+            <button type="button" onClick={addOption} className="btn btn-link p-0">{t('question.create.addOption')}</button>
           </div>
         )}
 
         <div className="mb-3">
-          <label className="form-label d-block fw-semibold">Media Attachments</label>
+          <label className="form-label d-block fw-semibold">{t('question.create.media')}</label>
           {questionWarning && !questionWarning.includes('Hint') && (
             <div className="alert alert-warning py-2 mb-2">{questionWarning}</div>
           )}
@@ -398,7 +400,7 @@ export default function QuestionCreate() {
                       <circle cx="8.5" cy="8.5" r="1.5"></circle>
                       <polyline points="21 15 16 10 5 21"></polyline>
                     </svg>
-                    <div className="fw-semibold mb-2">Images</div>
+                    <div className="fw-semibold mb-2">{t('question.create.image')}</div>
                     <input
                       ref={imageInputRef}
                       type="file"
@@ -410,7 +412,7 @@ export default function QuestionCreate() {
                     {imageFiles.length > 0 ? (
                       <div className="small text-success fw-semibold mb-1">✓ {imageFiles.length} file{imageFiles.length > 1 ? 's' : ''}</div>
                     ) : (
-                      <div className="small text-muted">Click to upload</div>
+                      <div className="small text-muted">{t('question.create.clickToUpload')}</div>
                     )}
                     {imageFiles.map((file, idx) => (
                       <div key={idx} className="mt-2 bg-white rounded border p-2">
@@ -446,7 +448,7 @@ export default function QuestionCreate() {
                       <circle cx="6" cy="18" r="3"></circle>
                       <circle cx="18" cy="16" r="3"></circle>
                     </svg>
-                    <div className="fw-semibold mb-2">Audio</div>
+                    <div className="fw-semibold mb-2">{t('question.create.audio')}</div>
                     <input
                       ref={audioInputRef}
                       type="file"
@@ -458,7 +460,7 @@ export default function QuestionCreate() {
                     {audioFiles.length > 0 ? (
                       <div className="small text-success fw-semibold mb-1">✓ {audioFiles.length} file{audioFiles.length > 1 ? 's' : ''}</div>
                     ) : (
-                      <div className="small text-muted">Click to upload</div>
+                      <div className="small text-muted">{t('question.create.clickToUpload')}</div>
                     )}
                     {audioFiles.map((file, idx) => (
                       <div key={idx} className="d-flex align-items-center justify-content-between mt-2 px-2 py-1 bg-white rounded">
@@ -485,7 +487,7 @@ export default function QuestionCreate() {
                       <polygon points="23 7 16 12 23 17 23 7"></polygon>
                       <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
                     </svg>
-                    <div className="fw-semibold mb-2">Videos</div>
+                    <div className="fw-semibold mb-2">{t('question.create.video')}</div>
                     <input
                       ref={videoInputRef}
                       type="file"
@@ -497,7 +499,7 @@ export default function QuestionCreate() {
                     {videoFiles.length > 0 ? (
                       <div className="small text-success fw-semibold mb-1">✓ {videoFiles.length} file{videoFiles.length > 1 ? 's' : ''}</div>
                     ) : (
-                      <div className="small text-muted">Click to upload</div>
+                      <div className="small text-muted">{t('question.create.clickToUpload')}</div>
                     )}
                     {videoFiles.map((file, idx) => (
                       <div key={idx} className="d-flex align-items-center justify-content-between mt-2 px-2 py-1 bg-white rounded">
@@ -556,7 +558,7 @@ export default function QuestionCreate() {
                   className="btn btn-outline-primary w-100"
                 >
                   <MapPin size={16} className="me-2" style={{ display: 'inline' }} />
-                  Add Location to Question
+                  {t('question.create.pickLocation')}
                 </button>
                 <small className="text-muted d-block mt-1">
                   This is a geo quiz. You can optionally add a location requirement to this question.
@@ -573,8 +575,8 @@ export default function QuestionCreate() {
         <HintForm hints={hints} onChange={setHints} />
 
         <div className="d-flex gap-2">
-          <button type="submit" disabled={saving} className="btn btn-primary">{saving ? 'Adding...' : 'Add question'}</button>
-          <button type="button" disabled={saving} onClick={onDone} className="btn btn-secondary">Done</button>
+          <button type="submit" disabled={saving} className="btn btn-primary">{saving ? t('question.create.creating') : t('question.create.addAnother')}</button>
+          <button type="button" disabled={saving} onClick={onDone} className="btn btn-secondary">{t('question.create.finish')}</button>
         </div>
       </form>
     </div>

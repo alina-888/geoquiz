@@ -1,0 +1,216 @@
+{
+  "navbar": {
+    "brand": "GeoQuiz",
+    "login": "Login",
+    "register": "Register",
+    "logout": "Logout"
+  },
+  "home": {
+    "title": "Available Quizzes",
+    "createQuiz": "Create Quiz",
+    "loading": "Loading...",
+    "noImage": "No image"
+  },
+  "auth": {
+    "login": {
+      "title": "Login",
+      "username": "Username",
+      "password": "Password",
+      "submit": "Login",
+      "submitting": "Signing in…",
+      "noAccount": "No account?",
+      "registerLink": "Register",
+      "failed": "Login failed"
+    },
+    "register": {
+      "title": "Register",
+      "username": "Username",
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "submit": "Register",
+      "submitting": "Creating account…",
+      "haveAccount": "Already have an account?",
+      "loginLink": "Login",
+      "passwordMismatch": "Passwords do not match",
+      "failed": "Registration failed"
+    }
+  },
+  "quiz": {
+    "detail": {
+      "loading": "Loading...",
+      "category": "Category",
+      "difficulty": "Difficulty",
+      "geoQuiz": "Geo Quiz",
+      "start": "Start",
+      "edit": "Edit",
+      "delete": "Delete",
+      "loginToStart": "Login to start",
+      "questions": "Questions",
+      "addQuestions": "+ Add Questions",
+      "deleteConfirm": "Are you sure you want to delete this quiz?",
+      "deleteWithQuestions": "Are you sure you want to delete this quiz? This will also delete {{count}} question. This action cannot be undone.",
+      "deleteWithQuestions_plural": "Are you sure you want to delete this quiz? This will also delete {{count}} questions. This action cannot be undone.",
+      "deleteQuestionConfirm": "Delete this question: \"{{text}}\"?",
+      "failedToLoad": "Failed to load quiz",
+      "failedToStart": "Failed to start quiz",
+      "failedToDelete": "Failed to delete quiz",
+      "failedToDeleteQuestion": "Failed to delete question",
+      "points": "pts",
+      "geo": "Geo",
+      "image": "Image",
+      "images": "Images",
+      "audio": "Audio",
+      "video": "Video",
+      "videos": "Videos"
+    },
+    "create": {
+      "title": "Create Quiz",
+      "titleField": "Title",
+      "description": "Description",
+      "difficulty": "Difficulty",
+      "easy": "Easy",
+      "medium": "Medium",
+      "hard": "Hard",
+      "duration": "Estimated duration (minutes)",
+      "category": "Category",
+      "categoryHistory": "History",
+      "categoryLandmarks": "Landmarks",
+      "categoryCulture": "Culture",
+      "categoryNature": "Nature",
+      "categoryOther": "Other",
+      "publishImmediately": "Publish immediately",
+      "isGeoQuiz": "This is a geo-quiz",
+      "quizImage": "Quiz Image",
+      "quizCoverImage": "Quiz Cover Image",
+      "clickToUpload": "Click to upload (optional)",
+      "create": "Create",
+      "creating": "Creating...",
+      "success": "Quiz created! You can add questions on the next page.",
+      "goToQuestionBuilder": "Go to Question Builder",
+      "failed": "Failed to create quiz"
+    },
+    "edit": {
+      "title": "Edit Quiz",
+      "save": "Save Changes",
+      "saving": "Saving...",
+      "success": "Quiz updated successfully!",
+      "failed": "Failed to update quiz"
+    }
+  },
+  "question": {
+    "create": {
+      "title": "Add Questions",
+      "questionText": "Question Text",
+      "questionType": "Question Type",
+      "typeText": "Text Answer",
+      "typeMultipleChoice": "Multiple Choice",
+      "typeTrueFalse": "True/False",
+      "points": "Points",
+      "addOption": "+ Add Option",
+      "correctAnswer": "Correct Answer",
+      "options": "Options",
+      "geolocation": "Geolocation",
+      "pickLocation": "Pick Location",
+      "latitude": "Latitude",
+      "longitude": "Longitude",
+      "media": "Media",
+      "image": "Image",
+      "audio": "Audio",
+      "video": "Video",
+      "clickToUpload": "Click to upload",
+      "addAnother": "Add Another Question",
+      "finish": "Finish & View Quiz",
+      "creating": "Creating...",
+      "failed": "Failed to create question",
+      "geoNotAllowed": "This is not a geo-quiz. Geolocation is not allowed.",
+      "optionPlaceholder": "Option {{number}}"
+    },
+    "edit": {
+      "title": "Edit Question",
+      "save": "Save Changes",
+      "saving": "Saving...",
+      "success": "Question updated successfully!",
+      "failed": "Failed to update question"
+    },
+    "view": {
+      "question": "Question",
+      "of": "of",
+      "points": "points",
+      "yourAnswer": "Your answer",
+      "selectAnswer": "Select an answer",
+      "submit": "Submit Answer",
+      "submitting": "Submitting...",
+      "next": "Next Question",
+      "finish": "Finish Quiz",
+      "failed": "Failed to submit answer"
+    }
+  },
+  "profile": {
+    "title": "Profile",
+    "totalPoints": "Total Points",
+    "bio": "Bio",
+    "email": "Email",
+    "loading": "Loading...",
+    "failed": "Failed to load profile",
+    "createdQuizzes": "Created Quizzes"
+  },
+  "results": {
+    "title": "Quiz Complete!",
+    "score": "Your Score",
+    "percentage": "Percentage",
+    "timeTaken": "Time Taken",
+    "viewResults": "View Detailed Results",
+    "backToQuizzes": "Back to Quizzes",
+    "retake": "Retake Quiz"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "submit": "Submit",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "close": "Close",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No",
+    "true": "True",
+    "false": "False"
+  },
+  "difficulty": {
+    "1": "Easy",
+    "2": "Medium",
+    "3": "Hard"
+  },
+  "categories": {
+    "history": "History",
+    "landmarks": "Landmarks",
+    "culture": "Culture",
+    "nature": "Nature",
+    "other": "Other"
+  },
+  "questionTypes": {
+    "text": "Text Answer",
+    "multiple_choice": "Multiple Choice",
+    "true_false": "True/False"
+  },
+  "hints": {
+    "title": "Hints",
+    "optional": "- Optional",
+    "addHint": "Add Hint",
+    "maxHints": "Maximum 3 hints per question",
+    "hint": "Hint",
+    "points": "points",
+    "pointsPenalty": "Points Penalty",
+    "pointsDeducted": "Points deducted when unlocked",
+    "hintText": "Hint Text",
+    "hintTextPlaceholder": "Enter hint text (at least text or media required)",
+    "noHints": "No hints added yet. Hints help players without giving away the answer."
+  }
+}
