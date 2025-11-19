@@ -71,6 +71,17 @@ export default function Home() {
                       <span className="badge bg-info">{t(`difficulty.${quiz.difficulty_level}`)}</span>
                       {quiz.is_geo && <span className="badge bg-success">Geo</span>}
                     </div>
+                    {/* Language badges */}
+                    <div className="d-flex gap-1 flex-wrap mt-2">
+                      <span className="badge bg-primary bg-opacity-75" style={{ fontSize: '0.7rem' }}>
+                        {quiz.default_language?.toUpperCase() || 'EN'}
+                      </span>
+                      {quiz.translations && quiz.translations.map(tr => (
+                        <span key={tr.language} className="badge bg-outline-primary border border-primary text-primary" style={{ fontSize: '0.7rem' }}>
+                          {tr.language.toUpperCase()}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </Link>

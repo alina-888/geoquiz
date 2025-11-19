@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { MapPin } from 'lucide-react';
-import { createQuestion, getQuizDetail, createQuestionTranslation } from '../api/api';
+import { createQuestion, getQuizDetail, createQuestionTranslation, createOptionTranslation } from '../api/api';
 import LocationPicker from './LocationPicker';
 import HintForm from '../components/HintForm';
 import TranslationForm from '../components/TranslationForm';
@@ -32,6 +32,7 @@ export default function QuestionCreate() {
     { option_text: '', is_correct: false },
   ]);
   const [translations, setTranslations] = useState([]);
+  const [optionTranslations, setOptionTranslations] = useState({});  // { optionIndex: [{ language, option_text }] }
   
   // Refs to reset file inputs
   const imageInputRef = useRef(null);
@@ -166,6 +167,7 @@ export default function QuestionCreate() {
       { option_text: '', is_correct: false },
     ]);
     setTranslations([]);
+    setOptionTranslations({});
     // Reset file input values
     if (imageInputRef.current) imageInputRef.current.value = '';
     if (audioInputRef.current) audioInputRef.current.value = '';
@@ -233,6 +235,36 @@ export default function QuestionCreate() {
             });
           } catch (err) {
             console.error(`Failed to save translation for ${translation.language}:`, err);
+          }
+        }
+      }
+
+      // Save option translations if provided
+      if (createdQuestion && createdQuestion.options && Object.keys(optionTranslations).length > 0) {
+        console.log('Created question options:', createdQuestion.options);
+        console.log('Option translations to save:', optionTranslations);
+
+        for (const [optionIndex, optTrans] of Object.entries(optionTranslations)) {
+          // Match by option text since indices may shift after filtering empty options
+          const originalOptionText = options[parseInt(optionIndex)]?.option_text;
+          const option = createdQuestion.options.find(o => o.option_text === originalOptionText);
+          console.log(`Matching option for index ${optionIndex}:`, option);
+          if (!option) continue;
+
+          for (const tr of optTrans) {
+            if (tr.language && tr.option_text && tr.option_text.trim()) {
+              try {
+                const payload = {
+                  option: option.id,
+                  language: tr.language,
+                  option_text: tr.option_text
+                };
+                console.log('Saving option translation:', payload);
+                await createOptionTranslation(payload);
+              } catch (err) {
+                console.error(`Failed to save option translation for ${tr.language}:`, err.message);
+              }
+            }
           }
         }
       }
@@ -320,6 +352,36 @@ export default function QuestionCreate() {
             });
           } catch (err) {
             console.error(`Failed to save translation for ${translation.language}:`, err);
+          }
+        }
+      }
+
+      // Save option translations if provided
+      if (createdQuestion && createdQuestion.options && Object.keys(optionTranslations).length > 0) {
+        console.log('Created question options:', createdQuestion.options);
+        console.log('Option translations to save:', optionTranslations);
+
+        for (const [optionIndex, optTrans] of Object.entries(optionTranslations)) {
+          // Match by option text since indices may shift after filtering empty options
+          const originalOptionText = options[parseInt(optionIndex)]?.option_text;
+          const option = createdQuestion.options.find(o => o.option_text === originalOptionText);
+          console.log(`Matching option for index ${optionIndex}:`, option);
+          if (!option) continue;
+
+          for (const tr of optTrans) {
+            if (tr.language && tr.option_text && tr.option_text.trim()) {
+              try {
+                const payload = {
+                  option: option.id,
+                  language: tr.language,
+                  option_text: tr.option_text
+                };
+                console.log('Saving option translation:', payload);
+                await createOptionTranslation(payload);
+              } catch (err) {
+                console.error(`Failed to save option translation for ${tr.language}:`, err.message);
+              }
+            }
           }
         }
       }
@@ -421,6 +483,50 @@ export default function QuestionCreate() {
               </div>
             ))}
             <button type="button" onClick={addOption} className="btn btn-link p-0">{t('question.create.addOption')}</button>
+
+            {/* Option Translations */}
+            {quiz?.default_language && options.some(o => o.option_text.trim()) && (
+              <div className="mt-3 p-3 border rounded bg-light">
+                <h6 className="mb-3">{t('translations.title')} - {t('question.create.options')}</h6>
+                {options.map((opt, optIdx) => {
+                  if (!opt.option_text.trim()) return null;
+                  const availableLanguages = ['en', 'ru', 'sr'].filter(lang => lang !== quiz.default_language);
+                  if (availableLanguages.length === 0) return null;
+
+                  return (
+                    <div key={optIdx} className="mb-3">
+                      <small className="text-muted d-block mb-2">
+                        {t('question.create.optionPlaceholder', { number: optIdx + 1 })}: {opt.option_text.substring(0, 30)}{opt.option_text.length > 30 ? '...' : ''}
+                      </small>
+                      {availableLanguages.map(lang => (
+                        <div key={lang} className="input-group input-group-sm mb-1">
+                          <span className="input-group-text" style={{ width: '45px' }}>{lang.toUpperCase()}</span>
+                          <input
+                            type="text"
+                            className="form-control"
+                            placeholder={t('translations.optionText')}
+                            value={optionTranslations[optIdx]?.find(tr => tr.language === lang)?.option_text || ''}
+                            onChange={(e) => {
+                              setOptionTranslations(prev => {
+                                const updated = { ...prev };
+                                if (!updated[optIdx]) updated[optIdx] = [];
+                                const existing = updated[optIdx].find(tr => tr.language === lang);
+                                if (existing) {
+                                  existing.option_text = e.target.value;
+                                } else {
+                                  updated[optIdx].push({ language: lang, option_text: e.target.value });
+                                }
+                                return updated;
+                              });
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
@@ -561,12 +667,8 @@ export default function QuestionCreate() {
                 </div>
               </div>
               <div className="form-text mt-2 text-center">
-                Click a card to upload multiple files. You can attach images, audio, and videos together.
                 <div className="mt-1">
-                  <strong>{imageFiles.length + audioFiles.length + videoFiles.length}/{MAX_FILES_PER_QUESTION}</strong> files attached
-                  {imageFiles.length + audioFiles.length + videoFiles.length >= MAX_FILES_PER_QUESTION && (
-                    <span className="text-warning ms-2">(Maximum reached)</span>
-                  )}
+                  <strong>{imageFiles.length + audioFiles.length + videoFiles.length}/{MAX_FILES_PER_QUESTION}</strong>
                 </div>
               </div>
             </div>
@@ -626,7 +728,7 @@ export default function QuestionCreate() {
           defaultLanguage={quiz?.default_language}
           fields={[
             { name: 'question_text', label: t('translations.questionText'), multiline: true, rows: 3 },
-            ...(qType !== 'multiple_choice' ? [{ name: 'correct_answer', label: t('translations.correctAnswer') }] : [])
+            ...(qType === 'text' ? [{ name: 'correct_answer', label: t('translations.correctAnswer') }] : [])
           ]}
         />
 

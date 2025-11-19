@@ -95,6 +95,17 @@ export default function QuizDetail() {
             {t('quiz.detail.category')}: {t(`categories.${quiz.category}`)} • {t('quiz.detail.difficulty')}: {t(`difficulty.${quiz.difficulty_level}`)}
             {quiz.is_geo && <span className="ms-2 badge bg-info">{t('quiz.detail.geoQuiz')}</span>}
           </div>
+          {/* Language badges */}
+          <div className="d-flex gap-1 flex-wrap mb-3">
+            <span className="badge bg-primary" style={{ fontSize: '0.75rem' }}>
+              {quiz.default_language?.toUpperCase() || 'EN'}
+            </span>
+            {quiz.translations && quiz.translations.map(tr => (
+              <span key={tr.language} className="badge border border-primary text-primary bg-white" style={{ fontSize: '0.75rem' }}>
+                {tr.language.toUpperCase()}
+              </span>
+            ))}
+          </div>
 
           {username ? (
             <div className="d-flex gap-2">

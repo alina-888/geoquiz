@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
-import { getQuestion, updateQuestion, getQuizDetail, deleteQuestionMedia, createQuestionTranslation, updateQuestionTranslation, deleteQuestionTranslation } from '../api/api';
+import { getQuestion, updateQuestion, getQuizDetail, deleteQuestionMedia, createQuestionTranslation, updateQuestionTranslation, deleteQuestionTranslation, createOptionTranslation, updateOptionTranslation, deleteOptionTranslation } from '../api/api';
 import LocationPicker from './LocationPicker';
 import HintForm from '../components/HintForm';
 import TranslationForm from '../components/TranslationForm';
@@ -34,9 +34,11 @@ export default function QuestionEdit() {
   const [hints, setHints] = useState([]);
   const [translations, setTranslations] = useState([]);
   const [originalTranslations, setOriginalTranslations] = useState([]);
+  const [optionTranslations, setOptionTranslations] = useState({});  // { optionIndex: [{ id?, language, option_text }] }
+  const [originalOptionTranslations, setOriginalOptionTranslations] = useState({});
   const [options, setOptions] = useState([
-    { option_text: '', is_correct: false },
-    { option_text: '', is_correct: false },
+    { option_text: '', is_correct: false, id: null },
+    { option_text: '', is_correct: false, id: null },
   ]);
 
   // Refs to reset file inputs
@@ -100,9 +102,30 @@ export default function QuestionEdit() {
         // Load options for multiple choice
         if (questionDetail.question_type === 'multiple_choice' && questionDetail.options) {
           setOptions(questionDetail.options.map(opt => ({
+            id: opt.id,
             option_text: opt.option_text,
             is_correct: opt.is_correct
           })));
+
+          // Load option translations
+          const optTrans = {};
+          const origOptTrans = {};
+          questionDetail.options.forEach((opt, idx) => {
+            if (opt.translations && opt.translations.length > 0) {
+              optTrans[idx] = opt.translations.map(tr => ({
+                id: tr.id,
+                language: tr.language,
+                option_text: tr.option_text || ''
+              }));
+              origOptTrans[idx] = opt.translations.map(tr => ({
+                id: tr.id,
+                language: tr.language,
+                option_text: tr.option_text || ''
+              }));
+            }
+          });
+          setOptionTranslations(optTrans);
+          setOriginalOptionTranslations(origOptTrans);
         }
 
         // Load existing hints
@@ -335,6 +358,48 @@ export default function QuestionEdit() {
         }
       }
 
+      // Handle option translations
+      for (const [optIdx, optTrans] of Object.entries(optionTranslations)) {
+        const option = options[parseInt(optIdx)];
+        if (!option || !option.id) continue;
+
+        const originalOptTrans = originalOptionTranslations[optIdx] || [];
+        const validOptTrans = optTrans.filter(tr => tr.language && tr.option_text && tr.option_text.trim());
+
+        // Delete removed option translations
+        for (const original of originalOptTrans) {
+          const stillExists = validOptTrans.find(tr => tr.id === original.id);
+          if (!stillExists) {
+            try {
+              await deleteOptionTranslation(original.id);
+            } catch (err) {
+              console.error(`Failed to delete option translation ${original.id}:`, err);
+            }
+          }
+        }
+
+        // Create or update option translations
+        for (const tr of validOptTrans) {
+          try {
+            if (tr.id) {
+              await updateOptionTranslation(tr.id, {
+                option: option.id,
+                language: tr.language,
+                option_text: tr.option_text
+              });
+            } else {
+              await createOptionTranslation({
+                option: option.id,
+                language: tr.language,
+                option_text: tr.option_text
+              });
+            }
+          } catch (err) {
+            console.error(`Failed to save option translation for ${tr.language}:`, err);
+          }
+        }
+      }
+
       navigate(`/quizzes/${quizId}/`);
     } catch (err) {
       setError(err.message || 'Failed to update question');
@@ -387,39 +452,39 @@ export default function QuestionEdit() {
         )}
       </div>
       {quiz && (
-        <div className="alert alert-info">Editing question in: <strong>{quiz.title}</strong></div>
+        <div className="alert alert-info">{t('question.edit.title')}: <strong>{quiz.title}</strong></div>
       )}
       {error && <div className="alert alert-danger">{error}</div>}
 
       <form onSubmit={onUpdate}>
         <div className="mb-3">
-          <label className="form-label">Question text</label>
+          <label className="form-label">{t('question.create.questionText')}</label>
           <textarea value={qText} onChange={(e)=>setQText(e.target.value)} className="form-control" rows={3} required />
         </div>
 
         <div className="row mb-3">
           <div className="col">
-            <label className="form-label">Type</label>
+            <label className="form-label">{t('question.create.questionType')}</label>
             <select value={qType} onChange={(e)=>setQType(e.target.value)} className="form-select">
-              <option value="multiple_choice">Multiple Choice</option>
-              <option value="text">Text</option>
-              <option value="true_false">True/False</option>
+              <option value="multiple_choice">{t('question.create.typeMultipleChoice')}</option>
+              <option value="text">{t('question.create.typeText')}</option>
+              <option value="true_false">{t('question.create.typeTrueFalse')}</option>
             </select>
           </div>
           <div className="col">
-            <label className="form-label">Points</label>
+            <label className="form-label">{t('question.create.points')}</label>
             <input type="number" value={qPoints} onChange={(e)=>setQPoints(Number(e.target.value))} className="form-control" />
           </div>
         </div>
 
         {qType === 'text' ? (
           <div className="mb-3">
-            <label className="form-label">Correct answer</label>
+            <label className="form-label">{t('question.create.correctAnswer')}</label>
             <input value={qCorrect} onChange={(e)=>setQCorrect(e.target.value)} className="form-control" />
           </div>
         ) : qType === 'true_false' ? (
           <div className="mb-3">
-            <label className="form-label d-block">Correct answer</label>
+            <label className="form-label d-block">{t('question.create.correctAnswer')}</label>
             {questionWarning && !questionWarning.includes('Hint') && (
               <div className="alert alert-warning py-2 mb-2">{questionWarning}</div>
             )}
@@ -433,7 +498,7 @@ export default function QuestionEdit() {
                 checked={qCorrect === 'true'}
                 onChange={(e)=>setQCorrect(e.target.value)}
               />
-              <label className="form-check-label" htmlFor="tf-true">True</label>
+              <label className="form-check-label" htmlFor="tf-true">{t('common.true')}</label>
             </div>
             <div className="form-check form-check-inline">
               <input
@@ -445,12 +510,12 @@ export default function QuestionEdit() {
                 checked={qCorrect === 'false'}
                 onChange={(e)=>setQCorrect(e.target.value)}
               />
-              <label className="form-check-label" htmlFor="tf-false">False</label>
+              <label className="form-check-label" htmlFor="tf-false">{t('common.false')}</label>
             </div>
           </div>
         ) : (
           <div className="mb-3">
-            <label className="form-label">Options</label>
+            <label className="form-label">{t('question.create.options')}</label>
             {questionWarning && !questionWarning.includes('Hint') && (
               <div className="alert alert-warning py-2 mb-2">{questionWarning}</div>
             )}
@@ -460,21 +525,65 @@ export default function QuestionEdit() {
                   value={opt.option_text}
                   onChange={(e)=>updateOption(idx, 'option_text', e.target.value)}
                   className="form-control"
-                  placeholder={`Option ${idx+1}`}
+                  placeholder={t('question.create.optionPlaceholder', { number: idx+1 })}
                 />
                 <div className="form-check mb-0">
                   <input type="checkbox" checked={opt.is_correct} onChange={(e)=>updateOption(idx, 'is_correct', e.target.checked)} className="form-check-input" id={`opt-${idx}`} />
-                  <label className="form-check-label" htmlFor={`opt-${idx}`}>Correct</label>
+                  <label className="form-check-label" htmlFor={`opt-${idx}`}>{t('question.create.correctAnswer')}</label>
                 </div>
-                <button type="button" onClick={()=>removeOption(idx)} className="btn btn-outline-danger btn-sm">Remove</button>
+                <button type="button" onClick={()=>removeOption(idx)} className="btn btn-outline-danger btn-sm">{t('common.delete')}</button>
               </div>
             ))}
-            <button type="button" onClick={addOption} className="btn btn-link p-0">+ Add option</button>
+            <button type="button" onClick={addOption} className="btn btn-link p-0">{t('question.create.addOption')}</button>
+
+            {/* Option Translations */}
+            {quiz?.default_language && options.some(o => o.option_text.trim()) && (
+              <div className="mt-3 p-3 border rounded bg-light">
+                <h6 className="mb-3">{t('translations.title')} - {t('question.create.options')}</h6>
+                {options.map((opt, optIdx) => {
+                  if (!opt.option_text.trim()) return null;
+                  const availableLanguages = ['en', 'ru', 'sr'].filter(lang => lang !== quiz.default_language);
+                  if (availableLanguages.length === 0) return null;
+
+                  return (
+                    <div key={optIdx} className="mb-3">
+                      <small className="text-muted d-block mb-2">
+                        {t('question.create.optionPlaceholder', { number: optIdx + 1 })}: {opt.option_text.substring(0, 30)}{opt.option_text.length > 30 ? '...' : ''}
+                      </small>
+                      {availableLanguages.map(lang => (
+                        <div key={lang} className="input-group input-group-sm mb-1">
+                          <span className="input-group-text" style={{ width: '45px' }}>{lang.toUpperCase()}</span>
+                          <input
+                            type="text"
+                            className="form-control"
+                            placeholder={t('translations.optionText')}
+                            value={optionTranslations[optIdx]?.find(tr => tr.language === lang)?.option_text || ''}
+                            onChange={(e) => {
+                              setOptionTranslations(prev => {
+                                const updated = { ...prev };
+                                if (!updated[optIdx]) updated[optIdx] = [];
+                                const existing = updated[optIdx].find(tr => tr.language === lang);
+                                if (existing) {
+                                  existing.option_text = e.target.value;
+                                } else {
+                                  updated[optIdx].push({ language: lang, option_text: e.target.value });
+                                }
+                                return updated;
+                              });
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
         <div className="mb-3">
-          <label className="form-label d-block fw-semibold">Media Attachments</label>
+          <label className="form-label d-block fw-semibold">{t('question.create.media')}</label>
           {questionWarning && !questionWarning.includes('Hint') && (
             <div className="alert alert-warning py-2 mb-2">{questionWarning}</div>
           )}
@@ -483,7 +592,7 @@ export default function QuestionEdit() {
             <div className="mb-3">
               <div className="card border-info">
                 <div className="card-header bg-info bg-opacity-10">
-                  <strong>Existing Media Files ({existingMediaFiles.length})</strong>
+                  <strong>{t('question.create.media')} ({existingMediaFiles.length})</strong>
                 </div>
                 <div className="card-body p-2">
                   {existingMediaFiles.map((media) => {
@@ -514,7 +623,7 @@ export default function QuestionEdit() {
                             onClick={() => deleteExistingMedia(media.id)}
                             className="btn btn-sm btn-outline-danger"
                           >
-                            Delete
+                            {t('common.delete')}
                           </button>
                         </div>
                       </div>
@@ -541,7 +650,7 @@ export default function QuestionEdit() {
                       <circle cx="8.5" cy="8.5" r="1.5"></circle>
                       <polyline points="21 15 16 10 5 21"></polyline>
                     </svg>
-                    <div className="fw-semibold mb-2">Images</div>
+                    <div className="fw-semibold mb-2">{t('question.create.image')}</div>
                     <input
                       ref={imageInputRef}
                       type="file"
@@ -551,11 +660,11 @@ export default function QuestionEdit() {
                       onChange={handleImageSelect}
                     />
                     {imageFiles.length > 0 ? (
-                      <div className="small text-success fw-semibold mb-1">✓ {imageFiles.length} new file{imageFiles.length > 1 ? 's' : ''}</div>
+                      <div className="small text-success fw-semibold mb-1">✓ {imageFiles.length}</div>
                     ) : existingMediaFiles.filter(m => m.media_type === 'image').length > 0 ? (
-                      <div className="small text-info">{existingMediaFiles.filter(m => m.media_type === 'image').length} existing</div>
+                      <div className="small text-info">{existingMediaFiles.filter(m => m.media_type === 'image').length}</div>
                     ) : (
-                      <div className="small text-muted">Click to upload</div>
+                      <div className="small text-muted">{t('question.create.clickToUpload')}</div>
                     )}
                     {imageFiles.map((file, idx) => (
                       <div key={idx} className="mt-2 bg-white rounded border p-2">
@@ -591,7 +700,7 @@ export default function QuestionEdit() {
                       <circle cx="6" cy="18" r="3"></circle>
                       <circle cx="18" cy="16" r="3"></circle>
                     </svg>
-                    <div className="fw-semibold mb-2">Audio</div>
+                    <div className="fw-semibold mb-2">{t('question.create.audio')}</div>
                     <input
                       ref={audioInputRef}
                       type="file"
@@ -601,11 +710,11 @@ export default function QuestionEdit() {
                       onChange={handleAudioSelect}
                     />
                     {audioFiles.length > 0 ? (
-                      <div className="small text-success fw-semibold mb-1">✓ {audioFiles.length} new file{audioFiles.length > 1 ? 's' : ''}</div>
+                      <div className="small text-success fw-semibold mb-1">✓ {audioFiles.length}</div>
                     ) : existingMediaFiles.filter(m => m.media_type === 'audio').length > 0 ? (
-                      <div className="small text-info">{existingMediaFiles.filter(m => m.media_type === 'audio').length} existing</div>
+                      <div className="small text-info">{existingMediaFiles.filter(m => m.media_type === 'audio').length}</div>
                     ) : (
-                      <div className="small text-muted">Click to upload</div>
+                      <div className="small text-muted">{t('question.create.clickToUpload')}</div>
                     )}
                     {audioFiles.map((file, idx) => (
                       <div key={idx} className="d-flex align-items-center justify-content-between mt-2 px-2 py-1 bg-white rounded">
@@ -632,7 +741,7 @@ export default function QuestionEdit() {
                       <polygon points="23 7 16 12 23 17 23 7"></polygon>
                       <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
                     </svg>
-                    <div className="fw-semibold mb-2">Videos</div>
+                    <div className="fw-semibold mb-2">{t('question.create.video')}</div>
                     <input
                       ref={videoInputRef}
                       type="file"
@@ -642,11 +751,11 @@ export default function QuestionEdit() {
                       onChange={handleVideoSelect}
                     />
                     {videoFiles.length > 0 ? (
-                      <div className="small text-success fw-semibold mb-1">✓ {videoFiles.length} new file{videoFiles.length > 1 ? 's' : ''}</div>
+                      <div className="small text-success fw-semibold mb-1">✓ {videoFiles.length}</div>
                     ) : existingMediaFiles.filter(m => m.media_type === 'video').length > 0 ? (
-                      <div className="small text-info">{existingMediaFiles.filter(m => m.media_type === 'video').length} existing</div>
+                      <div className="small text-info">{existingMediaFiles.filter(m => m.media_type === 'video').length}</div>
                     ) : (
-                      <div className="small text-muted">Click to upload</div>
+                      <div className="small text-muted">{t('question.create.clickToUpload')}</div>
                     )}
                     {videoFiles.map((file, idx) => (
                       <div key={idx} className="d-flex align-items-center justify-content-between mt-2 px-2 py-1 bg-white rounded">
@@ -663,12 +772,8 @@ export default function QuestionEdit() {
                 </div>
               </div>
               <div className="form-text mt-2 text-center">
-                Click a card to upload multiple files. You can attach images, audio, and videos together.
                 <div className="mt-1">
-                  <strong>{existingMediaFiles.length + imageFiles.length + audioFiles.length + videoFiles.length}/{MAX_FILES_PER_QUESTION}</strong> files attached
-                  {existingMediaFiles.length + imageFiles.length + audioFiles.length + videoFiles.length >= MAX_FILES_PER_QUESTION && (
-                    <span className="text-warning ms-2">(Maximum reached)</span>
-                  )}
+                  <strong>{existingMediaFiles.length + imageFiles.length + audioFiles.length + videoFiles.length}/{MAX_FILES_PER_QUESTION}</strong>
                 </div>
               </div>
             </div>
@@ -703,11 +808,8 @@ export default function QuestionEdit() {
                   className="btn btn-outline-primary w-100"
                 >
                   <MapPin size={16} className="me-2" style={{ display: 'inline' }} />
-                  Add Location to Question
+                  {t('question.create.pickLocation')}
                 </button>
-                <small className="text-muted d-block mt-1">
-                  This is a geo quiz. You can optionally add a location requirement to this question.
-                </small>
               </div>
             )}
           </>
@@ -726,16 +828,16 @@ export default function QuestionEdit() {
           defaultLanguage={quiz?.default_language}
           fields={[
             { name: 'question_text', label: t('translations.questionText'), multiline: true, rows: 3 },
-            ...(qType !== 'multiple_choice' ? [{ name: 'correct_answer', label: t('translations.correctAnswer') }] : [])
+            ...(qType === 'text' ? [{ name: 'correct_answer', label: t('translations.correctAnswer') }] : [])
           ]}
         />
 
         <div className="d-flex gap-2">
           <button type="submit" disabled={saving} className="btn btn-primary">
-            {saving ? 'Updating...' : 'Update Question'}
+            {saving ? t('question.edit.saving') : t('question.edit.save')}
           </button>
           <button type="button" onClick={() => navigate(`/quizzes/${quizId}/`)} className="btn btn-secondary">
-            Cancel
+            {t('common.cancel')}
           </button>
         </div>
       </form>

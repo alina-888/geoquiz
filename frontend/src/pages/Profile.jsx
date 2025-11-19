@@ -162,6 +162,17 @@ export default function Profile() {
                   <div>
                     <Link to={`/quizzes/${q.id}/`} className="text-decoration-none">{getTranslatedText(q, 'title', i18n.language)}</Link>
                     <div className="small text-muted">{t(`categories.${q.category}`)} • {t('quiz.detail.difficulty')} {t(`difficulty.${q.difficulty_level}`)}</div>
+                    {/* Language badges */}
+                    <div className="d-flex gap-1 flex-wrap mt-1">
+                      <span className="badge bg-primary bg-opacity-75" style={{ fontSize: '0.65rem' }}>
+                        {q.default_language?.toUpperCase() || 'EN'}
+                      </span>
+                      {q.translations && q.translations.map(tr => (
+                        <span key={tr.language} className="badge border border-primary text-primary bg-white" style={{ fontSize: '0.65rem' }}>
+                          {tr.language.toUpperCase()}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </li>
               ))}

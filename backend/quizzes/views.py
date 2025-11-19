@@ -197,7 +197,12 @@ class QuizViewSet(viewsets.ModelViewSet):
                         print(f"DEBUG: Created option {option_order - 1}: {text}")
 
             print(f"DEBUG: Serializing question")
+            # Refresh the question to include newly created options
+            question = Question.objects.prefetch_related('options', 'options__translations').get(pk=question.pk)
+            print(f"DEBUG: Question options count: {question.options.count()}")
+            print(f"DEBUG: Question options: {list(question.options.values('id', 'option_text'))}")
             serializer = QuestionSerializer(question)
+            print(f"DEBUG: Serialized data options: {serializer.data.get('options', [])}")
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         except Exception as e:
             import traceback
@@ -304,6 +309,15 @@ class QuizViewSet(viewsets.ModelViewSet):
                 correct_norm = self._normalize_text(question.correct_answer)
                 if user_norm is not None and correct_norm is not None:
                     is_correct = user_norm == correct_norm
+
+                # Also check against translated correct answers
+                if not is_correct and user_norm is not None:
+                    for translation in question.translations.all():
+                        if translation.correct_answer:
+                            translated_norm = self._normalize_text(translation.correct_answer)
+                            if translated_norm and user_norm == translated_norm:
+                                is_correct = True
+                                break
             points_earned = question.points_value if is_correct else 0
 
         user_answer, _ = UserAnswer.objects.update_or_create(
@@ -568,6 +582,46 @@ class QuestionViewSet(viewsets.ModelViewSet):
                         hint_audio=hint_audio,
                         hint_video=hint_video,
                     )
+
+        # Handle options for multiple choice questions
+        options_raw = self.request.data.get('options')
+        if options_raw:
+            # Parse options if it's a JSON string
+            if isinstance(options_raw, str):
+                try:
+                    options_data = json.loads(options_raw)
+                except json.JSONDecodeError:
+                    options_data = []
+            else:
+                options_data = options_raw if isinstance(options_raw, list) else []
+
+            # Create options
+            for idx, opt_data in enumerate(options_data):
+                if isinstance(opt_data, dict) and opt_data.get('option_text', '').strip():
+                    Option.objects.create(
+                        question=question,
+                        option_text=opt_data.get('option_text', '').strip(),
+                        is_correct=opt_data.get('is_correct', False),
+                        option_order=idx
+                    )
+
+        # Store the question for the create method to return
+        self._created_question = question
+
+    def create(self, request, *args, **kwargs):
+        """Override create to return question with options included"""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+
+        # Refresh the question to include newly created options
+        question = Question.objects.prefetch_related(
+            'options', 'options__translations', 'media_files', 'hints'
+        ).get(pk=self._created_question.pk)
+
+        response_serializer = QuestionSerializer(question)
+        headers = self.get_success_headers(response_serializer.data)
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def update(self, request, *args, **kwargs):
         """Custom update to handle options and media files"""
