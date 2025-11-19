@@ -1,9 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { getQuizDetail, getQuizProgress } from '../api/api';
+import { getTranslatedText } from '../utils/translations';
 
 export default function QuizResults() {
   const { id } = useParams();
+  const { t, i18n } = useTranslation();
+  const currentLanguage = i18n.language;
   const [quiz, setQuiz] = useState(null);
   const [attempt, setAttempt] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -31,16 +35,16 @@ export default function QuizResults() {
     return map;
   }, [attempt]);
 
-  if (loading) return <div className="p-4">Loading...</div>;
+  if (loading) return <div className="p-4">{t('common.loading')}</div>;
   if (error) return <div className="p-4 alert alert-danger">{error}</div>;
   if (!quiz || !attempt) return null;
 
   return (
     <div className="container mt-4" style={{ maxWidth: '800px' }}>
-      <h1 className="mb-3">{quiz.title} — Results</h1>
+      <h1 className="mb-3">{getTranslatedText(quiz, 'title', currentLanguage)} — {t('results.title')}</h1>
       <div className="mb-4">
-        <span className="me-3">Score: <strong>{attempt.score}</strong></span>
-        <span>Completion: <strong>{Math.round(attempt.completion_percentage)}%</strong></span>
+        <span className="me-3">{t('results.score')}: <strong>{attempt.score}</strong></span>
+        <span>{t('results.percentage')}: <strong>{Math.round(attempt.completion_percentage)}%</strong></span>
       </div>
 
       {(quiz.questions || []).map((q, idx) => {
@@ -50,13 +54,13 @@ export default function QuizResults() {
 
         if (q.question_type === 'multiple_choice') {
           const correct = (q.options || []).find(o => o.is_correct);
-          correctAnswerText = correct ? correct.option_text : '—';
+          correctAnswerText = correct ? getTranslatedText(correct, 'option_text', currentLanguage) : '—';
           if (ans?.selected_option) {
             const picked = (q.options || []).find(o => o.id === ans.selected_option);
-            userAnswerText = picked ? picked.option_text : '—';
+            userAnswerText = picked ? getTranslatedText(picked, 'option_text', currentLanguage) : '—';
           }
         } else {
-          correctAnswerText = q.correct_answer ?? '—';
+          correctAnswerText = getTranslatedText(q, 'correct_answer', currentLanguage) || q.correct_answer || '—';
           userAnswerText = ans?.text ?? '—';
         }
 
@@ -66,18 +70,18 @@ export default function QuizResults() {
           <div key={q.id} className="card mb-3">
             <div className="card-body">
               <div className="d-flex justify-content-between align-items-start">
-                <h5 className="card-title mb-2">{idx + 1}. {q.question_text}</h5>
+                <h5 className="card-title mb-2">{idx + 1}. {getTranslatedText(q, 'question_text', currentLanguage)}</h5>
                 <span className={isCorrect ? 'text-success' : 'text-danger'}>
-                  {isCorrect ? 'Correct' : 'Incorrect'}
+                  {isCorrect ? t('common.yes') : t('common.no')}
                 </span>
               </div>
               <div className="row mt-2">
                 <div className="col-md-6 mb-2">
-                  <div className="text-muted small">Your answer</div>
+                  <div className="text-muted small">{t('question.view.yourAnswer')}</div>
                   <div>{userAnswerText}</div>
                 </div>
                 <div className="col-md-6 mb-2">
-                  <div className="text-muted small">Correct answer</div>
+                  <div className="text-muted small">{t('question.create.correctAnswer')}</div>
                   <div>{correctAnswerText}</div>
                 </div>
               </div>
@@ -87,7 +91,7 @@ export default function QuizResults() {
       })}
 
       <div className="mt-4">
-        <Link to={`/quizzes/${id}/`} className="btn btn-outline-primary">Back to quiz</Link>
+        <Link to={`/quizzes/${id}/`} className="btn btn-outline-primary">{t('common.back')}</Link>
       </div>
     </div>
   );

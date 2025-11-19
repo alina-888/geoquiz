@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Image } from 'lucide-react';
-import { createQuiz } from '../api/api';
+import { createQuiz, createQuizTranslation } from '../api/api';
 import { useTranslation } from 'react-i18next';
+import TranslationForm from '../components/TranslationForm';
 
 export default function QuizCreate() {
   const navigate = useNavigate();
@@ -15,12 +16,14 @@ export default function QuizCreate() {
     category: 'other',
     is_published: false,
     is_geo: false,
+    default_language: 'en',
   });
   const [imageFile, setImageFile] = useState(null);
   const imageInputRef = useRef(null);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [createdQuiz, setCreatedQuiz] = useState(null);
+  const [translations, setTranslations] = useState([]);
 
   const onChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -51,6 +54,29 @@ export default function QuizCreate() {
         payload.image = imageFile;
       }
       const created = await createQuiz(payload);
+
+      // Save translations if provided
+      // Filter out empty translations (translations without title or language)
+      const validTranslations = translations.filter(
+        tr => tr.language && tr.title && tr.title.trim()
+      );
+
+      if (validTranslations.length > 0) {
+        for (const translation of validTranslations) {
+          try {
+            await createQuizTranslation({
+              quiz: created.id,
+              language: translation.language,
+              title: translation.title,
+              description: translation.description || ''
+            });
+          } catch (err) {
+            console.error(`Failed to save translation for ${translation.language}:`, err);
+            // Continue with other translations even if one fails
+          }
+        }
+      }
+
       setCreatedQuiz(created);
     } catch (err) {
       setError(err.message || t('quiz.create.failed'));
@@ -95,6 +121,14 @@ export default function QuizCreate() {
             <option value="culture">{t('quiz.create.categoryCulture')}</option>
             <option value="nature">{t('quiz.create.categoryNature')}</option>
             <option value="other">{t('quiz.create.categoryOther')}</option>
+          </select>
+        </div>
+        <div className="mb-3">
+          <label className="form-label">{t('quiz.create.defaultLanguage')}</label>
+          <select name="default_language" value={form.default_language} onChange={onChange} className="form-select">
+            <option value="en">{t('quiz.create.languageEnglish')}</option>
+            <option value="ru">{t('quiz.create.languageRussian')}</option>
+            <option value="sr">{t('quiz.create.languageSerbian')}</option>
           </select>
         </div>
         <div className="form-check mb-3">
@@ -149,8 +183,19 @@ export default function QuizCreate() {
           </div>
         </div>
 
+        {/* Translation form */}
+        <TranslationForm
+          translations={translations}
+          onChange={setTranslations}
+          defaultLanguage={form.default_language}
+          fields={[
+            { name: 'title', label: t('translations.quizTitle'), required: false },
+            { name: 'description', label: t('translations.quizDescription'), multiline: true, rows: 3 }
+          ]}
+        />
+
         {!createdQuiz ? (
-          <button type="submit" disabled={saving} className="btn btn-success">
+          <button type="submit" disabled={saving} className="btn btn-success mt-3">
             {saving ? t('quiz.create.creating') : t('quiz.create.create')}
           </button>
         ) : (

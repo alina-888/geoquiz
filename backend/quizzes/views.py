@@ -11,11 +11,13 @@ from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import (
     Quiz, Question, Option, QuizAttempt, UserAnswer, QuestionMedia, Hint, HintUnlock,
+    QuizTranslation, QuestionTranslation, OptionTranslation, HintTranslation,
 )
 from .serializers import (
     QuizSerializer, QuizDetailSerializer, QuestionSerializer,
     OptionSerializer, QuizAttemptSerializer, UserAnswerSerializer, QuestionMediaSerializer,
-    HintSerializer,
+    HintSerializer, QuizTranslationSerializer, QuestionTranslationSerializer,
+    OptionTranslationSerializer, HintTranslationSerializer,
 )
 from .permissions import IsOwnerOrReadOnly
 from .filters import QuizFilter
@@ -913,5 +915,117 @@ class QuestionMediaViewSet(viewsets.ModelViewSet):
             )
         instance.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# ============================================
+# Translation ViewSets
+# ============================================
+
+class QuizTranslationViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for managing quiz translations
+    """
+    queryset = QuizTranslation.objects.all()
+    serializer_class = QuizTranslationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """Filter translations by quiz if provided"""
+        queryset = QuizTranslation.objects.all()
+        quiz_id = self.request.query_params.get('quiz_id')
+        if quiz_id:
+            queryset = queryset.filter(quiz_id=quiz_id)
+        return queryset
+
+    def perform_create(self, serializer):
+        """Only quiz creator can add translations"""
+        # Get quiz from request data
+        quiz_id = self.request.data.get('quiz')
+        if quiz_id:
+            quiz = Quiz.objects.get(id=quiz_id)
+            if quiz.creator != self.request.user:
+                self.permission_denied(self.request)
+        serializer.save()
+
+
+class QuestionTranslationViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for managing question translations
+    """
+    queryset = QuestionTranslation.objects.all()
+    serializer_class = QuestionTranslationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """Filter translations by question if provided"""
+        queryset = QuestionTranslation.objects.all()
+        question_id = self.request.query_params.get('question_id')
+        if question_id:
+            queryset = queryset.filter(question_id=question_id)
+        return queryset
+
+    def perform_create(self, serializer):
+        """Only quiz creator can add translations"""
+        # Get question from request data
+        question_id = self.request.data.get('question')
+        if question_id:
+            question = Question.objects.get(id=question_id)
+            if question.quiz.creator != self.request.user:
+                self.permission_denied(self.request)
+        serializer.save()
+
+
+class OptionTranslationViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for managing option translations
+    """
+    queryset = OptionTranslation.objects.all()
+    serializer_class = OptionTranslationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """Filter translations by option if provided"""
+        queryset = OptionTranslation.objects.all()
+        option_id = self.request.query_params.get('option_id')
+        if option_id:
+            queryset = queryset.filter(option_id=option_id)
+        return queryset
+
+    def perform_create(self, serializer):
+        """Only quiz creator can add translations"""
+        # Get option from request data
+        option_id = self.request.data.get('option')
+        if option_id:
+            option = Option.objects.get(id=option_id)
+            if option.question.quiz.creator != self.request.user:
+                self.permission_denied(self.request)
+        serializer.save()
+
+
+class HintTranslationViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for managing hint translations
+    """
+    queryset = HintTranslation.objects.all()
+    serializer_class = HintTranslationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """Filter translations by hint if provided"""
+        queryset = HintTranslation.objects.all()
+        hint_id = self.request.query_params.get('hint_id')
+        if hint_id:
+            queryset = queryset.filter(hint_id=hint_id)
+        return queryset
+
+    def perform_create(self, serializer):
+        """Only quiz creator can add translations"""
+        # Get hint from request data
+        hint_id = self.request.data.get('hint')
+        if hint_id:
+            hint = Hint.objects.get(id=hint_id)
+            if hint.question.quiz.creator != self.request.user:
+                self.permission_denied(self.request)
+        serializer.save()
 
 

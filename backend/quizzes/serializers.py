@@ -1,13 +1,65 @@
 from rest_framework import serializers
-from .models import Option, Question, Quiz, QuizAttempt, UserAnswer, QuestionMedia, Hint, HintUnlock
+from .models import (
+    Option, Question, Quiz, QuizAttempt, UserAnswer, QuestionMedia, Hint, HintUnlock,
+    QuizTranslation, QuestionTranslation, OptionTranslation, HintTranslation
+)
 from .validators import validate_user_storage_quota
 
 
+# ============================================
+# Translation Serializers
+# ============================================
+
+class QuizTranslationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = QuizTranslation
+        fields = ['id', 'quiz', 'language', 'title', 'description']
+        read_only_fields = ['id']
+
+    def validate(self, attrs):
+        """Prevent creating translations for the quiz's default language"""
+        quiz = attrs.get('quiz')
+        language = attrs.get('language')
+
+        if quiz and language and quiz.default_language == language:
+            raise serializers.ValidationError({
+                'language': f'Cannot create translation for the default language ({language}). The main quiz fields already contain content in this language.'
+            })
+
+        return super().validate(attrs)
+
+
+class QuestionTranslationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = QuestionTranslation
+        fields = ['id', 'question', 'language', 'question_text', 'correct_answer']
+        read_only_fields = ['id']
+
+
+class OptionTranslationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OptionTranslation
+        fields = ['id', 'option', 'language', 'option_text']
+        read_only_fields = ['id']
+
+
+class HintTranslationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = HintTranslation
+        fields = ['id', 'hint', 'language', 'hint_text']
+        read_only_fields = ['id']
+
+
+# ============================================
+# Main Serializers
+# ============================================
+
 class OptionSerializer(serializers.ModelSerializer):
+    translations = OptionTranslationSerializer(many=True, read_only=True)
 
     class Meta:
         model = Option
-        fields = ['id', 'question', 'option_text', 'is_correct', 'option_order']
+        fields = ['id', 'question', 'option_text', 'is_correct', 'option_order', 'translations']
         read_only_fields = ['id']
 
 
@@ -39,13 +91,14 @@ class HintSerializer(serializers.ModelSerializer):
     has_media = serializers.ReadOnlyField()
     media_type = serializers.ReadOnlyField()
     is_unlocked = serializers.SerializerMethodField()
+    translations = HintTranslationSerializer(many=True, read_only=True)
 
     class Meta:
         model = Hint
         fields = [
             'id', 'question', 'hint_text', 'hint_image', 'hint_audio', 'hint_video',
             'points_penalty', 'hint_order', 'has_media', 'media_type', 'media_url',
-            'is_unlocked'
+            'is_unlocked', 'translations'
         ]
         read_only_fields = ['id']
 
@@ -116,13 +169,14 @@ class QuestionSerializer(serializers.ModelSerializer):
     has_media = serializers.ReadOnlyField()
     media_type = serializers.ReadOnlyField()
     media_url = serializers.SerializerMethodField()
+    translations = QuestionTranslationSerializer(many=True, read_only=True)
 
     class Meta:
         model = Question
         fields = [
             'id', 'quiz', 'question_text', 'question_order', 'points_value',
             'question_type', 'image', 'audio', 'video', 'has_media', 'media_type', 'media_url',
-            'options', 'media_files', 'hints', 'geolocation', 'correct_answer'
+            'options', 'media_files', 'hints', 'geolocation', 'correct_answer', 'translations'
         ]
         read_only_fields = ['id', 'question_order']
 
@@ -160,12 +214,13 @@ class QuestionSerializer(serializers.ModelSerializer):
 class QuizSerializer(serializers.ModelSerializer):
     creator_username = serializers.CharField(source='creator.username', read_only=True)
     image_url = serializers.SerializerMethodField()
+    translations = QuizTranslationSerializer(many=True, read_only=True)
 
     class Meta:
         model = Quiz
         fields = [
             'id', 'creator', 'creator_username', 'title', 'description', 'difficulty_level', 'estimated_duration', 'category',
-            'is_published', 'is_geo', 'avg_rating', 'image', 'image_url'
+            'is_published', 'is_geo', 'avg_rating', 'image', 'image_url', 'default_language', 'translations'
         ]
         read_only_fields = ['id', 'avg_rating', 'creator', 'creator_username']
 

@@ -7,6 +7,10 @@ router.register(r'quizzes', views.QuizViewSet)
 router.register(r'questions', views.QuestionViewSet)
 router.register(r'question-media', views.QuestionMediaViewSet, basename='question-media')
 router.register(r'attempts', views.QuizAttemptViewSet, basename='attempts')
+router.register(r'quiz-translations', views.QuizTranslationViewSet, basename='quiz-translation')
+router.register(r'question-translations', views.QuestionTranslationViewSet, basename='question-translation')
+router.register(r'option-translations', views.OptionTranslationViewSet, basename='option-translation')
+router.register(r'hint-translations', views.HintTranslationViewSet, basename='hint-translation')
 
 urlpatterns = [
     path('', include(router.urls)),

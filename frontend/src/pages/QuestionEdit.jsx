@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
-import { getQuestion, updateQuestion, getQuizDetail, deleteQuestionMedia } from '../api/api';
+import { getQuestion, updateQuestion, getQuizDetail, deleteQuestionMedia, createQuestionTranslation, updateQuestionTranslation, deleteQuestionTranslation } from '../api/api';
 import LocationPicker from './LocationPicker';
 import HintForm from '../components/HintForm';
+import TranslationForm from '../components/TranslationForm';
 import { useTranslation } from 'react-i18next';
 
 export default function QuestionEdit() {
@@ -31,6 +32,8 @@ export default function QuestionEdit() {
   const [qGeolocation, setQGeolocation] = useState(null);
   const [existingMediaFiles, setExistingMediaFiles] = useState([]);
   const [hints, setHints] = useState([]);
+  const [translations, setTranslations] = useState([]);
+  const [originalTranslations, setOriginalTranslations] = useState([]);
   const [options, setOptions] = useState([
     { option_text: '', is_correct: false },
     { option_text: '', is_correct: false },
@@ -112,6 +115,18 @@ export default function QuestionEdit() {
             hint_audio: null,
             hint_video: null,
           })));
+        }
+
+        // Load existing translations
+        if (questionDetail.translations && questionDetail.translations.length > 0) {
+          const loadedTranslations = questionDetail.translations.map(tr => ({
+            id: tr.id,
+            language: tr.language,
+            question_text: tr.question_text || '',
+            correct_answer: tr.correct_answer || ''
+          }));
+          setTranslations(loadedTranslations);
+          setOriginalTranslations(loadedTranslations);
         }
 
         setLoading(false);
@@ -277,6 +292,49 @@ export default function QuestionEdit() {
         hints: hints,
       };
       await updateQuestion(questionId, payload);
+
+      // Handle translations
+      const validTranslations = translations.filter(
+        tr => tr.language && tr.question_text && tr.question_text.trim()
+      );
+
+      // Delete removed translations
+      for (const original of originalTranslations) {
+        const stillExists = validTranslations.find(tr => tr.id === original.id);
+        if (!stillExists) {
+          try {
+            await deleteQuestionTranslation(original.id);
+          } catch (err) {
+            console.error(`Failed to delete translation ${original.id}:`, err);
+          }
+        }
+      }
+
+      // Create or update translations
+      for (const translation of validTranslations) {
+        try {
+          if (translation.id) {
+            // Update existing translation
+            await updateQuestionTranslation(translation.id, {
+              question: parseInt(questionId),
+              language: translation.language,
+              question_text: translation.question_text,
+              correct_answer: translation.correct_answer || ''
+            });
+          } else {
+            // Create new translation
+            await createQuestionTranslation({
+              question: parseInt(questionId),
+              language: translation.language,
+              question_text: translation.question_text,
+              correct_answer: translation.correct_answer || ''
+            });
+          }
+        } catch (err) {
+          console.error(`Failed to save translation for ${translation.language}:`, err);
+        }
+      }
+
       navigate(`/quizzes/${quizId}/`);
     } catch (err) {
       setError(err.message || 'Failed to update question');
@@ -660,6 +718,17 @@ export default function QuestionEdit() {
           <div className="alert alert-warning py-2 mb-2">{questionWarning}</div>
         )}
         <HintForm hints={hints} onChange={setHints} />
+
+        {/* Translations Section */}
+        <TranslationForm
+          translations={translations}
+          onChange={setTranslations}
+          defaultLanguage={quiz?.default_language}
+          fields={[
+            { name: 'question_text', label: t('translations.questionText'), multiline: true, rows: 3 },
+            ...(qType !== 'multiple_choice' ? [{ name: 'correct_answer', label: t('translations.correctAnswer') }] : [])
+          ]}
+        />
 
         <div className="d-flex gap-2">
           <button type="submit" disabled={saving} className="btn btn-primary">

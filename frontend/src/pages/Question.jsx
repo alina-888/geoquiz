@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { getQuizQuestion, answerQuizQuestion, getQuizDetail, getQuizProgress, unlockHint } from '../api/api';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import LocationStatus from '../components/LocationStatus';
@@ -8,10 +9,13 @@ import VideoPlayer from '../components/VideoPlayer';
 import ImageModal from '../components/ImageModal';
 import HintsMenu from '../components/HintsMenu';
 import { isDebugMode, getCurrentPosition, calculateDistance, isWithinRadius } from '../utils/geolocation';
+import { getTranslatedText } from '../utils/translations';
 
 export default function Question() {
   const { id, questionId } = useParams();
   const navigate = useNavigate();
+  const { i18n } = useTranslation();
+  const currentLanguage = i18n.language;
   const [question, setQuestion] = useState(null);
   const [quiz, setQuiz] = useState(null);
   const [attempt, setAttempt] = useState(null);
@@ -199,7 +203,7 @@ export default function Question() {
       {!isLocked && (
         <div className="card shadow-sm">
           <div className="card-body">
-            <h1 className="h4 fw-bold mb-3">{question.question_text}</h1>
+            <h1 className="h4 fw-bold mb-3">{getTranslatedText(question, 'question_text', currentLanguage)}</h1>
 
           {/* Display multiple media files from media_files array */}
           {question.media_files && question.media_files.length > 0 && (
@@ -290,7 +294,7 @@ export default function Question() {
                       onChange={() => setSelectedOption(opt.id)}
                     />
                     <label className="form-check-label" htmlFor={`option-${opt.id}`}>
-                      {opt.option_text}
+                      {getTranslatedText(opt, 'option_text', currentLanguage)}
                     </label>
                   </div>
                 ))}

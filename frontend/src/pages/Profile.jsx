@@ -3,12 +3,13 @@ import { useParams, Link } from 'react-router-dom';
 import { fetchUserProfile, updateUserProfile, getQuizzesByCreator } from '../api/api';
 import { isDebugMode, toggleDebugMode } from '../utils/geolocation';
 import { useTranslation } from 'react-i18next';
+import { getTranslatedText } from '../utils/translations';
 
 export default function Profile() {
   const { username } = useParams();
   const authUsername = localStorage.getItem('auth.username');
   const canEdit = authUsername === username;
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [profile, setProfile] = useState(null);
   const [form, setForm] = useState({ username: '', bio: '' });
@@ -159,7 +160,7 @@ export default function Profile() {
               {createdQuizzes.map((q) => (
                 <li key={q.id} className="list-group-item px-0 d-flex justify-content-between align-items-center">
                   <div>
-                    <Link to={`/quizzes/${q.id}/`} className="text-decoration-none">{q.title}</Link>
+                    <Link to={`/quizzes/${q.id}/`} className="text-decoration-none">{getTranslatedText(q, 'title', i18n.language)}</Link>
                     <div className="small text-muted">{t(`categories.${q.category}`)} • {t('quiz.detail.difficulty')} {t(`difficulty.${q.difficulty_level}`)}</div>
                   </div>
                 </li>

@@ -324,3 +324,107 @@ export function updateUserProfile(username, data) {
     body: JSON.stringify(data),
   });
 }
+
+// ============================================
+// Translation API functions
+// ============================================
+
+// Quiz Translations
+export function getQuizTranslations(quizId) {
+  return apiRequest(`/quiz-translations/?quiz_id=${quizId}`);
+}
+
+export function createQuizTranslation(data) {
+  return apiRequest('/quiz-translations/', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateQuizTranslation(translationId, data) {
+  return apiRequest(`/quiz-translations/${translationId}/`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteQuizTranslation(translationId) {
+  return apiRequest(`/quiz-translations/${translationId}/`, {
+    method: 'DELETE',
+  });
+}
+
+// Question Translations
+export function getQuestionTranslations(questionId) {
+  return apiRequest(`/question-translations/?question_id=${questionId}`);
+}
+
+export function createQuestionTranslation(data) {
+  return apiRequest('/question-translations/', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateQuestionTranslation(translationId, data) {
+  return apiRequest(`/question-translations/${translationId}/`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteQuestionTranslation(translationId) {
+  return apiRequest(`/question-translations/${translationId}/`, {
+    method: 'DELETE',
+  });
+}
+
+// Option Translations
+export function getOptionTranslations(optionId) {
+  return apiRequest(`/option-translations/?option_id=${optionId}`);
+}
+
+export function createOptionTranslation(data) {
+  return apiRequest('/option-translations/', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateOptionTranslation(translationId, data) {
+  return apiRequest(`/option-translations/${translationId}/`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteOptionTranslation(translationId) {
+  return apiRequest(`/option-translations/${translationId}/`, {
+    method: 'DELETE',
+  });
+}
+
+// Hint Translations
+export function getHintTranslations(hintId) {
+  return apiRequest(`/hint-translations/?hint_id=${hintId}`);
+}
+
+export function createHintTranslation(data) {
+  return apiRequest('/hint-translations/', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateHintTranslation(translationId, data) {
+  return apiRequest(`/hint-translations/${translationId}/`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteHintTranslation(translationId) {
+  return apiRequest(`/hint-translations/${translationId}/`, {
+    method: 'DELETE',
+  });
+}

@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { getQuizzes } from '../api/api';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { getTranslatedText } from '../utils/translations';
 
 export default function Home() {
   const [quizzes, setQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   useEffect(() => {
     getQuizzes()
@@ -55,7 +56,7 @@ export default function Home() {
                     </div>
                   )}
                   <div className="card-body">
-                    <h5 className="card-title">{quiz.title}</h5>
+                    <h5 className="card-title">{getTranslatedText(quiz, 'title', i18n.language)}</h5>
                     <p className="card-text text-muted small" style={{
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
@@ -63,7 +64,7 @@ export default function Home() {
                       WebkitLineClamp: 2,
                       WebkitBoxOrient: 'vertical'
                     }}>
-                      {quiz.description || 'No description'}
+                      {getTranslatedText(quiz, 'description', i18n.language) || 'No description'}
                     </p>
                     <div className="d-flex gap-2 flex-wrap">
                       <span className="badge bg-secondary">{t(`categories.${quiz.category}`)}</span>

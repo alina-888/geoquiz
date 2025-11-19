@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { MapPin } from 'lucide-react';
-import { createQuestion, getQuizDetail } from '../api/api';
+import { createQuestion, getQuizDetail, createQuestionTranslation } from '../api/api';
 import LocationPicker from './LocationPicker';
 import HintForm from '../components/HintForm';
+import TranslationForm from '../components/TranslationForm';
 import { useTranslation } from 'react-i18next';
 
 export default function QuestionCreate() {
@@ -30,6 +31,7 @@ export default function QuestionCreate() {
     { option_text: '', is_correct: false },
     { option_text: '', is_correct: false },
   ]);
+  const [translations, setTranslations] = useState([]);
   
   // Refs to reset file inputs
   const imageInputRef = useRef(null);
@@ -163,6 +165,7 @@ export default function QuestionCreate() {
       { option_text: '', is_correct: false },
       { option_text: '', is_correct: false },
     ]);
+    setTranslations([]);
     // Reset file input values
     if (imageInputRef.current) imageInputRef.current.value = '';
     if (audioInputRef.current) audioInputRef.current.value = '';
@@ -212,7 +215,28 @@ export default function QuestionCreate() {
         geolocation: quiz?.is_geo ? qGeolocation : undefined,
         hints: hints,
       };
-      await createQuestion(quiz.id, payload);
+      const createdQuestion = await createQuestion(quiz.id, payload);
+
+      // Save translations if provided
+      const validTranslations = translations.filter(
+        tr => tr.language && tr.question_text && tr.question_text.trim()
+      );
+
+      if (validTranslations.length > 0 && createdQuestion && createdQuestion.id) {
+        for (const translation of validTranslations) {
+          try {
+            await createQuestionTranslation({
+              question: createdQuestion.id,
+              language: translation.language,
+              question_text: translation.question_text,
+              correct_answer: translation.correct_answer || ''
+            });
+          } catch (err) {
+            console.error(`Failed to save translation for ${translation.language}:`, err);
+          }
+        }
+      }
+
       resetForm(); // Use the helper function
       // Refresh quiz details to update question count
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -278,7 +302,28 @@ export default function QuestionCreate() {
         geolocation: quiz?.is_geo ? qGeolocation : undefined,
         hints: hints,
       };
-      await createQuestion(quiz.id, payload);
+      const createdQuestion = await createQuestion(quiz.id, payload);
+
+      // Save translations if provided
+      const validTranslations = translations.filter(
+        tr => tr.language && tr.question_text && tr.question_text.trim()
+      );
+
+      if (validTranslations.length > 0 && createdQuestion && createdQuestion.id) {
+        for (const translation of validTranslations) {
+          try {
+            await createQuestionTranslation({
+              question: createdQuestion.id,
+              language: translation.language,
+              question_text: translation.question_text,
+              correct_answer: translation.correct_answer || ''
+            });
+          } catch (err) {
+            console.error(`Failed to save translation for ${translation.language}:`, err);
+          }
+        }
+      }
+
       // After successful save, navigate back to quiz
       navigate(`/quizzes/${quizId}/`);
     } catch (err) {
@@ -574,7 +619,18 @@ export default function QuestionCreate() {
         )}
         <HintForm hints={hints} onChange={setHints} />
 
-        <div className="d-flex gap-2">
+        {/* Translation form */}
+        <TranslationForm
+          translations={translations}
+          onChange={setTranslations}
+          defaultLanguage={quiz?.default_language}
+          fields={[
+            { name: 'question_text', label: t('translations.questionText'), multiline: true, rows: 3 },
+            ...(qType !== 'multiple_choice' ? [{ name: 'correct_answer', label: t('translations.correctAnswer') }] : [])
+          ]}
+        />
+
+        <div className="d-flex gap-2 mt-3">
           <button type="submit" disabled={saving} className="btn btn-primary">{saving ? t('question.create.creating') : t('question.create.addAnother')}</button>
           <button type="button" disabled={saving} onClick={onDone} className="btn btn-secondary">{t('question.create.finish')}</button>
         </div>

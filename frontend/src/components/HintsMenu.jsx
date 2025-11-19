@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 import { Menu, Lightbulb, Lock, Unlock, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import AudioPlayer from './AudioPlayer';
 import VideoPlayer from './VideoPlayer';
 import ImageModal from './ImageModal';
+import { getTranslatedText } from '../utils/translations';
 
 export default function HintsMenu({ hints, onUnlockHint, currentScore }) {
+  const { i18n } = useTranslation();
+  const currentLanguage = i18n.language;
   const [showMenu, setShowMenu] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [selectedHint, setSelectedHint] = useState(null);
@@ -126,7 +130,7 @@ export default function HintsMenu({ hints, onUnlockHint, currentScore }) {
                         <>
                           {/* Show hint content when unlocked */}
                           {hint.hint_text && (
-                            <p className="mb-2">{hint.hint_text}</p>
+                            <p className="mb-2">{getTranslatedText(hint, 'hint_text', currentLanguage)}</p>
                           )}
 
                           {/* Show hint media when unlocked - use direct fields instead of media_url */}

@@ -27,6 +27,12 @@ class Quiz(models.Model):
         ('other', 'Other'),
     ]
 
+    LANGUAGE_CHOICES = [
+        ('en', 'English'),
+        ('ru', 'Russian'),
+        ('sr', 'Serbian'),
+    ]
+
     creator = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='created_quizzes')
     title = models.CharField(max_length=255)
     description = models.TextField()
@@ -38,6 +44,7 @@ class Quiz(models.Model):
     is_published = models.BooleanField(default=False)
     avg_rating = models.FloatField(default=0.0)
     is_geo = models.BooleanField(default=False)
+    default_language = models.CharField(max_length=5, choices=LANGUAGE_CHOICES, default='en', help_text="Primary language of quiz content")
     image = models.ImageField(
         upload_to='quiz_images/',
         null=True,
@@ -344,3 +351,104 @@ class HintUnlock(models.Model):
 
     def __str__(self):
         return f"{self.attempt.user.username} unlocked hint {self.hint.hint_order} for {self.hint.question}"
+
+
+# ============================================
+# Translation Models
+# ============================================
+
+class QuizTranslation(models.Model):
+    """
+    Translations for Quiz content.
+    Stores title and description in different languages.
+    """
+    LANGUAGE_CHOICES = [
+        ('en', 'English'),
+        ('ru', 'Russian'),
+        ('sr', 'Serbian'),
+    ]
+
+    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name='translations')
+    language = models.CharField(max_length=5, choices=LANGUAGE_CHOICES)
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+
+    class Meta:
+        unique_together = ('quiz', 'language')
+        verbose_name = 'Quiz Translation'
+        verbose_name_plural = 'Quiz Translations'
+
+    def __str__(self):
+        return f"{self.quiz.title} ({self.get_language_display()})"
+
+
+class QuestionTranslation(models.Model):
+    """
+    Translations for Question content.
+    Stores question text and correct answer in different languages.
+    """
+    LANGUAGE_CHOICES = [
+        ('en', 'English'),
+        ('ru', 'Russian'),
+        ('sr', 'Serbian'),
+    ]
+
+    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='translations')
+    language = models.CharField(max_length=5, choices=LANGUAGE_CHOICES)
+    question_text = models.TextField()
+    correct_answer = models.TextField(null=True, blank=True)  # For text/true_false questions
+
+    class Meta:
+        unique_together = ('question', 'language')
+        verbose_name = 'Question Translation'
+        verbose_name_plural = 'Question Translations'
+
+    def __str__(self):
+        return f"Q{self.question.question_order} ({self.get_language_display()})"
+
+
+class OptionTranslation(models.Model):
+    """
+    Translations for multiple choice options.
+    """
+    LANGUAGE_CHOICES = [
+        ('en', 'English'),
+        ('ru', 'Russian'),
+        ('sr', 'Serbian'),
+    ]
+
+    option = models.ForeignKey(Option, on_delete=models.CASCADE, related_name='translations')
+    language = models.CharField(max_length=5, choices=LANGUAGE_CHOICES)
+    option_text = models.CharField(max_length=500)
+
+    class Meta:
+        unique_together = ('option', 'language')
+        verbose_name = 'Option Translation'
+        verbose_name_plural = 'Option Translations'
+
+    def __str__(self):
+        return f"{self.option.option_text[:30]} ({self.get_language_display()})"
+
+
+class HintTranslation(models.Model):
+    """
+    Translations for hint text content.
+    Note: Media files (images/audio/video) are not translated, only text.
+    """
+    LANGUAGE_CHOICES = [
+        ('en', 'English'),
+        ('ru', 'Russian'),
+        ('sr', 'Serbian'),
+    ]
+
+    hint = models.ForeignKey(Hint, on_delete=models.CASCADE, related_name='translations')
+    language = models.CharField(max_length=5, choices=LANGUAGE_CHOICES)
+    hint_text = models.TextField()
+
+    class Meta:
+        unique_together = ('hint', 'language')
+        verbose_name = 'Hint Translation'
+        verbose_name_plural = 'Hint Translations'
+
+    def __str__(self):
+        return f"Hint {self.hint.hint_order} ({self.get_language_display()})"

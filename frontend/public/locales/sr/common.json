@@ -81,6 +81,10 @@
       "categoryOther": "Ostalo",
       "publishImmediately": "Objavi odmah",
       "isGeoQuiz": "Ovo je geo-kviz",
+      "defaultLanguage": "Podrazumevani jezik",
+      "languageEnglish": "Engleski",
+      "languageRussian": "Ruski",
+      "languageSerbian": "Srpski",
       "quizImage": "Slika kviza",
       "quizCoverImage": "Naslovna slika kviza",
       "clickToUpload": "Kliknite za učitavanje (opciono)",
@@ -212,5 +216,17 @@
     "hintText": "Tekst saveta",
     "hintTextPlaceholder": "Unesite tekst saveta (potreban je tekst ili medij)",
     "noHints": "Još nema dodatih saveta. Saveti pomažu igračima bez otkrivanja odgovora."
+  },
+  "translations": {
+    "title": "Prevodi",
+    "optional": "- Opciono",
+    "description": "Dodajte prevode vašeg sadržaja na različite jezike. To će pomoći da vaš kviz bude dostupan većem broju igrača.",
+    "quizTitle": "Naslov kviza",
+    "quizDescription": "Opis kviza",
+    "questionText": "Tekst pitanja",
+    "correctAnswer": "Tačan odgovor",
+    "optionText": "Tekst opcije",
+    "hintText": "Tekst saveta",
+    "noLanguagesAvailable": "Nema dodatnih jezika za prevod."
   }
 }

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Image } from 'lucide-react';
-import { getQuizDetail, updateQuiz } from '../api/api';
+import { getQuizDetail, updateQuiz, createQuizTranslation, updateQuizTranslation, deleteQuizTranslation } from '../api/api';
 import { useTranslation } from 'react-i18next';
+import TranslationForm from '../components/TranslationForm';
 
 export default function QuizEdit() {
   const { id } = useParams();
@@ -16,6 +17,7 @@ export default function QuizEdit() {
     category: 'other',
     is_published: false,
     is_geo: false,
+    default_language: 'en',
   });
   const [imageFile, setImageFile] = useState(null);
   const [existingImageUrl, setExistingImageUrl] = useState(null);
@@ -25,6 +27,8 @@ export default function QuizEdit() {
   const [saving, setSaving] = useState(false);
   const [quiz, setQuiz] = useState(null);
   const [hasGeoQuestions, setHasGeoQuestions] = useState(false);
+  const [translations, setTranslations] = useState([]);
+  const [originalTranslations, setOriginalTranslations] = useState([]);
 
   // Load existing quiz data
   useEffect(() => {
@@ -54,11 +58,18 @@ export default function QuizEdit() {
           category: quizData.category || 'other',
           is_published: quizData.is_published || false,
           is_geo: quizData.is_geo || false,
+          default_language: quizData.default_language || 'en',
         });
 
         // Load existing image (backend now returns full URL)
         if (quizData.image_url) {
           setExistingImageUrl(quizData.image_url);
+        }
+
+        // Load existing translations
+        if (quizData.translations && quizData.translations.length > 0) {
+          setTranslations(quizData.translations);
+          setOriginalTranslations(quizData.translations);
         }
 
         setLoading(false);
@@ -99,6 +110,51 @@ export default function QuizEdit() {
         payload.image = imageFile;
       }
       await updateQuiz(id, payload);
+
+      // Handle translations: create new, update existing, delete removed
+      // Filter to only valid translations
+      const validTranslations = translations.filter(
+        tr => tr.language && tr.title && tr.title.trim()
+      );
+
+      for (const translation of validTranslations) {
+        const original = originalTranslations.find(t => t.language === translation.language);
+
+        try {
+          if (original && original.id) {
+            // Update existing translation
+            await updateQuizTranslation(original.id, {
+              quiz: id,
+              language: translation.language,
+              title: translation.title,
+              description: translation.description || ''
+            });
+          } else {
+            // Create new translation
+            await createQuizTranslation({
+              quiz: id,
+              language: translation.language,
+              title: translation.title,
+              description: translation.description || ''
+            });
+          }
+        } catch (err) {
+          console.error(`Failed to save translation for ${translation.language}:`, err);
+        }
+      }
+
+      // Delete translations that were cleared or removed
+      for (const original of originalTranslations) {
+        const current = validTranslations.find(t => t.language === original.language);
+        if (!current) {
+          try {
+            await deleteQuizTranslation(original.id);
+          } catch (err) {
+            console.error(`Failed to delete translation for ${original.language}:`, err);
+          }
+        }
+      }
+
       navigate(`/quizzes/${id}/`);
     } catch (err) {
       setError(err.message || t('quiz.edit.failed'));
@@ -153,6 +209,14 @@ export default function QuizEdit() {
             <option value="culture">{t('quiz.create.categoryCulture')}</option>
             <option value="nature">{t('quiz.create.categoryNature')}</option>
             <option value="other">{t('quiz.create.categoryOther')}</option>
+          </select>
+        </div>
+        <div className="mb-3">
+          <label className="form-label">{t('quiz.create.defaultLanguage')}</label>
+          <select name="default_language" value={form.default_language} onChange={onChange} className="form-select">
+            <option value="en">{t('quiz.create.languageEnglish')}</option>
+            <option value="ru">{t('quiz.create.languageRussian')}</option>
+            <option value="sr">{t('quiz.create.languageSerbian')}</option>
           </select>
         </div>
         <div className="form-check mb-3">
@@ -240,7 +304,18 @@ export default function QuizEdit() {
           </div>
         </div>
 
-        <div className="d-flex gap-2">
+        {/* Translation form */}
+        <TranslationForm
+          translations={translations}
+          onChange={setTranslations}
+          defaultLanguage={form.default_language}
+          fields={[
+            { name: 'title', label: t('translations.quizTitle'), required: false },
+            { name: 'description', label: t('translations.quizDescription'), multiline: true, rows: 3 }
+          ]}
+        />
+
+        <div className="d-flex gap-2 mt-3">
           <button type="submit" disabled={saving} className="btn btn-primary">
             {saving ? t('quiz.edit.saving') : t('quiz.edit.save')}
           </button>

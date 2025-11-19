@@ -81,6 +81,10 @@
       "categoryOther": "Other",
       "publishImmediately": "Publish immediately",
       "isGeoQuiz": "This is a geo-quiz",
+      "defaultLanguage": "Default Language",
+      "languageEnglish": "English",
+      "languageRussian": "Russian",
+      "languageSerbian": "Serbian",
       "quizImage": "Quiz Image",
       "quizCoverImage": "Quiz Cover Image",
       "clickToUpload": "Click to upload (optional)",
@@ -212,5 +216,17 @@
     "hintText": "Hint Text",
     "hintTextPlaceholder": "Enter hint text (at least text or media required)",
     "noHints": "No hints added yet. Hints help players without giving away the answer."
+  },
+  "translations": {
+    "title": "Translations",
+    "optional": "- Optional",
+    "description": "Provide translations for your content in different languages. This helps make your quiz accessible to more players.",
+    "quizTitle": "Quiz Title",
+    "quizDescription": "Quiz Description",
+    "questionText": "Question Text",
+    "correctAnswer": "Correct Answer",
+    "optionText": "Option Text",
+    "hintText": "Hint Text",
+    "noLanguagesAvailable": "No additional languages available for translation."
   }
 }

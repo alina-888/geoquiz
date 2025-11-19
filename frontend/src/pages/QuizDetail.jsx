@@ -3,6 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { Edit2, Trash2, MapPin, Image, Music, Video } from 'lucide-react';
 import { getQuizDetail, startQuiz, deleteQuiz, deleteQuestion } from '../api/api';
 import { useTranslation } from 'react-i18next';
+import { getTranslatedText } from '../utils/translations';
 
 export default function QuizDetail() {
   const { id } = useParams();
@@ -11,7 +12,7 @@ export default function QuizDetail() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const username = localStorage.getItem('auth.username');
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   useEffect(() => {
     setLoading(true);
@@ -88,8 +89,8 @@ export default function QuizDetail() {
           />
         )}
         <div className="card-body">
-          <h1 className="card-title h4 mb-2">{quiz.title}</h1>
-          <p className="card-text mb-3">{quiz.description}</p>
+          <h1 className="card-title h4 mb-2">{getTranslatedText(quiz, 'title', i18n.language)}</h1>
+          <p className="card-text mb-3">{getTranslatedText(quiz, 'description', i18n.language)}</p>
           <div className="mb-3 text-muted">
             {t('quiz.detail.category')}: {t(`categories.${quiz.category}`)} • {t('quiz.detail.difficulty')}: {t(`difficulty.${quiz.difficulty_level}`)}
             {quiz.is_geo && <span className="ms-2 badge bg-info">{t('quiz.detail.geoQuiz')}</span>}
