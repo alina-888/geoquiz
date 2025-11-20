@@ -314,7 +314,7 @@ export default function QuestionEdit() {
         geolocation: quiz?.is_geo ? qGeolocation : undefined,
         hints: hints,
       };
-      await updateQuestion(questionId, payload);
+      const updatedQuestion = await updateQuestion(questionId, payload);
 
       // Handle translations
       const validTranslations = translations.filter(
@@ -359,43 +359,30 @@ export default function QuestionEdit() {
       }
 
       // Handle option translations
-      for (const [optIdx, optTrans] of Object.entries(optionTranslations)) {
-        const option = options[parseInt(optIdx)];
-        if (!option || !option.id) continue;
+      // Note: Options are recreated on update, so we need to match by text and create new translations
+      if (updatedQuestion && updatedQuestion.options && Object.keys(optionTranslations).length > 0) {
+        for (const [optIdx, optTrans] of Object.entries(optionTranslations)) {
+          // Match the local option by index to get its text
+          const localOption = options[parseInt(optIdx)];
+          if (!localOption || !localOption.option_text.trim()) continue;
 
-        const originalOptTrans = originalOptionTranslations[optIdx] || [];
-        const validOptTrans = optTrans.filter(tr => tr.language && tr.option_text && tr.option_text.trim());
+          // Find the corresponding option in the response by matching text
+          const serverOption = updatedQuestion.options.find(o => o.option_text === localOption.option_text.trim());
+          if (!serverOption) continue;
 
-        // Delete removed option translations
-        for (const original of originalOptTrans) {
-          const stillExists = validOptTrans.find(tr => tr.id === original.id);
-          if (!stillExists) {
+          const validOptTrans = optTrans.filter(tr => tr.language && tr.option_text && tr.option_text.trim());
+
+          // Create option translations (all are new since options were recreated)
+          for (const tr of validOptTrans) {
             try {
-              await deleteOptionTranslation(original.id);
-            } catch (err) {
-              console.error(`Failed to delete option translation ${original.id}:`, err);
-            }
-          }
-        }
-
-        // Create or update option translations
-        for (const tr of validOptTrans) {
-          try {
-            if (tr.id) {
-              await updateOptionTranslation(tr.id, {
-                option: option.id,
-                language: tr.language,
-                option_text: tr.option_text
-              });
-            } else {
               await createOptionTranslation({
-                option: option.id,
+                option: serverOption.id,
                 language: tr.language,
                 option_text: tr.option_text
               });
+            } catch (err) {
+              console.error(`Failed to save option translation for ${tr.language}:`, err);
             }
-          } catch (err) {
-            console.error(`Failed to save option translation for ${tr.language}:`, err);
           }
         }
       }

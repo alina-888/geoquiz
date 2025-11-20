@@ -763,7 +763,12 @@ class QuestionViewSet(viewsets.ModelViewSet):
                             hint_video=hint_video,
                         )
 
-            return Response(serializer.data)
+            # Refresh the instance to include newly created options and other relations
+            instance = Question.objects.prefetch_related(
+                'options', 'options__translations', 'media_files', 'hints'
+            ).get(pk=instance.pk)
+            response_serializer = QuestionSerializer(instance)
+            return Response(response_serializer.data)
         except Exception as e:
             import traceback
             print(f"Error in QuestionViewSet.update: {str(e)}")
