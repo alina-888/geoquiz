@@ -105,6 +105,7 @@
   "question": {
     "create": {
       "title": "Dodaj pitanja",
+      "addingQuestionTo": "Dodavanje pitanja #{{number}} u",
       "questionText": "Tekst pitanja",
       "questionType": "Tip pitanja",
       "typeText": "Tekstualni odgovor",
@@ -116,6 +117,7 @@
       "options": "Opcije",
       "geolocation": "Geolokacija",
       "pickLocation": "Izaberi lokaciju",
+      "geoQuizHelpText": "Ovo je geo-kviz. Možete opciono dodati zahtev za lokaciju za ovo pitanje.",
       "latitude": "Geografska širina",
       "longitude": "Geografska dužina",
       "media": "Mediji",
@@ -123,12 +125,18 @@
       "audio": "Audio",
       "video": "Video",
       "clickToUpload": "Kliknite za učitavanje",
+      "maxFilesReached": "Dostignut maksimum od {{max}} fajlova po pitanju.",
+      "onlyFilesAdded": "Dodato samo {{count}} fajl(ova). Maksimum {{max}} fajlova po pitanju.",
       "addAnother": "Dodaj još jedno pitanje",
       "finish": "Završi i pogledaj kviz",
       "creating": "Kreiranje...",
       "failed": "Neuspešno kreiranje pitanja",
       "geoNotAllowed": "Ovo nije geo-kviz. Geolokacija nije dozvoljena.",
-      "optionPlaceholder": "Opcija {{number}}"
+      "optionPlaceholder": "Opcija {{number}}",
+      "selectCorrectOption": "Molimo izaberite bar jednu tačnu opciju za višestruki izbor.",
+      "selectTrueFalse": "Molimo izaberite Tačno ili Netačno kao tačan odgovor.",
+      "hintEmpty": "Savet {{number}} je prazan. Molimo dodajte tekst ili medij, ili ga uklonite.",
+      "multipleAnswersHint": "Možete navesti više tačnih odgovora razdvojenih sa | (npr. Hermiona | Hermiona Grejndžer)"
     },
     "edit": {
       "title": "Izmeni pitanje",
@@ -147,7 +155,10 @@
       "submitting": "Slanje...",
       "next": "Sledeće pitanje",
       "finish": "Završi kviz",
-      "failed": "Neuspešno slanje odgovora"
+      "failed": "Neuspešno slanje odgovora",
+      "audioClip": "Audio klip",
+      "audioClipNumber": "Audio klip #{{number}}",
+      "clickToEnlarge": "Kliknite za uvećanje"
     }
   },
   "profile": {
@@ -206,16 +217,26 @@
   },
   "hints": {
     "title": "Saveti",
-    "optional": "- Opciono",
+    "optional": "Opciono",
     "addHint": "Dodaj savet",
+    "addHints": "Dodaj savete",
+    "manageHints": "Upravljanje savetima",
     "maxHints": "Maksimalno 3 saveta po pitanju",
     "hint": "Savet",
+    "hints": "saveti",
+    "added": "dodato",
     "points": "poena",
     "pointsPenalty": "Kazna u poenima",
     "pointsDeducted": "Poeni odbijeni pri otključavanju",
     "hintText": "Tekst saveta",
     "hintTextPlaceholder": "Unesite tekst saveta (potreban je tekst ili medij)",
-    "noHints": "Još nema dodatih saveta. Saveti pomažu igračima bez otkrivanja odgovora."
+    "noHints": "Još nema dodatih saveta. Saveti pomažu igračima bez otkrivanja odgovora.",
+    "deleteConfirm": "Da li ste sigurni da želite da obrišete ovaj savet?",
+    "emptyHint": "Savet {{number}} je prazan. Svaki savet mora imati tekst ili medij.",
+    "clickAddHint": "Kliknite 'Dodaj savet' da počnete",
+    "imageUploaded": "Slika učitana",
+    "audioUploaded": "Audio učitan",
+    "videoUploaded": "Video učitan"
   },
   "translations": {
     "title": "Prevodi",
@@ -228,5 +249,38 @@
     "optionText": "Tekst opcije",
     "hintText": "Tekst saveta",
     "noLanguagesAvailable": "Nema dodatnih jezika za prevod."
+  },
+  "location": {
+    "targetLocation": "Ciljna lokacija",
+    "yourLocation": "Vaša lokacija",
+    "locked": "Lokacija zaključana",
+    "unlocked": "Lokacija otključana",
+    "unlocksNear": "Ovo pitanje se otključava kada budete blizu",
+    "youAreAway": "Nalazite se na <strong>{{distance}}</strong> udaljenosti",
+    "needToBeWithin": "Morate biti u krugu od {{radius}}m da otključate ovo pitanje",
+    "checking": "Provera lokacije...",
+    "refresh": "Osveži lokaciju",
+    "withinRange": "Nalazite se u krugu lokacije ovog pitanja!",
+    "notSupported": "Geolokacija nije podržana u vašem pregledaču.",
+    "mapLoading": "Mapa se još učitava. Sačekajte trenutak i pokušajte ponovo.",
+    "unableToGet": "Nije moguće dobiti vašu lokaciju.",
+    "permissionDenied": "Pristup lokaciji odbijen. Molimo omogućite dozvole za lokaciju u podešavanjima pregledača.",
+    "unavailable": "Lokacija nije dostupna. Proverite da li je GPS uključen.",
+    "timeout": "Zahtev za lokaciju je istekao. Pokušajte ponovo.",
+    "searchInstead": "Nije moguće dobiti vašu lokaciju. Pokušajte da potražite lokaciju.",
+    "questionLocation": "Lokacija pitanja",
+    "removeLocation": "Ukloni lokaciju",
+    "loadingMap": "Učitavanje mape...",
+    "useCurrentLocation": "Koristi moju trenutnu lokaciju",
+    "quickWay": "Brz način da postavite ovo pitanje na vašoj trenutnoj poziciji",
+    "searchPlaceholder": "Ili potražite lokaciju...",
+    "searching": "Pretraga...",
+    "search": "Pretraži",
+    "unlockRadius": "Radijus otključavanja: {{radius}}m",
+    "veryClose": "20m (Veoma blizu)",
+    "halfKilometer": "500m (Pola kilometra)",
+    "selectedLocation": "Izabrana lokacija:",
+    "coordinates": "Koordinate",
+    "helpText": "Kliknite na mapu ili prevucite marker da postavite lokaciju pitanja. Igrači će morati da budu u krugu od {{radius}}m da otključaju ovo pitanje."
   }
 }

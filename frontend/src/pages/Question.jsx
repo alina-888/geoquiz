@@ -14,7 +14,7 @@ import { getTranslatedText } from '../utils/translations';
 export default function Question() {
   const { id, questionId } = useParams();
   const navigate = useNavigate();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const currentLanguage = i18n.language;
   const [question, setQuestion] = useState(null);
   const [quiz, setQuiz] = useState(null);
@@ -229,7 +229,7 @@ export default function Question() {
                             setModalImages(allImages);
                             setModalIndex(clickedIndex);
                           }}
-                          title="Click to enlarge"
+                          title={t('question.view.clickToEnlarge')}
                         />
                       </div>
                     </div>
@@ -237,7 +237,7 @@ export default function Question() {
                   {media.media_type === 'audio' && (
                     <AudioPlayer
                       src={resolveMediaUrl(media.file_url)}
-                      label={question.media_files.length > 1 ? `Audio Clip #${idx + 1}` : 'Audio Clip'}
+                      label={question.media_files.length > 1 ? t('question.view.audioClipNumber', { number: idx + 1 }) : t('question.view.audioClip')}
                     />
                   )}
                   {media.media_type === 'video' && (
@@ -263,7 +263,7 @@ export default function Question() {
                         setModalImages([{ src: resolveMediaUrl(question.media_url), alt: 'Question media' }]);
                         setModalIndex(0);
                       }}
-                      title="Click to enlarge"
+                      title={t('question.view.clickToEnlarge')}
                     />
                   </div>
                 </div>
@@ -271,7 +271,7 @@ export default function Question() {
               {question.media_type === 'audio' && (
                 <AudioPlayer
                   src={resolveMediaUrl(question.media_url)}
-                  label="Audio Clip"
+                  label={t('question.view.audioClip')}
                 />
               )}
               {question.media_type === 'video' && (
@@ -301,7 +301,7 @@ export default function Question() {
               </div>
             ) : question.question_type === 'true_false' ? (
               <div className="mb-3">
-                <label className="form-label d-block">Your answer</label>
+                <label className="form-label d-block">{t('question.view.yourAnswer')}</label>
                 <div className="form-check form-check-inline">
                   <input
                     className="form-check-input"
@@ -312,7 +312,7 @@ export default function Question() {
                     checked={tfAnswer === 'true'}
                     onChange={(e) => setTfAnswer(e.target.value)}
                   />
-                  <label className="form-check-label" htmlFor="tf-true">True</label>
+                  <label className="form-check-label" htmlFor="tf-true">{t('common.true')}</label>
                 </div>
                 <div className="form-check form-check-inline">
                   <input
@@ -324,12 +324,12 @@ export default function Question() {
                     checked={tfAnswer === 'false'}
                     onChange={(e) => setTfAnswer(e.target.value)}
                   />
-                  <label className="form-check-label" htmlFor="tf-false">False</label>
+                  <label className="form-check-label" htmlFor="tf-false">{t('common.false')}</label>
                 </div>
               </div>
             ) : (
               <div className="mb-3">
-                <label className="form-label">Your answer</label>
+                <label className="form-label">{t('question.view.yourAnswer')}</label>
                 <textarea
                   value={textAnswer}
                   onChange={(e) => setTextAnswer(e.target.value)}
@@ -340,7 +340,7 @@ export default function Question() {
             )}
 
             <button type="submit" disabled={saving || (question.question_type === 'multiple_choice' && !selectedOption) || (question.question_type === 'true_false' && !tfAnswer)} className="btn btn-primary">
-              {saving ? 'Submitting...' : 'Submit'}
+              {saving ? t('question.view.submitting') : t('question.view.submit')}
             </button>
           </form>
         </div>

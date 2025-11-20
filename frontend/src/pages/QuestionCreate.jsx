@@ -89,14 +89,14 @@ export default function QuestionCreate() {
     const remainingSlots = MAX_FILES_PER_QUESTION - currentTotal;
 
     if (remainingSlots <= 0) {
-      setQuestionWarning(`Maximum ${MAX_FILES_PER_QUESTION} files per question reached.`);
+      setQuestionWarning(t('question.create.maxFilesReached', { max: MAX_FILES_PER_QUESTION }));
       if (imageInputRef.current) imageInputRef.current.value = '';
       return;
     }
 
     const filesToAdd = newFiles.slice(0, remainingSlots);
     if (filesToAdd.length < newFiles.length) {
-      setQuestionWarning(`Only ${filesToAdd.length} file(s) added. Maximum ${MAX_FILES_PER_QUESTION} files per question.`);
+      setQuestionWarning(t('question.create.onlyFilesAdded', { count: filesToAdd.length, max: MAX_FILES_PER_QUESTION }));
     }
 
     setImageFiles([...imageFiles, ...filesToAdd]);
@@ -110,14 +110,14 @@ export default function QuestionCreate() {
     const remainingSlots = MAX_FILES_PER_QUESTION - currentTotal;
 
     if (remainingSlots <= 0) {
-      setQuestionWarning(`Maximum ${MAX_FILES_PER_QUESTION} files per question reached.`);
+      setQuestionWarning(t('question.create.maxFilesReached', { max: MAX_FILES_PER_QUESTION }));
       if (audioInputRef.current) audioInputRef.current.value = '';
       return;
     }
 
     const filesToAdd = newFiles.slice(0, remainingSlots);
     if (filesToAdd.length < newFiles.length) {
-      setQuestionWarning(`Only ${filesToAdd.length} file(s) added. Maximum ${MAX_FILES_PER_QUESTION} files per question.`);
+      setQuestionWarning(t('question.create.onlyFilesAdded', { count: filesToAdd.length, max: MAX_FILES_PER_QUESTION }));
     }
 
     setAudioFiles([...audioFiles, ...filesToAdd]);
@@ -131,14 +131,14 @@ export default function QuestionCreate() {
     const remainingSlots = MAX_FILES_PER_QUESTION - currentTotal;
 
     if (remainingSlots <= 0) {
-      setQuestionWarning(`Maximum ${MAX_FILES_PER_QUESTION} files per question reached.`);
+      setQuestionWarning(t('question.create.maxFilesReached', { max: MAX_FILES_PER_QUESTION }));
       if (videoInputRef.current) videoInputRef.current.value = '';
       return;
     }
 
     const filesToAdd = newFiles.slice(0, remainingSlots);
     if (filesToAdd.length < newFiles.length) {
-      setQuestionWarning(`Only ${filesToAdd.length} file(s) added. Maximum ${MAX_FILES_PER_QUESTION} files per question.`);
+      setQuestionWarning(t('question.create.onlyFilesAdded', { count: filesToAdd.length, max: MAX_FILES_PER_QUESTION }));
     }
 
     setVideoFiles([...videoFiles, ...filesToAdd]);
@@ -189,12 +189,12 @@ export default function QuestionCreate() {
       const nonEmptyOptions = options.filter(o => o.option_text.trim().length > 0);
       const hasCorrect = nonEmptyOptions.some(o => o.is_correct);
       if (!hasCorrect) {
-        setQuestionWarning('Please select at least one correct option for multiple choice.');
+        setQuestionWarning(t('question.create.selectCorrectOption'));
         return;
       }
     }
     if (qType === 'true_false' && (!qCorrect || String(qCorrect).trim() === '')) {
-      setQuestionWarning('Please select True or False as the correct answer.');
+      setQuestionWarning(t('question.create.selectTrueFalse'));
       return;
     }
 
@@ -204,7 +204,7 @@ export default function QuestionCreate() {
       const hasText = hint.hint_text && hint.hint_text.trim().length > 0;
       const hasMedia = hint.hint_image || hint.hint_audio || hint.hint_video;
       if (!hasText && !hasMedia) {
-        setQuestionWarning(`Hint ${i + 1} is empty. Please add text or media, or remove it.`);
+        setQuestionWarning(t('question.create.hintEmpty', { number: i + 1 }));
         return;
       }
     }
@@ -338,12 +338,12 @@ export default function QuestionCreate() {
       const nonEmptyOptions = options.filter(o => o.option_text.trim().length > 0);
       const hasCorrect = nonEmptyOptions.some(o => o.is_correct);
       if (!hasCorrect) {
-        setQuestionWarning('Please select at least one correct option for multiple choice.');
+        setQuestionWarning(t('question.create.selectCorrectOption'));
         return; // stay on page
       }
     }
     if (qType === 'true_false' && (!qCorrect || String(qCorrect).trim() === '')) {
-      setQuestionWarning('Please select True or False as the correct answer.');
+      setQuestionWarning(t('question.create.selectTrueFalse'));
       return; // stay on page
     }
 
@@ -353,7 +353,7 @@ export default function QuestionCreate() {
       const hasText = hint.hint_text && hint.hint_text.trim().length > 0;
       const hasMedia = hint.hint_image || hint.hint_audio || hint.hint_video;
       if (!hasText && !hasMedia) {
-        setQuestionWarning(`Hint ${i + 1} is empty. Please add text or media, or remove it.`);
+        setQuestionWarning(t('question.create.hintEmpty', { number: i + 1 }));
         return;
       }
     }
@@ -438,9 +438,10 @@ export default function QuestionCreate() {
   return (
     <div className="container mt-4" style={{ maxWidth: '700px' }}>
       <h1 className="h4 fw-bold mb-2">{t('question.create.title')}</h1>
-      <div className="text-muted mb-3">Creating question #{(quiz?.questions?.length || 0) + 1}</div>
       {quiz && (
-        <div className="alert alert-info">Adding questions to: <strong>{quiz.title}</strong></div>
+        <div className="alert alert-info mb-3">
+          {t('question.create.addingQuestionTo', { number: (quiz?.questions?.length || 0) + 1 })} <strong>{quiz.title}</strong>
+        </div>
       )}
       {error && <div className="alert alert-danger">{error}</div>}
 
@@ -468,7 +469,10 @@ export default function QuestionCreate() {
         {qType === 'text' ? (
           <div className="mb-3">
             <label className="form-label">{t('question.create.correctAnswer')}</label>
-            <input value={qCorrect} onChange={(e)=>setQCorrect(e.target.value)} className="form-control" />
+            <input value={qCorrect} onChange={(e)=>setQCorrect(e.target.value)} className="form-control" placeholder="e.g. Hermione | Hermione Granger" />
+            <small className="text-muted d-block mt-1">
+              💡 {t('question.create.multipleAnswersHint')}
+            </small>
           </div>
         ) : qType === 'true_false' ? (
           <div className="mb-3">
@@ -748,7 +752,7 @@ export default function QuestionCreate() {
                   {t('question.create.pickLocation')}
                 </button>
                 <small className="text-muted d-block mt-1">
-                  This is a geo quiz. You can optionally add a location requirement to this question.
+                  {t('question.create.geoQuizHelpText')}
                 </small>
               </div>
             )}

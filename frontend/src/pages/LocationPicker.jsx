@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MapPin, X, Crosshair } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -19,6 +20,7 @@ L.Marker.prototype.options.icon = DefaultIcon;
 
 
 const LocationPicker = ({ value, onChange, onRemove }) => {
+  const { t } = useTranslation();
   const [isMapReady, setIsMapReady] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -299,13 +301,13 @@ const LocationPicker = ({ value, onChange, onRemove }) => {
   // Get user's current location
   const useCurrentLocation = () => {
     if (!('geolocation' in navigator)) {
-      alert('Geolocation is not supported by your browser.');
+      alert(t('location.notSupported'));
       return;
     }
 
     // Check if map is ready
     if (!mapInstanceRef.current || !markerRef.current) {
-      alert('Map is still loading. Please wait a moment and try again.');
+      alert(t('location.mapLoading'));
       return;
     }
 
@@ -347,20 +349,20 @@ const LocationPicker = ({ value, onChange, onRemove }) => {
         }
       },
       (error) => {
-        let errorMessage = 'Unable to get your location.';
+        let errorMessage = t('location.unableToGet');
 
         switch (error.code) {
           case error.PERMISSION_DENIED:
-            errorMessage = 'Location access denied. Please enable location permissions in your browser settings.';
+            errorMessage = t('location.permissionDenied');
             break;
           case error.POSITION_UNAVAILABLE:
-            errorMessage = 'Location unavailable. Please make sure GPS is enabled.';
+            errorMessage = t('location.unavailable');
             break;
           case error.TIMEOUT:
-            errorMessage = 'Location request timed out. Please try again.';
+            errorMessage = t('location.timeout');
             break;
           default:
-            errorMessage = 'Unable to get your location. Please search for a location instead.';
+            errorMessage = t('location.searchInstead');
         }
 
         alert(errorMessage);
@@ -385,7 +387,7 @@ const LocationPicker = ({ value, onChange, onRemove }) => {
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h5 className="mb-0">
           <MapPin className="me-2" size={20} style={{ display: 'inline' }} />
-          Question Location
+          {t('location.questionLocation')}
         </h5>
         {onRemove && (
           <button
@@ -399,7 +401,7 @@ const LocationPicker = ({ value, onChange, onRemove }) => {
             className="btn btn-sm btn-outline-danger"
           >
             <X size={16} className="me-1" style={{ display: 'inline' }} />
-            Remove Location
+            {t('location.removeLocation')}
           </button>
         )}
       </div>
@@ -413,9 +415,9 @@ const LocationPicker = ({ value, onChange, onRemove }) => {
           className="btn btn-success w-100"
         >
           <Crosshair size={20} className="me-2" style={{ display: 'inline' }} />
-          {!isMapReady || !mapInstanceRef.current ? 'Loading Map...' : 'Use My Current Location'}
+          {!isMapReady || !mapInstanceRef.current ? t('location.loadingMap') : t('location.useCurrentLocation')}
         </button>
-        <small className="text-muted">Quick way to set this question at your current position</small>
+        <small className="text-muted">{t('location.quickWay')}</small>
       </div>
 
       {/* Search Bar */}
@@ -426,7 +428,7 @@ const LocationPicker = ({ value, onChange, onRemove }) => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && searchLocation()}
-            placeholder="Or search for a location..."
+            placeholder={t('location.searchPlaceholder')}
             className="form-control"
           />
           <button
@@ -435,7 +437,7 @@ const LocationPicker = ({ value, onChange, onRemove }) => {
             disabled={isSearching}
             className="btn btn-primary"
           >
-            {isSearching ? 'Searching...' : 'Search'}
+            {isSearching ? t('location.searching') : t('location.search')}
           </button>
         </div>
 
@@ -468,7 +470,7 @@ const LocationPicker = ({ value, onChange, onRemove }) => {
         />
         {(!isMapReady || !mapInstanceRef.current) && (
           <div className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-light rounded">
-            <div className="text-muted">Loading map...</div>
+            <div className="text-muted">{t('location.loadingMap')}</div>
           </div>
         )}
       </div>
@@ -476,7 +478,7 @@ const LocationPicker = ({ value, onChange, onRemove }) => {
       {/* Radius Selector */}
       <div className="mb-3">
         <label className="form-label">
-          Unlock Radius: {location.radius}m
+          {t('location.unlockRadius', { radius: location.radius })}
         </label>
         <input
           type="range"
@@ -488,27 +490,26 @@ const LocationPicker = ({ value, onChange, onRemove }) => {
           className="form-range"
         />
         <div className="d-flex justify-content-between">
-          <small className="text-muted">20m (Very close)</small>
-          <small className="text-muted">500m (Half kilometer)</small>
+          <small className="text-muted">{t('location.veryClose')}</small>
+          <small className="text-muted">{t('location.halfKilometer')}</small>
         </div>
       </div>
 
       {/* Location Info */}
       {location.address && (
         <div className="alert alert-info mb-3">
-          <div><small className="text-muted">Selected Location:</small></div>
+          <div><small className="text-muted">{t('location.selectedLocation')}</small></div>
           <div><strong>{location.address}</strong></div>
           <div className="mt-1">
             <small className="text-muted">
-              Coordinates: {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
+              {t('location.coordinates')}: {location.lat.toFixed(6)}, {location.lng.toFixed(6)}
             </small>
           </div>
         </div>
       )}
 
       <div className="text-muted small fst-italic">
-        💡 Click on the map or drag the marker to set the question location. 
-        Players will need to be within {location.radius}m to unlock this question.
+        💡 {t('location.helpText', { radius: location.radius })}
       </div>
     </div>
   );

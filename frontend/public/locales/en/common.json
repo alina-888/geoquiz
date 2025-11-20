@@ -105,6 +105,7 @@
   "question": {
     "create": {
       "title": "Add Questions",
+      "addingQuestionTo": "Adding question #{{number}} to",
       "questionText": "Question Text",
       "questionType": "Question Type",
       "typeText": "Text Answer",
@@ -116,6 +117,7 @@
       "options": "Options",
       "geolocation": "Geolocation",
       "pickLocation": "Pick Location",
+      "geoQuizHelpText": "This is a geo quiz. You can optionally add a location requirement to this question.",
       "latitude": "Latitude",
       "longitude": "Longitude",
       "media": "Media",
@@ -123,12 +125,18 @@
       "audio": "Audio",
       "video": "Video",
       "clickToUpload": "Click to upload",
+      "maxFilesReached": "Maximum {{max}} files per question reached.",
+      "onlyFilesAdded": "Only {{count}} file(s) added. Maximum {{max}} files per question.",
       "addAnother": "Add Another Question",
       "finish": "Finish & View Quiz",
       "creating": "Creating...",
       "failed": "Failed to create question",
       "geoNotAllowed": "This is not a geo-quiz. Geolocation is not allowed.",
-      "optionPlaceholder": "Option {{number}}"
+      "optionPlaceholder": "Option {{number}}",
+      "selectCorrectOption": "Please select at least one correct option for multiple choice.",
+      "selectTrueFalse": "Please select True or False as the correct answer.",
+      "hintEmpty": "Hint {{number}} is empty. Please add text or media, or remove it.",
+      "multipleAnswersHint": "You can provide multiple correct answers separated by | (e.g., Hermione | Hermione Granger)"
     },
     "edit": {
       "title": "Edit Question",
@@ -147,7 +155,10 @@
       "submitting": "Submitting...",
       "next": "Next Question",
       "finish": "Finish Quiz",
-      "failed": "Failed to submit answer"
+      "failed": "Failed to submit answer",
+      "audioClip": "Audio Clip",
+      "audioClipNumber": "Audio Clip #{{number}}",
+      "clickToEnlarge": "Click to enlarge"
     }
   },
   "profile": {
@@ -206,16 +217,26 @@
   },
   "hints": {
     "title": "Hints",
-    "optional": "- Optional",
+    "optional": "Optional",
     "addHint": "Add Hint",
+    "addHints": "Add Hints",
+    "manageHints": "Manage Hints",
     "maxHints": "Maximum 3 hints per question",
     "hint": "Hint",
+    "hints": "hints",
+    "added": "added",
     "points": "points",
     "pointsPenalty": "Points Penalty",
     "pointsDeducted": "Points deducted when unlocked",
     "hintText": "Hint Text",
     "hintTextPlaceholder": "Enter hint text (at least text or media required)",
-    "noHints": "No hints added yet. Hints help players without giving away the answer."
+    "noHints": "No hints added yet. Hints help players without giving away the answer.",
+    "deleteConfirm": "Are you sure you want to delete this hint?",
+    "emptyHint": "Hint {{number}} is empty. Each hint must have text or media.",
+    "clickAddHint": "Click 'Add Hint' to get started",
+    "imageUploaded": "Image uploaded",
+    "audioUploaded": "Audio uploaded",
+    "videoUploaded": "Video uploaded"
   },
   "translations": {
     "title": "Translations",
@@ -228,5 +249,38 @@
     "optionText": "Option Text",
     "hintText": "Hint Text",
     "noLanguagesAvailable": "No additional languages available for translation."
+  },
+  "location": {
+    "targetLocation": "Target Location",
+    "yourLocation": "Your Location",
+    "locked": "Location Locked",
+    "unlocked": "Location Unlocked",
+    "unlocksNear": "This question unlocks when you're near",
+    "youAreAway": "You are <strong>{{distance}}</strong> away",
+    "needToBeWithin": "You need to be within {{radius}}m to unlock this question",
+    "checking": "Checking Location...",
+    "refresh": "Refresh Location",
+    "withinRange": "You are within range of this question's location!",
+    "notSupported": "Geolocation is not supported by your browser.",
+    "mapLoading": "Map is still loading. Please wait a moment and try again.",
+    "unableToGet": "Unable to get your location.",
+    "permissionDenied": "Location access denied. Please enable location permissions in your browser settings.",
+    "unavailable": "Location unavailable. Please make sure GPS is enabled.",
+    "timeout": "Location request timed out. Please try again.",
+    "searchInstead": "Unable to get your location. Please search for a location instead.",
+    "questionLocation": "Question Location",
+    "removeLocation": "Remove Location",
+    "loadingMap": "Loading Map...",
+    "useCurrentLocation": "Use My Current Location",
+    "quickWay": "Quick way to set this question at your current position",
+    "searchPlaceholder": "Or search for a location...",
+    "searching": "Searching...",
+    "search": "Search",
+    "unlockRadius": "Unlock Radius: {{radius}}m",
+    "veryClose": "20m (Very close)",
+    "halfKilometer": "500m (Half kilometer)",
+    "selectedLocation": "Selected Location:",
+    "coordinates": "Coordinates",
+    "helpText": "Click on the map or drag the marker to set the question location. Players will need to be within {{radius}}m to unlock this question."
   }
 }

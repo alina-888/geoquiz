@@ -306,16 +306,19 @@ class QuizViewSet(viewsets.ModelViewSet):
                     is_correct = user_bool == correct_bool
             else:
                 user_norm = self._normalize_text(text_answer)
-                correct_norm = self._normalize_text(question.correct_answer)
-                if user_norm is not None and correct_norm is not None:
-                    is_correct = user_norm == correct_norm
+
+                # Support multiple accepted answers separated by |
+                if user_norm is not None and question.correct_answer:
+                    accepted_answers = [self._normalize_text(ans) for ans in question.correct_answer.split('|')]
+                    is_correct = user_norm in accepted_answers
 
                 # Also check against translated correct answers
                 if not is_correct and user_norm is not None:
                     for translation in question.translations.all():
                         if translation.correct_answer:
-                            translated_norm = self._normalize_text(translation.correct_answer)
-                            if translated_norm and user_norm == translated_norm:
+                            # Support multiple answers in translations too
+                            translated_answers = [self._normalize_text(ans) for ans in translation.correct_answer.split('|')]
+                            if user_norm in translated_answers:
                                 is_correct = True
                                 break
             points_earned = question.points_value if is_correct else 0

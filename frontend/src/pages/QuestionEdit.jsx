@@ -518,7 +518,15 @@ export default function QuestionEdit() {
         {qType === 'text' ? (
           <div className="mb-3">
             <label className="form-label">{t('question.create.correctAnswer')}</label>
-            <input value={qCorrect} onChange={(e)=>setQCorrect(e.target.value)} className="form-control" />
+            <input
+              value={qCorrect}
+              onChange={(e)=>setQCorrect(e.target.value)}
+              className="form-control"
+              placeholder="e.g. Hermione | Hermione Granger"
+            />
+            <small className="text-muted d-block mt-1">
+              💡 {t('question.create.multipleAnswersHint')}
+            </small>
           </div>
         ) : qType === 'true_false' ? (
           <div className="mb-3">

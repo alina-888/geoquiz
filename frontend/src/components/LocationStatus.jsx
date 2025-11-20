@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Lock, RefreshCw, MapPin } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { useTranslation } from 'react-i18next';
 import { formatDistance } from '../utils/geolocation';
 
 // Fix Leaflet default icon issue
@@ -28,6 +29,7 @@ const LocationStatus = ({
   onRefresh,
   isRefreshing
 }) => {
+  const { t } = useTranslation();
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const [isMapReady, setIsMapReady] = useState(false);
@@ -95,7 +97,7 @@ const LocationStatus = ({
         })
       }).addTo(map);
 
-      targetMarker.bindPopup('<strong>Target Location</strong>');
+      targetMarker.bindPopup(`<strong>${t('location.targetLocation')}</strong>`);
 
       // Add radius circle
       const circle = L.circle([targetLocation.lat, targetLocation.lng], {
@@ -117,7 +119,7 @@ const LocationStatus = ({
           })
         }).addTo(map);
 
-        userMarker.bindPopup('<strong>Your Location</strong>');
+        userMarker.bindPopup(`<strong>${t('location.yourLocation')}</strong>`);
 
         // Adjust map to show both markers
         const bounds = L.latLngBounds([
@@ -176,11 +178,11 @@ const LocationStatus = ({
           <>
             <div className="d-flex align-items-center mb-3">
               <Lock className="text-warning me-2" size={24} />
-              <h5 className="mb-0 text-warning">Location Locked</h5>
+              <h5 className="mb-0 text-warning">{t('location.locked')}</h5>
             </div>
 
             <p className="mb-3">
-              This question unlocks when you're near{' '}
+              {t('location.unlocksNear')}{' '}
               <strong>
                 {targetLocation.address || `${targetLocation.lat.toFixed(4)}, ${targetLocation.lng.toFixed(4)}`}
               </strong>
@@ -189,10 +191,10 @@ const LocationStatus = ({
             {distance !== null && (
               <div className="alert alert-info mb-3">
                 <MapPin size={16} className="me-2" style={{ display: 'inline' }} />
-                You are <strong>{formatDistance(distance)}</strong> away
+                {t('location.youAreAway', { distance: formatDistance(distance) })}
                 <br />
                 <small className="text-muted">
-                  You need to be within {targetLocation.radius}m to unlock this question
+                  {t('location.needToBeWithin', { radius: targetLocation.radius })}
                 </small>
               </div>
             )}
@@ -212,7 +214,7 @@ const LocationStatus = ({
               className="btn btn-primary"
             >
               <RefreshCw size={16} className="me-2" style={{ display: 'inline' }} />
-              {isRefreshing ? 'Checking Location...' : 'Refresh Location'}
+              {isRefreshing ? t('location.checking') : t('location.refresh')}
             </button>
           </>
         ) : (
@@ -224,11 +226,11 @@ const LocationStatus = ({
               >
                 ✓
               </div>
-              <h5 className="mb-0 text-success">Location Unlocked</h5>
+              <h5 className="mb-0 text-success">{t('location.unlocked')}</h5>
             </div>
 
             <p className="mb-0">
-              You are within range of this question's location!
+              {t('location.withinRange')}
             </p>
           </>
         )}
