@@ -614,9 +614,9 @@ class QuestionViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
 
-        # Refresh the question to include newly created options
+        # Refresh the question to include newly created options and hints
         question = Question.objects.prefetch_related(
-            'options', 'options__translations', 'media_files', 'hints'
+            'options', 'options__translations', 'media_files', 'hints', 'hints__translations'
         ).get(pk=self._created_question.pk)
 
         response_serializer = QuestionSerializer(question)
@@ -763,9 +763,9 @@ class QuestionViewSet(viewsets.ModelViewSet):
                             hint_video=hint_video,
                         )
 
-            # Refresh the instance to include newly created options and other relations
+            # Refresh the instance to include newly created options, hints and other relations
             instance = Question.objects.prefetch_related(
-                'options', 'options__translations', 'media_files', 'hints'
+                'options', 'options__translations', 'media_files', 'hints', 'hints__translations'
             ).get(pk=instance.pk)
             response_serializer = QuestionSerializer(instance)
             return Response(response_serializer.data)

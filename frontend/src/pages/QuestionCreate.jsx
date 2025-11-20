@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { MapPin } from 'lucide-react';
-import { createQuestion, getQuizDetail, createQuestionTranslation, createOptionTranslation } from '../api/api';
+import { MapPin, Lightbulb } from 'lucide-react';
+import { createQuestion, getQuizDetail, createQuestionTranslation, createOptionTranslation, createHintTranslation } from '../api/api';
 import LocationPicker from './LocationPicker';
-import HintForm from '../components/HintForm';
+import HintsModal from '../components/HintsModal';
 import TranslationForm from '../components/TranslationForm';
 import { useTranslation } from 'react-i18next';
 
@@ -33,7 +33,9 @@ export default function QuestionCreate() {
   ]);
   const [translations, setTranslations] = useState([]);
   const [optionTranslations, setOptionTranslations] = useState({});  // { optionIndex: [{ language, option_text }] }
-  
+  const [hintTranslations, setHintTranslations] = useState({});  // { hintIndex: [{ language, hint_text }] }
+  const [isHintsModalOpen, setIsHintsModalOpen] = useState(false);
+
   // Refs to reset file inputs
   const imageInputRef = useRef(null);
   const audioInputRef = useRef(null);
@@ -68,6 +70,11 @@ export default function QuestionCreate() {
     setOptions(copy);
   };
   const removeOption = (idx) => setOptions(options.filter((_, i) => i !== idx));
+
+  const handleHintsSave = (updatedHints, updatedHintTranslations) => {
+    setHints(updatedHints);
+    setHintTranslations(updatedHintTranslations);
+  };
 
   // Constants
   const MAX_FILES_PER_QUESTION = 8;
@@ -168,6 +175,7 @@ export default function QuestionCreate() {
     ]);
     setTranslations([]);
     setOptionTranslations({});
+    setHintTranslations({});
     // Reset file input values
     if (imageInputRef.current) imageInputRef.current.value = '';
     if (audioInputRef.current) audioInputRef.current.value = '';
@@ -263,6 +271,38 @@ export default function QuestionCreate() {
                 await createOptionTranslation(payload);
               } catch (err) {
                 console.error(`Failed to save option translation for ${tr.language}:`, err.message);
+              }
+            }
+          }
+        }
+      }
+
+      // Save hint translations if provided
+      if (createdQuestion && createdQuestion.hints && Object.keys(hintTranslations).length > 0) {
+        console.log('Created question hints:', createdQuestion.hints);
+        console.log('Hint translations to save:', hintTranslations);
+
+        for (const [hintIndex, hintTrans] of Object.entries(hintTranslations)) {
+          // Match by hint_text and hint_order since indices may shift
+          const localHint = hints[parseInt(hintIndex)];
+          const serverHint = createdQuestion.hints.find(
+            h => h.hint_text === localHint?.hint_text && h.hint_order === localHint?.hint_order
+          );
+          console.log(`Matching hint for index ${hintIndex}:`, serverHint);
+          if (!serverHint) continue;
+
+          for (const tr of hintTrans) {
+            if (tr.language && tr.hint_text && tr.hint_text.trim()) {
+              try {
+                const payload = {
+                  hint: serverHint.id,
+                  language: tr.language,
+                  hint_text: tr.hint_text
+                };
+                console.log('Saving hint translation:', payload);
+                await createHintTranslation(payload);
+              } catch (err) {
+                console.error(`Failed to save hint translation for ${tr.language}:`, err.message);
               }
             }
           }
@@ -719,7 +759,33 @@ export default function QuestionCreate() {
         {questionWarning && questionWarning.includes('Hint') && (
           <div className="alert alert-warning py-2 mb-2">{questionWarning}</div>
         )}
-        <HintForm hints={hints} onChange={setHints} />
+        <div className="mb-3">
+          <button
+            type="button"
+            className={`btn w-100 ${hints.length > 0 ? 'btn-primary' : 'btn-outline-secondary'}`}
+            onClick={() => setIsHintsModalOpen(true)}
+          >
+            <Lightbulb size={18} className="me-2" style={{ display: 'inline' }} />
+            {hints.length > 0
+              ? `${t('hints.manageHints')} (${hints.length}/3)`
+              : `${t('hints.addHints')} (${t('hints.optional')})`
+            }
+          </button>
+          {hints.length > 0 && (
+            <small className="text-muted d-block mt-1">
+              {hints.length} {hints.length === 1 ? t('hints.hint') : t('hints.hints')} {t('hints.added')}
+            </small>
+          )}
+        </div>
+
+        <HintsModal
+          isOpen={isHintsModalOpen}
+          onClose={() => setIsHintsModalOpen(false)}
+          hints={hints}
+          hintTranslations={hintTranslations}
+          onChange={handleHintsSave}
+          defaultLanguage={quiz?.default_language}
+        />
 
         {/* Translation form */}
         <TranslationForm

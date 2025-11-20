@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
-import { getQuestion, updateQuestion, getQuizDetail, deleteQuestionMedia, createQuestionTranslation, updateQuestionTranslation, deleteQuestionTranslation, createOptionTranslation, updateOptionTranslation, deleteOptionTranslation } from '../api/api';
+import { MapPin, ChevronLeft, ChevronRight, Lightbulb } from 'lucide-react';
+import { getQuestion, updateQuestion, getQuizDetail, deleteQuestionMedia, createQuestionTranslation, updateQuestionTranslation, deleteQuestionTranslation, createOptionTranslation, updateOptionTranslation, deleteOptionTranslation, createHintTranslation } from '../api/api';
 import LocationPicker from './LocationPicker';
-import HintForm from '../components/HintForm';
+import HintsModal from '../components/HintsModal';
 import TranslationForm from '../components/TranslationForm';
 import { useTranslation } from 'react-i18next';
 
@@ -36,6 +36,8 @@ export default function QuestionEdit() {
   const [originalTranslations, setOriginalTranslations] = useState([]);
   const [optionTranslations, setOptionTranslations] = useState({});  // { optionIndex: [{ id?, language, option_text }] }
   const [originalOptionTranslations, setOriginalOptionTranslations] = useState({});
+  const [hintTranslations, setHintTranslations] = useState({});  // { hintIndex: [{ language, hint_text }] }
+  const [isHintsModalOpen, setIsHintsModalOpen] = useState(false);
   const [options, setOptions] = useState([
     { option_text: '', is_correct: false, id: null },
     { option_text: '', is_correct: false, id: null },
@@ -138,6 +140,19 @@ export default function QuestionEdit() {
             hint_audio: null,
             hint_video: null,
           })));
+
+          // Load hint translations
+          const hintTrans = {};
+          questionDetail.hints.forEach((hint, idx) => {
+            if (hint.translations && hint.translations.length > 0) {
+              hintTrans[idx] = hint.translations.map(tr => ({
+                id: tr.id,
+                language: tr.language,
+                hint_text: tr.hint_text || ''
+              }));
+            }
+          });
+          setHintTranslations(hintTrans);
         }
 
         // Load existing translations
@@ -173,6 +188,11 @@ export default function QuestionEdit() {
     setOptions(copy);
   };
   const removeOption = (idx) => setOptions(options.filter((_, i) => i !== idx));
+
+  const handleHintsSave = (updatedHints, updatedHintTranslations) => {
+    setHints(updatedHints);
+    setHintTranslations(updatedHintTranslations);
+  };
 
   // Constants
   const MAX_FILES_PER_QUESTION = 8;
@@ -382,6 +402,37 @@ export default function QuestionEdit() {
               });
             } catch (err) {
               console.error(`Failed to save option translation for ${tr.language}:`, err);
+            }
+          }
+        }
+      }
+
+      // Handle hint translations
+      // Note: Hints are recreated on update, so we need to match by text/order and create new translations
+      if (updatedQuestion && updatedQuestion.hints && Object.keys(hintTranslations).length > 0) {
+        for (const [hintIdx, hintTrans] of Object.entries(hintTranslations)) {
+          // Match the local hint by index to get its text and order
+          const localHint = hints[parseInt(hintIdx)];
+          if (!localHint) continue;
+
+          // Find the corresponding hint in the response by matching text and order
+          const serverHint = updatedQuestion.hints.find(
+            h => h.hint_text === localHint.hint_text && h.hint_order === localHint.hint_order
+          );
+          if (!serverHint) continue;
+
+          const validHintTrans = hintTrans.filter(tr => tr.language && tr.hint_text && tr.hint_text.trim());
+
+          // Create hint translations (all are new since hints were recreated)
+          for (const tr of validHintTrans) {
+            try {
+              await createHintTranslation({
+                hint: serverHint.id,
+                language: tr.language,
+                hint_text: tr.hint_text
+              });
+            } catch (err) {
+              console.error(`Failed to save hint translation for ${tr.language}:`, err);
             }
           }
         }
@@ -806,7 +857,33 @@ export default function QuestionEdit() {
         {questionWarning && questionWarning.includes('Hint') && (
           <div className="alert alert-warning py-2 mb-2">{questionWarning}</div>
         )}
-        <HintForm hints={hints} onChange={setHints} />
+        <div className="mb-3">
+          <button
+            type="button"
+            className={`btn w-100 ${hints.length > 0 ? 'btn-primary' : 'btn-outline-secondary'}`}
+            onClick={() => setIsHintsModalOpen(true)}
+          >
+            <Lightbulb size={18} className="me-2" style={{ display: 'inline' }} />
+            {hints.length > 0
+              ? `${t('hints.manageHints')} (${hints.length}/3)`
+              : `${t('hints.addHints')} (${t('hints.optional')})`
+            }
+          </button>
+          {hints.length > 0 && (
+            <small className="text-muted d-block mt-1">
+              {hints.length} {hints.length === 1 ? t('hints.hint') : t('hints.hints')} {t('hints.added')}
+            </small>
+          )}
+        </div>
+
+        <HintsModal
+          isOpen={isHintsModalOpen}
+          onClose={() => setIsHintsModalOpen(false)}
+          hints={hints}
+          hintTranslations={hintTranslations}
+          onChange={handleHintsSave}
+          defaultLanguage={quiz?.default_language}
+        />
 
         {/* Translations Section */}
         <TranslationForm
