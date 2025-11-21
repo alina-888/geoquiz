@@ -43,7 +43,9 @@ class QuizViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Only show published quizzes to everyone; creators can also see their own."""
-        base_qs = Quiz.objects.select_related('creator').prefetch_related('questions')
+        base_qs = Quiz.objects.select_related('creator').prefetch_related(
+            'questions', 'questions__media_files', 'translations'
+        )
         user = getattr(self.request, 'user', None)
         if user and user.is_authenticated:
             return base_qs.filter(Q(is_published=True) | Q(creator=user))
@@ -260,7 +262,14 @@ class QuizViewSet(viewsets.ModelViewSet):
     def question_detail(self, request, pk=None, question_id=None):
         """Get a specific question within this quiz"""
         quiz = self.get_object()
-        question = get_object_or_404(Question, id=question_id, quiz=quiz)
+        question = get_object_or_404(
+            Question.objects.prefetch_related(
+                'options', 'options__translations',
+                'hints', 'hints__translations',
+                'media_files', 'translations'
+            ),
+            id=question_id, quiz=quiz
+        )
 
         # Get current attempt for hints context
         attempt = QuizAttempt.objects.filter(
