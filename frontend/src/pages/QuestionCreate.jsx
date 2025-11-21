@@ -16,7 +16,7 @@ export default function QuestionCreate() {
   const [quiz, setQuiz] = useState(null);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
-  const [questionWarning, setQuestionWarning] = useState(null); // { type: 'option' | 'hint' | 'file', message: string }
+  const [questionWarning, setQuestionWarning] = useState(null); // { type: 'option' | 'hint' | 'file', key: string, params?: object }
 
   const [qText, setQText] = useState('');
   const [qType, setQType] = useState('multiple_choice');
@@ -40,6 +40,12 @@ export default function QuestionCreate() {
   const imageInputRef = useRef(null);
   const audioInputRef = useRef(null);
   const videoInputRef = useRef(null);
+
+  useEffect(() => {
+    if (questionWarning) {
+      document.getElementById(`warning-${questionWarning.type}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [questionWarning]);
 
   useEffect(() => {
     let mounted = true;
@@ -89,14 +95,14 @@ export default function QuestionCreate() {
     const remainingSlots = MAX_FILES_PER_QUESTION - currentTotal;
 
     if (remainingSlots <= 0) {
-      setQuestionWarning({ type: 'file', message: t('question.create.maxFilesReached', { max: MAX_FILES_PER_QUESTION }) });
+      setQuestionWarning({ type: 'file', key: 'question.create.maxFilesReached', params: { max: MAX_FILES_PER_QUESTION } });
       if (imageInputRef.current) imageInputRef.current.value = '';
       return;
     }
 
     const filesToAdd = newFiles.slice(0, remainingSlots);
     if (filesToAdd.length < newFiles.length) {
-      setQuestionWarning({ type: 'file', message: t('question.create.onlyFilesAdded', { count: filesToAdd.length, max: MAX_FILES_PER_QUESTION }) });
+      setQuestionWarning({ type: 'file', key: 'question.create.onlyFilesAdded', params: { count: filesToAdd.length, max: MAX_FILES_PER_QUESTION } });
     }
 
     setImageFiles([...imageFiles, ...filesToAdd]);
@@ -110,14 +116,14 @@ export default function QuestionCreate() {
     const remainingSlots = MAX_FILES_PER_QUESTION - currentTotal;
 
     if (remainingSlots <= 0) {
-      setQuestionWarning({ type: 'file', message: t('question.create.maxFilesReached', { max: MAX_FILES_PER_QUESTION }) });
+      setQuestionWarning({ type: 'file', key: 'question.create.maxFilesReached', params: { max: MAX_FILES_PER_QUESTION } });
       if (audioInputRef.current) audioInputRef.current.value = '';
       return;
     }
 
     const filesToAdd = newFiles.slice(0, remainingSlots);
     if (filesToAdd.length < newFiles.length) {
-      setQuestionWarning({ type: 'file', message: t('question.create.onlyFilesAdded', { count: filesToAdd.length, max: MAX_FILES_PER_QUESTION }) });
+      setQuestionWarning({ type: 'file', key: 'question.create.onlyFilesAdded', params: { count: filesToAdd.length, max: MAX_FILES_PER_QUESTION } });
     }
 
     setAudioFiles([...audioFiles, ...filesToAdd]);
@@ -131,14 +137,14 @@ export default function QuestionCreate() {
     const remainingSlots = MAX_FILES_PER_QUESTION - currentTotal;
 
     if (remainingSlots <= 0) {
-      setQuestionWarning({ type: 'file', message: t('question.create.maxFilesReached', { max: MAX_FILES_PER_QUESTION }) });
+      setQuestionWarning({ type: 'file', key: 'question.create.maxFilesReached', params: { max: MAX_FILES_PER_QUESTION } });
       if (videoInputRef.current) videoInputRef.current.value = '';
       return;
     }
 
     const filesToAdd = newFiles.slice(0, remainingSlots);
     if (filesToAdd.length < newFiles.length) {
-      setQuestionWarning({ type: 'file', message: t('question.create.onlyFilesAdded', { count: filesToAdd.length, max: MAX_FILES_PER_QUESTION }) });
+      setQuestionWarning({ type: 'file', key: 'question.create.onlyFilesAdded', params: { count: filesToAdd.length, max: MAX_FILES_PER_QUESTION } });
     }
 
     setVideoFiles([...videoFiles, ...filesToAdd]);
@@ -189,12 +195,12 @@ export default function QuestionCreate() {
       const nonEmptyOptions = options.filter(o => o.option_text.trim().length > 0);
       const hasCorrect = nonEmptyOptions.some(o => o.is_correct);
       if (!hasCorrect) {
-        setQuestionWarning({ type: 'option', message: t('question.create.selectCorrectOption') });
+        setQuestionWarning({ type: 'option', key: 'question.create.selectCorrectOption' });
         return;
       }
     }
     if (qType === 'true_false' && (!qCorrect || String(qCorrect).trim() === '')) {
-      setQuestionWarning({ type: 'option', message: t('question.create.selectTrueFalse') });
+      setQuestionWarning({ type: 'option', key: 'question.create.selectTrueFalse' });
       return;
     }
 
@@ -204,7 +210,7 @@ export default function QuestionCreate() {
       const hasText = hint.hint_text && hint.hint_text.trim().length > 0;
       const hasMedia = hint.hint_image || hint.hint_audio || hint.hint_video;
       if (!hasText && !hasMedia) {
-        setQuestionWarning({ type: 'hint', message: t('question.create.hintEmpty', { number: i + 1 }) });
+        setQuestionWarning({ type: 'hint', key: 'question.create.hintEmpty', params: { number: i + 1 } });
         return;
       }
     }
@@ -338,12 +344,12 @@ export default function QuestionCreate() {
       const nonEmptyOptions = options.filter(o => o.option_text.trim().length > 0);
       const hasCorrect = nonEmptyOptions.some(o => o.is_correct);
       if (!hasCorrect) {
-        setQuestionWarning({ type: 'option', message: t('question.create.selectCorrectOption') });
+        setQuestionWarning({ type: 'option', key: 'question.create.selectCorrectOption' });
         return; // stay on page
       }
     }
     if (qType === 'true_false' && (!qCorrect || String(qCorrect).trim() === '')) {
-      setQuestionWarning({ type: 'option', message: t('question.create.selectTrueFalse') });
+      setQuestionWarning({ type: 'option', key: 'question.create.selectTrueFalse' });
       return; // stay on page
     }
 
@@ -353,7 +359,7 @@ export default function QuestionCreate() {
       const hasText = hint.hint_text && hint.hint_text.trim().length > 0;
       const hasMedia = hint.hint_image || hint.hint_audio || hint.hint_video;
       if (!hasText && !hasMedia) {
-        setQuestionWarning({ type: 'hint', message: t('question.create.hintEmpty', { number: i + 1 }) });
+        setQuestionWarning({ type: 'hint', key: 'question.create.hintEmpty', params: { number: i + 1 } });
         return;
       }
     }
@@ -478,7 +484,7 @@ export default function QuestionCreate() {
           <div className="mb-3">
             <label className="form-label d-block">{t('question.create.correctAnswer')}</label>
             {questionWarning && questionWarning.type === 'option' && (
-              <div className="alert alert-warning py-2 mb-2">{questionWarning.message}</div>
+              <div id="warning-option" className="alert alert-warning py-2 mb-2">{t(questionWarning.key, questionWarning.params)}</div>
             )}
             <div className="form-check form-check-inline">
               <input
@@ -509,7 +515,7 @@ export default function QuestionCreate() {
           <div className="mb-3">
             <label className="form-label">{t('question.create.options')}</label>
             {questionWarning && questionWarning.type === 'option' && (
-              <div className="alert alert-warning py-2 mb-2">{questionWarning.message}</div>
+              <div id="warning-option" className="alert alert-warning py-2 mb-2">{t(questionWarning.key, questionWarning.params)}</div>
             )}
             {options.map((opt, idx) => (
               <div key={idx} className="d-flex align-items-center mb-2 gap-2">
@@ -577,7 +583,7 @@ export default function QuestionCreate() {
         <div className="mb-3">
           <label className="form-label d-block fw-semibold">{t('question.create.media')}</label>
           {questionWarning && questionWarning.type === 'file' && (
-            <div className="alert alert-warning py-2 mb-2">{questionWarning.message}</div>
+            <div id="warning-file" className="alert alert-warning py-2 mb-2">{t(questionWarning.key, questionWarning.params)}</div>
           )}
           <div className="card">
             <div className="card-body p-3">
@@ -761,7 +767,7 @@ export default function QuestionCreate() {
 
         {/* Hints Section */}
         {questionWarning && questionWarning.type === 'hint' && (
-          <div className="alert alert-warning py-2 mb-2">{questionWarning.message}</div>
+          <div id="warning-hint" className="alert alert-warning py-2 mb-2">{t(questionWarning.key, questionWarning.params)}</div>
         )}
         <div className="mb-3">
           <button
