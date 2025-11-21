@@ -11,8 +11,12 @@ urlpatterns = [
 ]
 
 if settings.DEBUG:
+
+    import debug_toolbar
     # Use custom media view with Range request support for seeking
     urlpatterns += [
+        path("__debug__/", include(debug_toolbar.urls)),
         re_path(r'^media/(?P<path>.*)$', serve_media, name='media'),
+        
     ]
 
