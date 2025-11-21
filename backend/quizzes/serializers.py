@@ -65,10 +65,11 @@ class OptionSerializer(serializers.ModelSerializer):
 
 class QuestionMediaSerializer(serializers.ModelSerializer):
     file_url = serializers.ReadOnlyField()
+    thumbnail_url = serializers.ReadOnlyField()
 
     class Meta:
         model = QuestionMedia
-        fields = ['id', 'question', 'media_type', 'file', 'file_url', 'display_order', 'uploaded_at']
+        fields = ['id', 'question', 'media_type', 'file', 'file_url', 'thumbnail_url', 'display_order', 'uploaded_at']
         read_only_fields = ['id', 'uploaded_at']
 
     def validate(self, attrs):
@@ -229,13 +230,14 @@ class QuestionSerializer(serializers.ModelSerializer):
 class QuizSerializer(serializers.ModelSerializer):
     creator_username = serializers.CharField(source='creator.username', read_only=True)
     image_url = serializers.SerializerMethodField()
+    thumbnail_url = serializers.SerializerMethodField()
     translations = QuizTranslationSerializer(many=True, read_only=True)
 
     class Meta:
         model = Quiz
         fields = [
             'id', 'creator', 'creator_username', 'title', 'description', 'difficulty_level', 'estimated_duration', 'category',
-            'is_published', 'is_geo', 'avg_rating', 'image', 'image_url', 'default_language', 'translations'
+            'is_published', 'is_geo', 'avg_rating', 'image', 'image_url', 'thumbnail_url', 'default_language', 'translations'
         ]
         read_only_fields = ['id', 'avg_rating', 'creator', 'creator_username']
 
@@ -247,6 +249,16 @@ class QuizSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.image.url)
             return obj.image.url
         return None
+
+    def get_thumbnail_url(self, obj):
+        """Return full URL for the thumbnail, fallback to image_url"""
+        if obj.thumbnail:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.thumbnail.url)
+            return obj.thumbnail.url
+        # Fallback to full image if no thumbnail
+        return self.get_image_url(obj)
 
     def validate(self, attrs):
         """Check storage quota for quiz image uploads"""

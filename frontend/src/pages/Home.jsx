@@ -42,12 +42,13 @@ export default function Home() {
                 <div className="card h-100 shadow-sm" style={{ transition: 'transform 0.2s' }}
                      onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
                      onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}>
-                  {quiz.image_url ? (
+                  {(quiz.thumbnail_url || quiz.image_url) ? (
                     <img
-                      src={quiz.image_url}
+                      src={quiz.thumbnail_url || quiz.image_url}
                       alt={quiz.title}
                       className="card-img-top"
                       style={{ height: '180px', objectFit: 'cover' }}
+                      loading="lazy"
                     />
                   ) : (
                     <div className="card-img-top bg-secondary bg-opacity-10 d-flex align-items-center justify-content-center"

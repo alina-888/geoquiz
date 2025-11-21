@@ -1,7 +1,11 @@
+import os
+from io import BytesIO
 from django.db import models
+from django.core.files.base import ContentFile
 from users.models import CustomUser
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, MaxValueValidator
+from PIL import Image
 from .validators import (
     validate_quiz_image,
     validate_question_image,
@@ -51,9 +55,64 @@ class Quiz(models.Model):
         blank=True,
         validators=[validate_quiz_image]
     )
+    thumbnail = models.ImageField(
+        upload_to='quiz_thumbnails/',
+        null=True,
+        blank=True,
+        editable=False
+    )
+
+    THUMBNAIL_SIZE = (900, 800)
 
     def __str__(self):
         return self.title
+
+    def save(self, *args, **kwargs):
+        # Track if image changed
+        generate_thumbnail = False
+        if self.pk:
+            try:
+                old_instance = Quiz.objects.get(pk=self.pk)
+                if old_instance.image != self.image:
+                    generate_thumbnail = True
+                    # Delete old thumbnail if exists
+                    if old_instance.thumbnail:
+                        old_instance.thumbnail.delete(save=False)
+            except Quiz.DoesNotExist:
+                generate_thumbnail = bool(self.image)
+        else:
+            generate_thumbnail = bool(self.image)
+
+        super().save(*args, **kwargs)
+
+        # Generate thumbnail after save (so we have the image file)
+        if generate_thumbnail and self.image:
+            self._generate_thumbnail()
+
+    def _generate_thumbnail(self):
+        """Generate a thumbnail from the main image"""
+        try:
+            img = Image.open(self.image)
+            img.thumbnail(self.THUMBNAIL_SIZE, Image.Resampling.LANCZOS)
+
+            # Handle different image modes
+            if img.mode in ('RGBA', 'P'):
+                img = img.convert('RGB')
+
+            # Save to BytesIO
+            thumb_io = BytesIO()
+            img.save(thumb_io, format='JPEG', quality=85)
+            thumb_io.seek(0)
+
+            # Generate thumbnail filename
+            base_name = os.path.splitext(os.path.basename(self.image.name))[0]
+            thumb_name = f"{base_name}_thumb.jpg"
+
+            # Save without triggering another save()
+            self.thumbnail.save(thumb_name, ContentFile(thumb_io.read()), save=False)
+            Quiz.objects.filter(pk=self.pk).update(thumbnail=self.thumbnail.name)
+        except Exception as e:
+            print(f"Error generating thumbnail: {e}")
 
 
 class Question(models.Model):
@@ -160,9 +219,17 @@ class QuestionMedia(models.Model):
         ('video', 'Video'),
     ]
 
+    THUMBNAIL_SIZE = (400, 300)
+
     question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='media_files')
     media_type = models.CharField(max_length=20, choices=MEDIA_TYPE_CHOICES)
     file = models.FileField(upload_to=question_media_upload_path)
+    thumbnail = models.ImageField(
+        upload_to='question_media/thumbnails/',
+        null=True,
+        blank=True,
+        editable=False
+    )
     display_order = models.PositiveIntegerField(default=0)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
@@ -180,6 +247,49 @@ class QuestionMedia(models.Model):
         if self.file:
             return self.file.url
         return None
+
+    @property
+    def thumbnail_url(self):
+        """Get URL of the thumbnail (for images only)"""
+        if self.thumbnail:
+            return self.thumbnail.url
+        # Fallback to main file for images without thumbnail
+        if self.media_type == 'image' and self.file:
+            return self.file.url
+        return None
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+
+        # Generate thumbnail for new images
+        if is_new and self.media_type == 'image' and self.file:
+            self._generate_thumbnail()
+
+    def _generate_thumbnail(self):
+        """Generate a thumbnail from the image file"""
+        try:
+            img = Image.open(self.file)
+            img.thumbnail(self.THUMBNAIL_SIZE, Image.Resampling.LANCZOS)
+
+            # Handle different image modes
+            if img.mode in ('RGBA', 'P'):
+                img = img.convert('RGB')
+
+            # Save to BytesIO
+            thumb_io = BytesIO()
+            img.save(thumb_io, format='JPEG', quality=85)
+            thumb_io.seek(0)
+
+            # Generate thumbnail filename
+            base_name = os.path.splitext(os.path.basename(self.file.name))[0]
+            thumb_name = f"{base_name}_thumb.jpg"
+
+            # Save without triggering another save()
+            self.thumbnail.save(thumb_name, ContentFile(thumb_io.read()), save=False)
+            QuestionMedia.objects.filter(pk=self.pk).update(thumbnail=self.thumbnail.name)
+        except Exception as e:
+            print(f"Error generating question media thumbnail: {e}")
 
     def clean(self):
         """Validate file based on media type using comprehensive validators"""

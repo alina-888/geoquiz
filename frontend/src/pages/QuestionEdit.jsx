@@ -659,10 +659,11 @@ export default function QuestionEdit() {
                       <div key={media.id} className="p-2 mb-2 bg-light rounded border">
                         {media.media_type === 'image' && (
                           <img
-                            src={resolveMediaUrl(media.file_url)}
+                            src={resolveMediaUrl(media.thumbnail_url || media.file_url)}
                             alt="Existing media"
                             style={{ width: '100%', height: 'auto', maxHeight: '150px', objectFit: 'contain', borderRadius: '4px' }}
                             className="mb-2"
+                            loading="lazy"
                           />
                         )}
                         <div className="d-flex align-items-center justify-content-between">
