@@ -164,8 +164,10 @@ class HintUnlockSerializer(serializers.ModelSerializer):
 
 
 class QuestionSummarySerializer(serializers.ModelSerializer):
-    """Lightweight serializer for quiz detail view - no options/hints/translations"""
+    """Lightweight serializer for quiz detail view - includes options for results, but no hints"""
+    options = OptionSerializer(many=True, read_only=True)
     media_files = QuestionMediaSerializer(many=True, read_only=True)
+    translations = QuestionTranslationSerializer(many=True, read_only=True)
     has_media = serializers.ReadOnlyField()
     media_type = serializers.ReadOnlyField()
 
@@ -173,7 +175,8 @@ class QuestionSummarySerializer(serializers.ModelSerializer):
         model = Question
         fields = [
             'id', 'quiz', 'question_text', 'question_order', 'points_value',
-            'question_type', 'has_media', 'media_type', 'media_files', 'geolocation'
+            'question_type', 'has_media', 'media_type', 'media_files', 'geolocation',
+            'options', 'correct_answer', 'translations'
         ]
         read_only_fields = ['id', 'question_order']
 
