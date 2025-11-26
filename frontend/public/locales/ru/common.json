@@ -9,7 +9,14 @@
     "title": "Доступные викторины",
     "createQuiz": "Создать викторину",
     "loading": "Загрузка...",
-    "noImage": "Нет изображения"
+    "noImage": "Нет изображения",
+    "search": "Поиск викторин...",
+    "searchButton": "Найти",
+    "allCategories": "Все категории",
+    "allDifficulties": "Все сложности",
+    "allLanguages": "Все языки",
+    "geoOnly": "Только гео",
+    "clearFilters": "Очистить фильтры"
   },
   "auth": {
     "login": {

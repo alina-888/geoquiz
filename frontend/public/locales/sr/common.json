@@ -9,7 +9,14 @@
     "title": "Dostupni kvizovi",
     "createQuiz": "Napravi kviz",
     "loading": "Učitavanje...",
-    "noImage": "Nema slike"
+    "noImage": "Nema slike",
+    "search": "Pretraži kvizove...",
+    "searchButton": "Pretraži",
+    "allCategories": "Sve kategorije",
+    "allDifficulties": "Sve težine",
+    "allLanguages": "Svi jezici",
+    "geoOnly": "Samo geo",
+    "clearFilters": "Obriši filtere"
   },
   "auth": {
     "login": {

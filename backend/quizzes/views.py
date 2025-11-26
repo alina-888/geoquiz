@@ -1,6 +1,7 @@
 from django.db import models
 import json
-from django.db.models import Avg, Count, Q
+from django.db.models import Avg, Count, Q, Exists, OuterRef
+from django.db.models.functions import Lower, Upper
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -35,9 +36,9 @@ class StandardResultsSetPagination(PageNumberPagination):
 class QuizViewSet(viewsets.ModelViewSet):
     queryset = Quiz.objects.all()
     permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    # Removed SearchFilter to use custom Cyrillic-aware search in get_queryset()
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_class = QuizFilter
-    search_fields = ['title', 'description', 'category']
     ordering_fields = ['created_at', 'avg_rating', 'title']
     pagination_class = StandardResultsSetPagination
 
@@ -48,8 +49,40 @@ class QuizViewSet(viewsets.ModelViewSet):
         )
         user = getattr(self.request, 'user', None)
         if user and user.is_authenticated:
-            return base_qs.filter(Q(is_published=True) | Q(creator=user))
-        return base_qs.filter(is_published=True)
+            base_qs = base_qs.filter(Q(is_published=True) | Q(creator=user))
+        else:
+            base_qs = base_qs.filter(is_published=True)
+
+        # Manual case-insensitive search using UPPER for proper Cyrillic support
+        search = self.request.query_params.get('search', '').strip()
+        if search:
+            search_upper = search.upper()
+
+            # Create subquery for translation matches to avoid duplicates
+            translation_matches = QuizTranslation.objects.filter(
+                quiz=OuterRef('pk')
+            ).annotate(
+                trans_title_upper=Upper('title'),
+                trans_desc_upper=Upper('description')
+            ).filter(
+                Q(trans_title_upper__contains=search_upper) |
+                Q(trans_desc_upper__contains=search_upper)
+            )
+
+            # Annotate main quiz fields and check translations with EXISTS
+            base_qs = base_qs.annotate(
+                title_upper=Upper('title'),
+                description_upper=Upper('description'),
+                category_upper=Upper('category'),
+                has_translation_match=Exists(translation_matches)
+            ).filter(
+                Q(title_upper__contains=search_upper) |
+                Q(description_upper__contains=search_upper) |
+                Q(category_upper__contains=search_upper) |
+                Q(has_translation_match=True)
+            )
+
+        return base_qs
 
     def get_serializer_class(self):
         if self.action in ['retrieve', 'update', 'partial_update']:

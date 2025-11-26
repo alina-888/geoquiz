@@ -9,7 +9,14 @@
     "title": "Available Quizzes",
     "createQuiz": "Create Quiz",
     "loading": "Loading...",
-    "noImage": "No image"
+    "noImage": "No image",
+    "search": "Search quizzes...",
+    "searchButton": "Search",
+    "allCategories": "All Categories",
+    "allDifficulties": "All Difficulties",
+    "allLanguages": "All Languages",
+    "geoOnly": "Geo only",
+    "clearFilters": "Clear filters"
   },
   "auth": {
     "login": {

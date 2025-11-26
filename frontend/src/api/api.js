@@ -54,8 +54,9 @@ export async function apiRequest(endpoint, options = {}) {
 
 // import { apiRequest } from './api';
 
-export function getQuizzes() {
-  return apiRequest('/quizzes/');
+export function getQuizzes(params = {}) {
+  const queryString = new URLSearchParams(params).toString();
+  return apiRequest(`/quizzes/${queryString ? `?${queryString}` : ''}`);
 }
 
 export function getQuizDetail(quizId) {
