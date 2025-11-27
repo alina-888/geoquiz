@@ -47,6 +47,7 @@ class Quiz(models.Model):
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default='other')
     is_published = models.BooleanField(default=False)
     avg_rating = models.FloatField(default=0.0)
+    total_ratings = models.PositiveIntegerField(default=0)
     is_geo = models.BooleanField(default=False)
     default_language = models.CharField(max_length=5, choices=LANGUAGE_CHOICES, default='en', help_text="Primary language of quiz content")
     image = models.ImageField(
@@ -463,6 +464,46 @@ class HintUnlock(models.Model):
         return f"{self.attempt.user.username} unlocked hint {self.hint.hint_order} for {self.hint.question}"
 
 
+class QuizRating(models.Model):
+    """
+    User ratings and reviews for quizzes.
+    Ratings without review_text contribute to avg_rating but don't show as reviews.
+    """
+    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name='ratings')
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='quiz_ratings')
+    rating = models.IntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+        help_text="Rating from 1 to 5 stars"
+    )
+    review_text = models.TextField(blank=True, null=True, help_text="Optional review text")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('quiz', 'user')
+        ordering = ['-created_at']
+        verbose_name = 'Quiz Rating'
+        verbose_name_plural = 'Quiz Ratings'
+
+    def __str__(self):
+        review_status = " (with review)" if self.review_text else ""
+        return f"{self.user.username} rated {self.quiz.title}: {self.rating}/5{review_status}"
+
+    def update_quiz_rating(self):
+        """Update the related quiz's avg_rating and total_ratings"""
+        quiz = self.quiz
+        ratings = quiz.ratings.all()
+        total = ratings.count()
+        if total > 0:
+            avg = ratings.aggregate(models.Avg('rating'))['rating__avg']
+            quiz.avg_rating = round(avg, 2)
+            quiz.total_ratings = total
+        else:
+            quiz.avg_rating = 0.0
+            quiz.total_ratings = 0
+        quiz.save(update_fields=['avg_rating', 'total_ratings'])
+
+
 # ============================================
 # Translation Models
 # ============================================
@@ -562,3 +603,21 @@ class HintTranslation(models.Model):
 
     def __str__(self):
         return f"Hint {self.hint.hint_order} ({self.get_language_display()})"
+
+
+# ============================================
+# Signals for automatic quiz rating updates
+# ============================================
+
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
+
+@receiver(post_save, sender=QuizRating)
+def update_quiz_rating_on_save(sender, instance, **kwargs):
+    """Automatically update quiz ratings when a rating is created or updated"""
+    instance.update_quiz_rating()
+
+@receiver(post_delete, sender=QuizRating)
+def update_quiz_rating_on_delete(sender, instance, **kwargs):
+    """Automatically update quiz ratings when a rating is deleted"""
+    instance.update_quiz_rating()

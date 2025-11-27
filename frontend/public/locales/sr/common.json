@@ -289,5 +289,25 @@
     "selectedLocation": "Izabrana lokacija:",
     "coordinates": "Koordinate",
     "helpText": "Kliknite na mapu ili prevucite marker da postavite lokaciju pitanja. Igrači će morati da budu u krugu od {{radius}}m da otključaju ovo pitanje."
+  },
+  "rating": {
+    "star": "{{value}} zvezda",
+    "yourRating": "Vaša ocena",
+    "selectRating": "Molimo izaberite ocenu",
+    "reviewOptional": "Recenzija (opciono)",
+    "reviewPlaceholder": "Podelite svoje iskustvo sa ovim kvizom...",
+    "reviewHint": "Ocene bez teksta će biti uključene u ukupni rejting ali neće biti prikazane javno",
+    "submitRating": "Pošalji ocenu",
+    "rateThisQuiz": "Oceni ovaj kviz",
+    "editRating": "Izmeni ocenu",
+    "ratings": "ocena",
+    "ratingsReviews": "Ocene i recenzije",
+    "recentReviews": "Nedavne recenzije",
+    "allReviews": "Sve recenzije",
+    "reviews": "Recenzije",
+    "noReviews": "Još nema recenzija. Budite prvi koji će oceniti ovaj kviz!",
+    "viewAllReviews": "Pogledaj sve recenzije",
+    "submitError": "Slanje ocene nije uspelo. Molimo pokušajte ponovo.",
+    "loadMore": "Učitaj još"
   }
 }

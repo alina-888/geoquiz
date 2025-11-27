@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import (
     Option, Question, Quiz, QuizAttempt, UserAnswer, QuestionMedia, Hint, HintUnlock,
-    QuizTranslation, QuestionTranslation, OptionTranslation, HintTranslation
+    QuizTranslation, QuestionTranslation, OptionTranslation, HintTranslation, QuizRating
 )
 from .validators import validate_user_storage_quota
 
@@ -240,9 +240,9 @@ class QuizSerializer(serializers.ModelSerializer):
         model = Quiz
         fields = [
             'id', 'creator', 'creator_username', 'title', 'description', 'difficulty_level', 'estimated_duration', 'category',
-            'is_published', 'is_geo', 'avg_rating', 'image', 'image_url', 'thumbnail_url', 'default_language', 'translations'
+            'is_published', 'is_geo', 'avg_rating', 'total_ratings', 'image', 'image_url', 'thumbnail_url', 'default_language', 'translations'
         ]
-        read_only_fields = ['id', 'avg_rating', 'creator', 'creator_username']
+        read_only_fields = ['id', 'avg_rating', 'total_ratings', 'creator', 'creator_username']
 
     def get_image_url(self, obj):
         """Return full URL for the image"""
@@ -322,3 +322,48 @@ class QuizAttemptSerializer(serializers.ModelSerializer):
             'score', 'completion_percentage', 'status', 'answers'
         ]
         read_only_fields = ['id', 'start_time', 'end_time', 'score', 'completion_percentage']
+
+
+# ============================================
+# Rating and Review Serializers
+# ============================================
+
+class QuizRatingSubmitSerializer(serializers.ModelSerializer):
+    """Serializer for submitting/updating ratings"""
+    class Meta:
+        model = QuizRating
+        fields = ['rating', 'review_text']
+
+    def validate_rating(self, value):
+        if value < 1 or value > 5:
+            raise serializers.ValidationError("Rating must be between 1 and 5")
+        return value
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    """Serializer for displaying reviews (with user info)"""
+    username = serializers.CharField(source='user.username', read_only=True)
+    user_profile_picture = serializers.SerializerMethodField()
+
+    class Meta:
+        model = QuizRating
+        fields = ['id', 'username', 'user_profile_picture', 'rating', 'review_text', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'username', 'created_at', 'updated_at']
+
+    def get_user_profile_picture(self, obj):
+        """Return full URL for user's profile picture"""
+        if obj.user.profile_picture:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.user.profile_picture.url)
+            return obj.user.profile_picture.url
+        return None
+
+
+class RatingSummarySerializer(serializers.Serializer):
+    """Serializer for rating summary statistics"""
+    avg_rating = serializers.FloatField()
+    total_ratings = serializers.IntegerField()
+    distribution = serializers.DictField(child=serializers.IntegerField())
+    user_rating = serializers.IntegerField(allow_null=True, required=False)
+    user_review_text = serializers.CharField(allow_null=True, allow_blank=True, required=False)

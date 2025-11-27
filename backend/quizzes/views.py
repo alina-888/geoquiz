@@ -12,13 +12,14 @@ from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import (
     Quiz, Question, Option, QuizAttempt, UserAnswer, QuestionMedia, Hint, HintUnlock,
-    QuizTranslation, QuestionTranslation, OptionTranslation, HintTranslation,
+    QuizTranslation, QuestionTranslation, OptionTranslation, HintTranslation, QuizRating,
 )
 from .serializers import (
     QuizSerializer, QuizDetailSerializer, QuestionSerializer,
     OptionSerializer, QuizAttemptSerializer, UserAnswerSerializer, QuestionMediaSerializer,
     HintSerializer, QuizTranslationSerializer, QuestionTranslationSerializer,
     OptionTranslationSerializer, HintTranslationSerializer,
+    QuizRatingSubmitSerializer, ReviewSerializer, RatingSummarySerializer,
 )
 from .permissions import IsOwnerOrReadOnly
 from .filters import QuizFilter
@@ -502,6 +503,129 @@ class QuizViewSet(viewsets.ModelViewSet):
             "points_deducted": points_to_deduct,
             "new_score": current_score
         }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post', 'delete'], url_path='rate', permission_classes=[permissions.IsAuthenticated])
+    def rate_quiz(self, request, pk=None):
+        """
+        Submit, update, or delete a rating/review for this quiz.
+        POST: Create or update rating (with optional review text)
+        DELETE: Remove rating
+        """
+        quiz = self.get_object()
+
+        # Check if user is the quiz creator
+        if quiz.creator == request.user:
+            return Response(
+                {"error": "You cannot rate your own quiz"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if request.method == 'DELETE':
+            # Delete rating
+            try:
+                rating = QuizRating.objects.get(quiz=quiz, user=request.user)
+                rating.delete()
+                # Recalculate quiz rating
+                self._update_quiz_rating(quiz)
+                return Response(status=status.HTTP_204_NO_CONTENT)
+            except QuizRating.DoesNotExist:
+                return Response(
+                    {"error": "You haven't rated this quiz"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+        # POST: Create or update rating
+        # Check if user has at least one attempt
+        has_attempt = QuizAttempt.objects.filter(user=request.user, quiz=quiz).exists()
+        if not has_attempt:
+            return Response(
+                {"error": "You must attempt the quiz before rating it"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        serializer = QuizRatingSubmitSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        # Create or update rating
+        rating, created = QuizRating.objects.update_or_create(
+            quiz=quiz,
+            user=request.user,
+            defaults=serializer.validated_data
+        )
+
+        # Recalculate quiz rating
+        self._update_quiz_rating(quiz)
+
+        return Response(
+            ReviewSerializer(rating, context={'request': request}).data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        )
+
+    @action(detail=True, methods=['get'], url_path='reviews')
+    def get_reviews(self, request, pk=None):
+        """Get all reviews with text for this quiz (paginated)"""
+        quiz = self.get_object()
+        # Only return ratings that have review_text
+        reviews = QuizRating.objects.filter(
+            quiz=quiz,
+            review_text__isnull=False
+        ).exclude(review_text='').select_related('user').order_by('-created_at')
+
+        # Apply pagination
+        paginator = StandardResultsSetPagination()
+        page = paginator.paginate_queryset(reviews, request)
+        if page is not None:
+            serializer = ReviewSerializer(page, many=True, context={'request': request})
+            return paginator.get_paginated_response(serializer.data)
+
+        serializer = ReviewSerializer(reviews, many=True, context={'request': request})
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'], url_path='rating-summary')
+    def rating_summary(self, request, pk=None):
+        """Get rating summary: avg, total, distribution, and user's rating"""
+        quiz = self.get_object()
+        ratings = quiz.ratings.all()
+
+        # Calculate distribution (count per star rating)
+        distribution = {i: 0 for i in range(1, 6)}
+        for rating in ratings:
+            distribution[rating.rating] += 1
+
+        # Get user's rating and review if authenticated
+        user_rating = None
+        user_review_text = None
+        if request.user.is_authenticated:
+            user_rating_obj = ratings.filter(user=request.user).first()
+            if user_rating_obj:
+                user_rating = user_rating_obj.rating
+                user_review_text = user_rating_obj.review_text or ''
+
+        summary = {
+            'avg_rating': quiz.avg_rating,
+            'total_ratings': quiz.total_ratings,
+            'distribution': distribution,
+            'user_rating': user_rating,
+            'user_review_text': user_review_text
+        }
+
+        serializer = RatingSummarySerializer(summary)
+        return Response(serializer.data)
+
+    @staticmethod
+    def _update_quiz_rating(quiz):
+        """Recalculate and update quiz's avg_rating and total_ratings"""
+        ratings = quiz.ratings.all()
+        total = ratings.count()
+        if total > 0:
+            avg = ratings.aggregate(models.Avg('rating'))['rating__avg']
+            quiz.avg_rating = round(avg, 2)
+            quiz.total_ratings = total
+        else:
+            quiz.avg_rating = 0.0
+            quiz.total_ratings = 0
+        quiz.save(update_fields=['avg_rating', 'total_ratings'])
 
 
 class QuestionViewSet(viewsets.ModelViewSet):

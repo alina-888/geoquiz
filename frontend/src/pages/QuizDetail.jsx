@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { Edit2, Trash2, MapPin, Image, Music, Video } from 'lucide-react';
-import { getQuizDetail, startQuiz, deleteQuiz, deleteQuestion } from '../api/api';
+import { getQuizDetail, startQuiz, deleteQuiz, deleteQuestion, getRatingSummary, getReviews, submitRating } from '../api/api';
 import { useTranslation } from 'react-i18next';
 import { getTranslatedText } from '../utils/translations';
+import RatingWidget from '../components/RatingWidget';
+import ReviewsList from '../components/ReviewsList';
+import ReviewForm from '../components/ReviewForm';
 
 export default function QuizDetail() {
   const { id } = useParams();
@@ -13,6 +16,13 @@ export default function QuizDetail() {
   const [loading, setLoading] = useState(true);
   const username = localStorage.getItem('auth.username');
   const { t, i18n } = useTranslation();
+
+  // Rating and review state
+  const [ratingSummary, setRatingSummary] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [submittingRating, setSubmittingRating] = useState(false);
+  const [existingReview, setExistingReview] = useState('');
 
   useEffect(() => {
     setLoading(true);
@@ -26,6 +36,15 @@ export default function QuizDetail() {
         setError(err.message || t('quiz.detail.failedToLoad'));
         setLoading(false);
       });
+
+    // Fetch rating summary and reviews
+    getRatingSummary(id)
+      .then(setRatingSummary)
+      .catch(err => console.error('Failed to load ratings:', err));
+
+    getReviews(id, { page_size: 3 })
+      .then(data => setReviews(data.results || data))
+      .catch(err => console.error('Failed to load reviews:', err));
   }, [id, t]);
 
   const onStart = async () => {
@@ -64,6 +83,34 @@ export default function QuizDetail() {
         setError(err.message || t('quiz.detail.failedToDeleteQuestion'));
       }
     }
+  };
+
+  const handleSubmitRating = async (data) => {
+    setSubmittingRating(true);
+    try {
+      await submitRating(id, data);
+      // Refresh rating summary, reviews, and quiz data
+      const summary = await getRatingSummary(id);
+      setRatingSummary(summary);
+      const reviewsData = await getReviews(id, { page_size: 3 });
+      setReviews(reviewsData.results || reviewsData);
+      // Refresh quiz to update avg_rating and total_ratings display
+      const updatedQuiz = await getQuizDetail(id);
+      setQuiz(updatedQuiz);
+      setShowReviewForm(false);
+      setExistingReview('');
+      setError('');
+    } catch (err) {
+      setError(err.message || t('rating.submitError'));
+    } finally {
+      setSubmittingRating(false);
+    }
+  };
+
+  const handleEditRating = () => {
+    // Use existing review text from rating summary
+    setExistingReview(ratingSummary.user_review_text || '');
+    setShowReviewForm(true);
   };
 
   if (loading) return <div className="p-4">{t('quiz.detail.loading')}</div>;
@@ -200,6 +247,78 @@ export default function QuizDetail() {
                 </li>
               ))}
             </ul>
+          </div>
+        </div>
+      )}
+
+      {/* Ratings and Reviews Section */}
+      {!isCreator && ratingSummary && (
+        <div className="card mt-4">
+          <div className="card-body">
+            <h5 className="card-title mb-3">{t('rating.ratingsReviews')}</h5>
+
+            {/* Rating Summary */}
+            <div className="d-flex align-items-center gap-3 mb-4">
+              <RatingWidget rating={ratingSummary.avg_rating} size="large" />
+              <div>
+                <div className="fw-bold">{ratingSummary.avg_rating.toFixed(1)} / 5.0</div>
+                <div className="text-muted small">{ratingSummary.total_ratings} {t('rating.ratings')}</div>
+              </div>
+            </div>
+
+            {/* User's Rating/Review Form */}
+            {username && (
+              <div className="mb-4">
+                {!showReviewForm && (
+                  <div>
+                    {ratingSummary.user_rating ? (
+                      <div className="d-flex align-items-center gap-2">
+                        <span>{t('rating.yourRating')}:</span>
+                        <RatingWidget rating={ratingSummary.user_rating} size="small" />
+                        <button
+                          className="btn btn-sm btn-outline-primary"
+                          onClick={handleEditRating}
+                        >
+                          {t('rating.editRating')}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => setShowReviewForm(true)}
+                      >
+                        {t('rating.rateThisQuiz')}
+                      </button>
+                    )}
+                  </div>
+                )}
+                {showReviewForm && (
+                  <ReviewForm
+                    existingRating={ratingSummary.user_rating || 0}
+                    existingReview={existingReview}
+                    onSubmit={handleSubmitRating}
+                    onCancel={() => {
+                      setShowReviewForm(false);
+                      setExistingReview('');
+                    }}
+                    loading={submittingRating}
+                  />
+                )}
+              </div>
+            )}
+
+            {/* Top 3 Reviews */}
+            {reviews.length > 0 && (
+              <div>
+                <h6 className="mb-3">{t('rating.recentReviews')}</h6>
+                <ReviewsList reviews={reviews} limit={3} />
+                <div className="mt-3 text-center">
+                  <Link to={`/quizzes/${id}/reviews`} className="btn btn-sm btn-outline-secondary">
+                    {t('rating.viewAllReviews')}
+                  </Link>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

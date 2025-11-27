@@ -429,3 +429,29 @@ export function deleteHintTranslation(translationId) {
     method: 'DELETE',
   });
 }
+
+// ============================================
+// Rating and Review API
+// ============================================
+
+export function submitRating(quizId, data) {
+  return apiRequest(`/quizzes/${quizId}/rate/`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteRating(quizId) {
+  return apiRequest(`/quizzes/${quizId}/rate/`, {
+    method: 'DELETE',
+  });
+}
+
+export function getReviews(quizId, params = {}) {
+  const queryString = new URLSearchParams(params).toString();
+  return apiRequest(`/quizzes/${quizId}/reviews/${queryString ? `?${queryString}` : ''}`);
+}
+
+export function getRatingSummary(quizId) {
+  return apiRequest(`/quizzes/${quizId}/rating-summary/`);
+}

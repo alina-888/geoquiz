@@ -9,6 +9,7 @@ import QuestionEdit from './pages/QuestionEdit';
 import Question from './pages/Question';
 import QuizComplete from './pages/QuizComplete';
 import QuizResults from './pages/QuizResults';
+import QuizReviews from './pages/QuizReviews';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
@@ -101,6 +102,7 @@ function App() {
         <Route path="/quizzes/:id/questions/create/" element={<QuestionCreate />} />
         <Route path="/quizzes/:quizId/questions/:questionId/edit" element={<QuestionEdit />} />
         <Route path="/quizzes/:id/" element={<QuizDetail />} />
+        <Route path="/quizzes/:id/reviews" element={<QuizReviews />} />
         <Route path="/quizzes/:id/start/" element={<QuizProgress />} />
         <Route path="/quizzes/:id/progress/" element={<QuizProgress />} />
         <Route path="/quizzes/:id/question/:questionId/" element={<Question />} />
