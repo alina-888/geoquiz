@@ -252,7 +252,7 @@ export default function QuizDetail() {
       )}
 
       {/* Ratings and Reviews Section */}
-      {!isCreator && ratingSummary && (
+      {ratingSummary && (
         <div className="card mt-4">
           <div className="card-body">
             <h5 className="card-title mb-3">{t('rating.ratingsReviews')}</h5>
@@ -266,8 +266,8 @@ export default function QuizDetail() {
               </div>
             </div>
 
-            {/* User's Rating/Review Form */}
-            {username && (
+            {/* User's Rating/Review Form (only for non-creators) */}
+            {username && !isCreator && (
               <div className="mb-4">
                 {!showReviewForm && (
                   <div>
@@ -312,12 +312,18 @@ export default function QuizDetail() {
               <div>
                 <h6 className="mb-3">{t('rating.recentReviews')}</h6>
                 <ReviewsList reviews={reviews} limit={3} />
-                <div className="mt-3 text-center">
-                  <Link to={`/quizzes/${id}/reviews`} className="btn btn-sm btn-outline-secondary">
-                    {t('rating.viewAllReviews')}
-                  </Link>
-                </div>
+                {ratingSummary.total_ratings > 3 && (
+                  <div className="mt-3 text-center">
+                    <Link to={`/quizzes/${id}/reviews`} className="btn btn-sm btn-outline-secondary">
+                      {t('rating.viewAllReviews')}
+                    </Link>
+                  </div>
+                )}
               </div>
+            )}
+
+            {reviews.length === 0 && ratingSummary.total_ratings === 0 && (
+              <p className="text-muted text-center">{t('rating.noReviews')}</p>
             )}
           </div>
         </div>

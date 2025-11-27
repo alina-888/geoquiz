@@ -24,8 +24,15 @@ class LoginView(APIView):
         password = request.data.get('password')
         user = authenticate(request, username=username, password=password)
         if user is not None:
+            # Clear any existing session first
+            logout(request)
+            # Login with new user
             login(request, user)
-            return Response({"message": "Login successful"})
+            return Response({
+                "message": "Login successful",
+                "username": user.username,
+                "user_id": user.id
+            })
         return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
 
@@ -33,6 +40,22 @@ class LogoutView(APIView):
     def post(self, request):
         logout(request)
         return Response({"message": "Logout successful"})
+
+
+class WhoAmIView(APIView):
+    """Return current authenticated user info"""
+    def get(self, request):
+        if request.user.is_authenticated:
+            return Response({
+                "username": request.user.username,
+                "user_id": request.user.id,
+                "is_authenticated": True
+            })
+        return Response({
+            "username": None,
+            "user_id": None,
+            "is_authenticated": False
+        })
 
 
 class ProfileView(APIView):
