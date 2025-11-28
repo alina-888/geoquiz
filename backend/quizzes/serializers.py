@@ -367,3 +367,4 @@ class RatingSummarySerializer(serializers.Serializer):
     distribution = serializers.DictField(child=serializers.IntegerField())
     user_rating = serializers.IntegerField(allow_null=True, required=False)
     user_review_text = serializers.CharField(allow_null=True, allow_blank=True, required=False)
+    user_has_attempted = serializers.BooleanField(required=False, default=False)

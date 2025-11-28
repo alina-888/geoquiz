@@ -4,6 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getTranslatedText } from '../utils/translations';
 import { Search, X } from 'lucide-react';
+import RatingWidget from '../components/RatingWidget';
 
 export default function Home() {
   const [quizzes, setQuizzes] = useState([]);
@@ -237,6 +238,13 @@ export default function Home() {
                         </span>
                       ))}
                     </div>
+                    {/* Rating display */}
+                    {quiz.avg_rating > 0 && (
+                      <div className="d-flex align-items-center gap-2 mt-2">
+                        <RatingWidget rating={quiz.avg_rating} size="small" />
+                        <span className="text-muted small">({quiz.total_ratings})</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </Link>

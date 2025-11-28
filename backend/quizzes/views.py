@@ -596,18 +596,22 @@ class QuizViewSet(viewsets.ModelViewSet):
         # Get user's rating and review if authenticated
         user_rating = None
         user_review_text = None
+        user_has_attempted = False
         if request.user.is_authenticated:
             user_rating_obj = ratings.filter(user=request.user).first()
             if user_rating_obj:
                 user_rating = user_rating_obj.rating
                 user_review_text = user_rating_obj.review_text or ''
+            # Check if user has attempted the quiz
+            user_has_attempted = QuizAttempt.objects.filter(user=request.user, quiz=quiz).exists()
 
         summary = {
             'avg_rating': quiz.avg_rating,
             'total_ratings': quiz.total_ratings,
             'distribution': distribution,
             'user_rating': user_rating,
-            'user_review_text': user_review_text
+            'user_review_text': user_review_text,
+            'user_has_attempted': user_has_attempted
         }
 
         serializer = RatingSummarySerializer(summary)

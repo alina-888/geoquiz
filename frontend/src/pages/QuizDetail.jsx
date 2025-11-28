@@ -20,6 +20,7 @@ export default function QuizDetail() {
   // Rating and review state
   const [ratingSummary, setRatingSummary] = useState(null);
   const [reviews, setReviews] = useState([]);
+  const [hasMoreReviews, setHasMoreReviews] = useState(false);
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [submittingRating, setSubmittingRating] = useState(false);
   const [existingReview, setExistingReview] = useState('');
@@ -43,7 +44,11 @@ export default function QuizDetail() {
       .catch(err => console.error('Failed to load ratings:', err));
 
     getReviews(id, { page_size: 3 })
-      .then(data => setReviews(data.results || data))
+      .then(data => {
+        setReviews(data.results || data);
+        // Check if there are more reviews beyond the first 3
+        setHasMoreReviews(!!data.next);
+      })
       .catch(err => console.error('Failed to load reviews:', err));
   }, [id, t]);
 
@@ -94,6 +99,7 @@ export default function QuizDetail() {
       setRatingSummary(summary);
       const reviewsData = await getReviews(id, { page_size: 3 });
       setReviews(reviewsData.results || reviewsData);
+      setHasMoreReviews(!!reviewsData.next);
       // Refresh quiz to update avg_rating and total_ratings display
       const updatedQuiz = await getQuizDetail(id);
       setQuiz(updatedQuiz);
@@ -282,13 +288,17 @@ export default function QuizDetail() {
                           {t('rating.editRating')}
                         </button>
                       </div>
-                    ) : (
+                    ) : ratingSummary.user_has_attempted ? (
                       <button
                         className="btn btn-primary"
                         onClick={() => setShowReviewForm(true)}
                       >
                         {t('rating.rateThisQuiz')}
                       </button>
+                    ) : (
+                      <div className="alert alert-info">
+                        {t('rating.mustAttemptFirst')}
+                      </div>
                     )}
                   </div>
                 )}
@@ -312,7 +322,7 @@ export default function QuizDetail() {
               <div>
                 <h6 className="mb-3">{t('rating.recentReviews')}</h6>
                 <ReviewsList reviews={reviews} limit={3} />
-                {ratingSummary.total_ratings > 3 && (
+                {hasMoreReviews && (
                   <div className="mt-3 text-center">
                     <Link to={`/quizzes/${id}/reviews`} className="btn btn-sm btn-outline-secondary">
                       {t('rating.viewAllReviews')}
@@ -322,7 +332,7 @@ export default function QuizDetail() {
               </div>
             )}
 
-            {reviews.length === 0 && ratingSummary.total_ratings === 0 && (
+            {reviews.length === 0 && ratingSummary.total_ratings === 0 && !isCreator && (
               <p className="text-muted text-center">{t('rating.noReviews')}</p>
             )}
           </div>

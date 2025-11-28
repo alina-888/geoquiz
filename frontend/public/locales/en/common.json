@@ -308,7 +308,8 @@
     "noReviews": "No reviews yet. Be the first to review this quiz!",
     "viewAllReviews": "View All Reviews",
     "submitError": "Failed to submit rating. Please try again.",
-    "loadMore": "Load More"
+    "loadMore": "Load More",
+    "mustAttemptFirst": "You must attempt this quiz before you can rate it."
   },
   "common": {
     "loading": "Loading...",

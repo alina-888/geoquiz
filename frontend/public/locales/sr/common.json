@@ -308,6 +308,7 @@
     "noReviews": "Još nema recenzija. Budite prvi koji će oceniti ovaj kviz!",
     "viewAllReviews": "Pogledaj sve recenzije",
     "submitError": "Slanje ocene nije uspelo. Molimo pokušajte ponovo.",
-    "loadMore": "Učitaj još"
+    "loadMore": "Učitaj još",
+    "mustAttemptFirst": "Morate pokušati ovaj kviz pre nego što ga možete oceniti."
   }
 }
