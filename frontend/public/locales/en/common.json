@@ -183,6 +183,8 @@
     "loading": "Loading...",
     "failed": "Failed to load profile",
     "createdQuizzes": "Created Quizzes",
+    "ratingsAndReviews": "Ratings & Reviews",
+    "noRatings": "No ratings yet.",
     "changePhoto": "Change Photo",
     "removePhoto": "Remove Photo",
     "photoHint": "Click to upload a profile picture"

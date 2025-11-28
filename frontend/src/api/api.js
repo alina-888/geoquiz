@@ -459,3 +459,7 @@ export function getReviews(quizId, params = {}) {
 export function getRatingSummary(quizId) {
   return apiRequest(`/quizzes/${quizId}/rating-summary/`);
 }
+
+export function getUserRatings(username) {
+  return apiRequest(`/quizzes/user-ratings/${encodeURIComponent(username)}/`);
+}

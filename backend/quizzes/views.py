@@ -19,7 +19,7 @@ from .serializers import (
     OptionSerializer, QuizAttemptSerializer, UserAnswerSerializer, QuestionMediaSerializer,
     HintSerializer, QuizTranslationSerializer, QuestionTranslationSerializer,
     OptionTranslationSerializer, HintTranslationSerializer,
-    QuizRatingSubmitSerializer, ReviewSerializer, RatingSummarySerializer,
+    QuizRatingSubmitSerializer, ReviewSerializer, RatingSummarySerializer, UserRatingSerializer,
 )
 from .permissions import IsOwnerOrReadOnly
 from .filters import QuizFilter
@@ -615,6 +615,31 @@ class QuizViewSet(viewsets.ModelViewSet):
         }
 
         serializer = RatingSummarySerializer(summary)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='user-ratings/(?P<username>[^/.]+)')
+    def user_ratings(self, request, username=None):
+        """Get all ratings for a specific user"""
+        User = get_user_model()
+        try:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            return Response(
+                {"error": "User not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Get all ratings by this user
+        ratings = QuizRating.objects.filter(user=user).select_related('quiz').order_by('-created_at')
+
+        # Apply pagination
+        paginator = StandardResultsSetPagination()
+        page = paginator.paginate_queryset(ratings, request)
+        if page is not None:
+            serializer = UserRatingSerializer(page, many=True, context={'request': request})
+            return paginator.get_paginated_response(serializer.data)
+
+        serializer = UserRatingSerializer(ratings, many=True, context={'request': request})
         return Response(serializer.data)
 
     @staticmethod

@@ -183,6 +183,8 @@
     "loading": "Učitavanje...",
     "failed": "Neuspešno učitavanje profila",
     "createdQuizzes": "Kreirani kvizovi",
+    "ratingsAndReviews": "Ocene i recenzije",
+    "noRatings": "Još nema ocena.",
     "changePhoto": "Promeni sliku",
     "removePhoto": "Ukloni sliku",
     "photoHint": "Kliknite da otpremite profilnu sliku"

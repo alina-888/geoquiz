@@ -394,3 +394,34 @@ class RatingSummarySerializer(serializers.Serializer):
     user_rating = serializers.IntegerField(allow_null=True, required=False)
     user_review_text = serializers.CharField(allow_null=True, allow_blank=True, required=False)
     user_has_attempted = serializers.BooleanField(required=False, default=False)
+
+
+class UserRatingSerializer(serializers.ModelSerializer):
+    """Serializer for displaying user's ratings with quiz info"""
+    quiz_id = serializers.IntegerField(source='quiz.id', read_only=True)
+    quiz_title = serializers.CharField(source='quiz.title', read_only=True)
+    quiz_thumbnail = serializers.SerializerMethodField()
+    quiz_image = serializers.SerializerMethodField()
+
+    class Meta:
+        model = QuizRating
+        fields = ['id', 'quiz_id', 'quiz_title', 'quiz_thumbnail', 'quiz_image', 'rating', 'review_text', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def get_quiz_thumbnail(self, obj):
+        """Return full URL for quiz thumbnail"""
+        if obj.quiz and obj.quiz.thumbnail:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.quiz.thumbnail.url)
+            return obj.quiz.thumbnail.url
+        return self.get_quiz_image(obj)  # Fallback to full image
+
+    def get_quiz_image(self, obj):
+        """Return full URL for quiz image"""
+        if obj.quiz and obj.quiz.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.quiz.image.url)
+            return obj.quiz.image.url
+        return None
