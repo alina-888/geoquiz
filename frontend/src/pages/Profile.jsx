@@ -1,9 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { fetchUserProfile, updateUserProfile, getQuizzesByCreator } from '../api/api';
 import { isDebugMode, toggleDebugMode } from '../utils/geolocation';
 import { useTranslation } from 'react-i18next';
 import { getTranslatedText } from '../utils/translations';
+import { getAvatarGradient } from '../utils/avatarUtils';
+import { Camera, X } from 'lucide-react';
+import './Profile.css';
 
 export default function Profile() {
   const { username } = useParams();
@@ -18,6 +21,10 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [createdQuizzes, setCreatedQuizzes] = useState([]);
   const [quizzesError, setQuizzesError] = useState('');
+  const [profilePictureFile, setProfilePictureFile] = useState(null);
+  const [profilePicturePreview, setProfilePicturePreview] = useState(null);
+  const [showFullscreen, setShowFullscreen] = useState(false);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     setLoading(true);
@@ -51,14 +58,60 @@ export default function Profile() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  const onFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setProfilePictureFile(file);
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfilePicturePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleImageClick = () => {
+    // Show fullscreen when clicking on profile picture
+    if (displayImage) {
+      setShowFullscreen(true);
+    }
+  };
+
+  const handleChangePhotoClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFullscreenClose = () => {
+    setShowFullscreen(false);
+  };
+
+  const removeProfilePicture = () => {
+    setProfilePictureFile(null);
+    setProfilePicturePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const onSave = async (e) => {
     e.preventDefault();
     if (!canEdit) return;
     setSaving(true);
     setError('');
     try {
-      const updated = await updateUserProfile(username, { username: form.username, bio: form.bio });
+      const formData = new FormData();
+      formData.append('username', form.username);
+      formData.append('bio', form.bio);
+
+      if (profilePictureFile) {
+        formData.append('profile_picture', profilePictureFile);
+      }
+
+      const updated = await updateUserProfile(username, formData);
       setProfile(updated);
+      setProfilePictureFile(null);
+      setProfilePicturePreview(null);
     } catch (err) {
       setError(err.message || t('profile.failed'));
     } finally {
@@ -70,16 +123,78 @@ export default function Profile() {
   if (error) return <div className="alert alert-danger mt-4">{error}</div>;
   if (!profile) return null;
 
+  // Determine which image to show (use full image for fullscreen, thumbnail for avatar)
+  const displayImage = profilePicturePreview || profile?.profile_thumbnail || profile?.profile_picture;
+  const fullImage = profilePicturePreview || profile?.profile_picture;
+
   return (
-    <div className="container mt-4" style={{ maxWidth: '600px' }}>
-      <h1 className="h3 fw-bold mb-4">{t('profile.title')}</h1>
+    <>
+      <div className="container mt-4" style={{ maxWidth: '600px' }}>
+        <h1 className="h3 fw-bold mb-4">{t('profile.title')}</h1>
 
-      <div className="card shadow-sm">
-        <div className="card-body">
-          <p><strong>{t('profile.email')}:</strong> {profile.email}</p>
-          <p><strong>{t('profile.totalPoints')}:</strong> {profile.total_points}</p>
+        <div className="card shadow-sm">
+          <div className="card-body">
+            {/* Profile Picture Section */}
+            <div className="profile-picture-section mb-4">
+              <div className="d-flex align-items-center gap-3">
+                <div
+                  className={`profile-avatar-large ${displayImage ? 'clickable' : ''}`}
+                  onClick={handleImageClick}
+                  style={{ cursor: displayImage ? 'pointer' : 'default' }}
+                >
+                  {displayImage ? (
+                    <img
+                      src={displayImage}
+                      alt={profile.username}
+                      className="profile-avatar-img"
+                    />
+                  ) : (
+                    <div
+                      className="profile-avatar-placeholder"
+                      style={{ background: getAvatarGradient(profile.username) }}
+                    >
+                      {profile.username?.charAt(0).toUpperCase() || '?'}
+                    </div>
+                  )}
+                </div>
 
-          {canEdit ? (
+                {canEdit && (
+                  <div className="flex-grow-1">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={onFileChange}
+                    style={{ display: 'none' }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-primary"
+                    onClick={handleChangePhotoClick}
+                  >
+                    {t('profile.changePhoto')}
+                  </button>
+                  {(profilePicturePreview || profile.profile_picture) && (
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-danger ms-2"
+                      onClick={removeProfilePicture}
+                    >
+                      {t('profile.removePhoto')}
+                    </button>
+                  )}
+                  <div className="small text-muted mt-2">
+                    {t('profile.photoHint')}
+                  </div>
+                </div>
+                )}
+              </div>
+            </div>
+
+            <p><strong>{t('profile.email')}:</strong> {profile.email}</p>
+            <p><strong>{t('profile.totalPoints')}:</strong> {profile.total_points}</p>
+
+            {canEdit ? (
             <form onSubmit={onSave}>
               <div className="mb-3">
                 <label className="form-label">{t('auth.register.username')}</label>
@@ -110,9 +225,9 @@ export default function Profile() {
               <p><strong>{t('auth.register.username')}:</strong> {profile.username}</p>
               <p><strong>{t('profile.bio')}:</strong> {profile.bio || '—'}</p>
             </>
-          )}
+            )}
+          </div>
         </div>
-      </div>
 
       {/* Developer Tools - Only show when viewing your own profile */}
       {canEdit && (
@@ -180,6 +295,21 @@ export default function Profile() {
           )}
         </div>
       </div>
-    </div>
+      </div>
+
+      {/* Fullscreen Image Modal */}
+      {showFullscreen && fullImage && (
+        <div className="fullscreen-image-modal" onClick={handleFullscreenClose}>
+          <div className="close-button" onClick={handleFullscreenClose}>
+            <X size={24} />
+          </div>
+          <img
+            src={fullImage}
+            alt={profile.username}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+    </>
   );
 }

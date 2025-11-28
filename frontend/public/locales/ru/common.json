@@ -16,6 +16,13 @@
     "allDifficulties": "Все сложности",
     "allLanguages": "Все языки",
     "geoOnly": "Только гео",
+    "reviewedOnly": "Только с отзывами",
+    "sortBy": "Сортировать",
+    "sortRatingHighLow": "Рейтинг: от высокого к низкому",
+    "sortRatingLowHigh": "Рейтинг: от низкого к высокому",
+    "sortNewest": "Сначала новые",
+    "sortOldest": "Сначала старые",
+    "sortAlphabetical": "По алфавиту",
     "clearFilters": "Очистить фильтры"
   },
   "auth": {
@@ -175,7 +182,10 @@
     "email": "Email",
     "loading": "Загрузка...",
     "failed": "Не удалось загрузить профиль",
-    "createdQuizzes": "Созданные викторины"
+    "createdQuizzes": "Созданные викторины",
+    "changePhoto": "Изменить фото",
+    "removePhoto": "Удалить фото",
+    "photoHint": "Нажмите, чтобы загрузить фото профиля"
   },
   "results": {
     "title": "Викторина завершена!",

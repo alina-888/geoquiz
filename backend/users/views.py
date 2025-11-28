@@ -66,7 +66,7 @@ class ProfileView(APIView):
 
     def get(self, request, username):
         user = self.get_object(username)
-        serializer = UserSerializer(user)
+        serializer = UserSerializer(user, context={'request': request})
         return Response(serializer.data)
 
     def put(self, request, username):
@@ -75,7 +75,7 @@ class ProfileView(APIView):
             return Response({"error": "You do not have permission to edit this profile"},
                             status=status.HTTP_403_FORBIDDEN)
 
-        serializer = UserSerializer(user, data=request.data, partial=True)
+        serializer = UserSerializer(user, data=request.data, partial=True, context={'request': request})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)

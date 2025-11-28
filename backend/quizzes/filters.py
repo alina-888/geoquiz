@@ -15,6 +15,7 @@ class QuizFilter(django_filters.FilterSet):
     language = django_filters.CharFilter(method='filter_by_language')
     created_after = django_filters.DateTimeFilter(field_name='created_at', lookup_expr='gte')
     created_before = django_filters.DateTimeFilter(field_name='created_at', lookup_expr='lte')
+    has_reviews = django_filters.BooleanFilter(method='filter_has_reviews')
 
     class Meta:
         model = Quiz
@@ -27,4 +28,13 @@ class QuizFilter(django_filters.FilterSet):
         return queryset.filter(
             Q(default_language__iexact=value) | Q(translations__language__iexact=value)
         ).distinct()
+
+    def filter_has_reviews(self, queryset, name, value):
+        """Filter quizzes that have at least one review with text"""
+        if value:
+            # Only show quizzes with reviews (review_text is not null and not empty)
+            return queryset.filter(
+                ratings__review_text__isnull=False
+            ).exclude(ratings__review_text='').distinct()
+        return queryset
 

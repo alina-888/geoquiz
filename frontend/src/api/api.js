@@ -320,9 +320,13 @@ export function fetchUserProfile(username) {
 
 // Обновить профиль (partial)
 export function updateUserProfile(username, data) {
+  // If data is FormData (for file uploads), send it directly
+  // Otherwise, JSON.stringify for regular data
+  const body = data instanceof FormData ? data : JSON.stringify(data);
+
   return apiRequest(`/users/profile/${encodeURIComponent(username)}`, {
     method: 'PUT',
-    body: JSON.stringify(data),
+    body: body,
   });
 }
 

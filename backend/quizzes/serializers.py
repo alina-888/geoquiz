@@ -351,12 +351,21 @@ class ReviewSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'username', 'created_at', 'updated_at']
 
     def get_user_profile_picture(self, obj):
-        """Return full URL for user's profile picture"""
+        """Return full URL for user's profile thumbnail (or full picture if no thumbnail)"""
+        request = self.context.get('request')
+
+        # Prefer thumbnail for performance
+        if obj.user.profile_thumbnail:
+            if request:
+                return request.build_absolute_uri(obj.user.profile_thumbnail.url)
+            return obj.user.profile_thumbnail.url
+
+        # Fallback to full profile picture
         if obj.user.profile_picture:
-            request = self.context.get('request')
             if request:
                 return request.build_absolute_uri(obj.user.profile_picture.url)
             return obj.user.profile_picture.url
+
         return None
 
 

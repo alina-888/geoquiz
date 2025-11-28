@@ -16,6 +16,13 @@
     "allDifficulties": "Sve težine",
     "allLanguages": "Svi jezici",
     "geoOnly": "Samo geo",
+    "reviewedOnly": "Samo sa recenzijama",
+    "sortBy": "Sortiraj",
+    "sortRatingHighLow": "Ocena: od najviše ka najnižoj",
+    "sortRatingLowHigh": "Ocena: od najniže ka najvišoj",
+    "sortNewest": "Prvo najnoviji",
+    "sortOldest": "Prvo najstariji",
+    "sortAlphabetical": "Abecedno",
     "clearFilters": "Obriši filtere"
   },
   "auth": {
@@ -175,7 +182,10 @@
     "email": "Email",
     "loading": "Učitavanje...",
     "failed": "Neuspešno učitavanje profila",
-    "createdQuizzes": "Kreirani kvizovi"
+    "createdQuizzes": "Kreirani kvizovi",
+    "changePhoto": "Promeni sliku",
+    "removePhoto": "Ukloni sliku",
+    "photoHint": "Kliknite da otpremite profilnu sliku"
   },
   "results": {
     "title": "Kviz završen!",

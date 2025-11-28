@@ -21,7 +21,9 @@ export default function Home() {
     category: searchParams.get('category') || '',
     difficulty_level: searchParams.get('difficulty_level') || '',
     is_geo: searchParams.get('is_geo') || '',
-    language: searchParams.get('language') || ''
+    language: searchParams.get('language') || '',
+    has_reviews: searchParams.get('has_reviews') || '',
+    ordering: searchParams.get('ordering') || ''
   };
 
   // Fetch quizzes based on current filters
@@ -33,6 +35,8 @@ export default function Home() {
     if (filters.difficulty_level) params.difficulty_level = filters.difficulty_level;
     if (filters.is_geo) params.is_geo = filters.is_geo;
     if (filters.language) params.language = filters.language;
+    if (filters.has_reviews) params.has_reviews = filters.has_reviews;
+    if (filters.ordering) params.ordering = filters.ordering;
 
     getQuizzes(params)
       .then(data => {
@@ -43,7 +47,7 @@ export default function Home() {
         console.error('Error loading quizzes:', error);
         setLoading(false);
       });
-  }, [filters.search, filters.category, filters.difficulty_level, filters.is_geo, filters.language]);
+  }, [filters.search, filters.category, filters.difficulty_level, filters.is_geo, filters.language, filters.has_reviews, filters.ordering]);
 
   useEffect(() => {
     fetchQuizzes();
@@ -156,8 +160,27 @@ export default function Home() {
               </select>
             </div>
 
+            {/* Sort By */}
+            <div className="col-6 col-md-2">
+              <select
+                className="form-select"
+                value={filters.ordering}
+                onChange={(e) => updateFilter('ordering', e.target.value)}
+              >
+                <option value="">{t('home.sortBy')}</option>
+                <option value="-avg_rating">{t('home.sortRatingHighLow')}</option>
+                <option value="avg_rating">{t('home.sortRatingLowHigh')}</option>
+                <option value="-created_at">{t('home.sortNewest')}</option>
+                <option value="created_at">{t('home.sortOldest')}</option>
+                <option value="title">{t('home.sortAlphabetical')}</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Second Row: Toggles */}
+          <div className="row g-3 mt-2">
             {/* Geo Toggle */}
-            <div className="col-6 col-md-2 d-flex align-items-center">
+            <div className="col-6 col-md-3">
               <div className="form-check">
                 <input
                   type="checkbox"
@@ -168,6 +191,22 @@ export default function Home() {
                 />
                 <label className="form-check-label" htmlFor="geoFilter">
                   {t('home.geoOnly')}
+                </label>
+              </div>
+            </div>
+
+            {/* Reviewed Only Toggle */}
+            <div className="col-6 col-md-3">
+              <div className="form-check">
+                <input
+                  type="checkbox"
+                  className="form-check-input"
+                  id="reviewedFilter"
+                  checked={filters.has_reviews === 'true'}
+                  onChange={(e) => updateFilter('has_reviews', e.target.checked ? 'true' : '')}
+                />
+                <label className="form-check-label" htmlFor="reviewedFilter">
+                  {t('home.reviewedOnly')}
                 </label>
               </div>
             </div>

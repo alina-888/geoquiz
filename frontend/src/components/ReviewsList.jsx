@@ -1,6 +1,8 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import RatingWidget from './RatingWidget';
+import { getAvatarGradient } from '../utils/avatarUtils';
 import './ReviewsList.css';
 
 /**
@@ -35,21 +37,24 @@ const ReviewsList = ({ reviews = [], loading = false, limit }) => {
       {displayReviews.map((review) => (
         <div key={review.id} className="review-item">
           <div className="review-header">
-            <div className="review-author">
-              {review.user_profile_picture && (
+            <Link to={`/profile/${review.username}`} className="review-author">
+              {review.user_profile_picture ? (
                 <img
                   src={review.user_profile_picture}
                   alt={review.username}
                   className="author-avatar"
+                  loading="lazy"
                 />
-              )}
-              {!review.user_profile_picture && (
-                <div className="author-avatar-placeholder">
-                  {review.username.charAt(0).toUpperCase()}
+              ) : (
+                <div
+                  className="author-avatar-placeholder"
+                  style={{ background: getAvatarGradient(review.username) }}
+                >
+                  {review.username?.charAt(0).toUpperCase() || '?'}
                 </div>
               )}
               <span className="author-name">{review.username}</span>
-            </div>
+            </Link>
             <div className="review-rating">
               <RatingWidget rating={review.rating} size="small" />
             </div>
