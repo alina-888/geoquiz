@@ -4,6 +4,7 @@ import { Edit2, Trash2, MapPin, Image, Music, Video } from 'lucide-react';
 import { getQuizDetail, startQuiz, deleteQuiz, deleteQuestion, getRatingSummary, getReviews, submitRating } from '../api/api';
 import { useTranslation } from 'react-i18next';
 import { getTranslatedText } from '../utils/translations';
+import { getAvatarGradient } from '../utils/avatarUtils';
 import RatingWidget from '../components/RatingWidget';
 import ReviewsList from '../components/ReviewsList';
 import ReviewForm from '../components/ReviewForm';
@@ -143,6 +144,42 @@ export default function QuizDetail() {
         )}
         <div className="card-body">
           <h1 className="card-title h4 mb-2">{getTranslatedText(quiz, 'title', i18n.language)}</h1>
+
+          {/* Author display */}
+          {quiz.creator_username && (
+            <div className="d-flex align-items-center gap-2 mb-3">
+              <Link
+                to={`/profile/${quiz.creator_username}`}
+                className="d-flex align-items-center gap-2 text-decoration-none"
+              >
+                {quiz.creator_profile_picture ? (
+                  <img
+                    src={quiz.creator_profile_picture}
+                    alt={quiz.creator_username}
+                    className="rounded-circle"
+                    style={{ width: '32px', height: '32px', objectFit: 'cover', border: '2px solid #e0e0e0' }}
+                  />
+                ) : (
+                  <div
+                    className="rounded-circle d-flex align-items-center justify-content-center"
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      background: getAvatarGradient(quiz.creator_username),
+                      color: 'white',
+                      fontSize: '14px',
+                      fontWeight: '700',
+                      border: '2px solid #e0e0e0'
+                    }}
+                  >
+                    {quiz.creator_username?.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <span className="text-muted small">by <strong>{quiz.creator_username}</strong></span>
+              </Link>
+            </div>
+          )}
+
           <p className="card-text mb-3">{getTranslatedText(quiz, 'description', i18n.language)}</p>
           <div className="mb-3 text-muted">
             {t('quiz.detail.category')}: {t(`categories.${quiz.category}`)} • {t('quiz.detail.difficulty')}: {t(`difficulty.${quiz.difficulty_level}`)}

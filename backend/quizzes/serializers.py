@@ -232,6 +232,7 @@ class QuestionSerializer(serializers.ModelSerializer):
 
 class QuizSerializer(serializers.ModelSerializer):
     creator_username = serializers.CharField(source='creator.username', read_only=True)
+    creator_profile_picture = serializers.SerializerMethodField()
     image_url = serializers.SerializerMethodField()
     thumbnail_url = serializers.SerializerMethodField()
     translations = QuizTranslationSerializer(many=True, read_only=True)
@@ -239,10 +240,26 @@ class QuizSerializer(serializers.ModelSerializer):
     class Meta:
         model = Quiz
         fields = [
-            'id', 'creator', 'creator_username', 'title', 'description', 'difficulty_level', 'estimated_duration', 'category',
+            'id', 'creator', 'creator_username', 'creator_profile_picture', 'title', 'description', 'difficulty_level', 'estimated_duration', 'category',
             'is_published', 'is_geo', 'avg_rating', 'total_ratings', 'image', 'image_url', 'thumbnail_url', 'default_language', 'translations'
         ]
-        read_only_fields = ['id', 'avg_rating', 'total_ratings', 'creator', 'creator_username']
+        read_only_fields = ['id', 'avg_rating', 'total_ratings', 'creator', 'creator_username', 'creator_profile_picture']
+
+    def get_creator_profile_picture(self, obj):
+        """Return full URL for creator's profile thumbnail"""
+        if obj.creator:
+            request = self.context.get('request')
+            # Prefer thumbnail for performance
+            if obj.creator.profile_thumbnail:
+                if request:
+                    return request.build_absolute_uri(obj.creator.profile_thumbnail.url)
+                return obj.creator.profile_thumbnail.url
+            # Fallback to full profile picture
+            if obj.creator.profile_picture:
+                if request:
+                    return request.build_absolute_uri(obj.creator.profile_picture.url)
+                return obj.creator.profile_picture.url
+        return None
 
     def get_image_url(self, obj):
         """Return full URL for the image"""

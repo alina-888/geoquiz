@@ -3,6 +3,7 @@ import { getQuizzes } from '../api/api';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getTranslatedText } from '../utils/translations';
+import { getAvatarGradient } from '../utils/avatarUtils';
 import { Search, X } from 'lucide-react';
 import RatingWidget from '../components/RatingWidget';
 
@@ -282,6 +283,41 @@ export default function Home() {
                       <div className="d-flex align-items-center gap-2 mt-2">
                         <RatingWidget rating={quiz.avg_rating} size="small" />
                         <span className="text-muted small">({quiz.total_ratings})</span>
+                      </div>
+                    )}
+
+                    {/* Author display */}
+                    {quiz.creator_username && (
+                      <div className="d-flex align-items-center gap-2 mt-3 pt-2 border-top">
+                        <Link
+                          to={`/profile/${quiz.creator_username}`}
+                          className="d-flex align-items-center gap-2 text-decoration-none"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {quiz.creator_profile_picture ? (
+                            <img
+                              src={quiz.creator_profile_picture}
+                              alt={quiz.creator_username}
+                              className="rounded-circle"
+                              style={{ width: '24px', height: '24px', objectFit: 'cover' }}
+                            />
+                          ) : (
+                            <div
+                              className="rounded-circle d-flex align-items-center justify-content-center"
+                              style={{
+                                width: '24px',
+                                height: '24px',
+                                background: getAvatarGradient(quiz.creator_username),
+                                color: 'white',
+                                fontSize: '10px',
+                                fontWeight: '700'
+                              }}
+                            >
+                              {quiz.creator_username?.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <span className="text-muted small">{quiz.creator_username}</span>
+                        </Link>
                       </div>
                     )}
                   </div>
