@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { Edit2, Trash2, MapPin, Image, Music, Video } from 'lucide-react';
+import { Edit2, Trash2, MapPin, Image, Music, Video, Play, Plus, Star, Globe } from 'lucide-react';
 import { getQuizDetail, startQuiz, deleteQuiz, deleteQuestion, getRatingSummary, getReviews, submitRating } from '../api/api';
 import { useTranslation } from 'react-i18next';
 import { getTranslatedText } from '../utils/translations';
@@ -8,6 +8,7 @@ import { getAvatarGradient } from '../utils/avatarUtils';
 import RatingWidget from '../components/RatingWidget';
 import ReviewsList from '../components/ReviewsList';
 import ReviewForm from '../components/ReviewForm';
+import './QuizDetail.css';
 
 export default function QuizDetail() {
   const { id } = useParams();
@@ -132,32 +133,31 @@ export default function QuizDetail() {
   console.log('Is creator?', isCreator); // Debug
 
   return (
-    <div className="container mt-4" style={{ maxWidth: '700px' }}>
-      <div className="card">
+    <div className="container mt-4 quiz-detail-container">
+      <div className="card quiz-hero-card">
         {quiz.image_url && (
           <img
             src={quiz.image_url}
             alt={quiz.title}
-            className="card-img-top"
-            style={{ maxHeight: '300px', objectFit: 'cover' }}
+            className="quiz-hero-image"
           />
         )}
-        <div className="card-body">
-          <h1 className="card-title h4 mb-2">{getTranslatedText(quiz, 'title', i18n.language)}</h1>
+        <div className="card-body p-4">
+          <h1 className="quiz-title">{getTranslatedText(quiz, 'title', i18n.language)}</h1>
 
           {/* Author display */}
           {quiz.creator_username && (
-            <div className="d-flex align-items-center gap-2 mb-3">
+            <div className="mb-3">
               <Link
                 to={`/profile/${quiz.creator_username}`}
-                className="d-flex align-items-center gap-2 text-decoration-none"
+                className="quiz-author-link"
               >
                 {quiz.creator_profile_picture ? (
                   <img
                     src={quiz.creator_profile_picture}
                     alt={quiz.creator_username}
                     className="rounded-circle"
-                    style={{ width: '32px', height: '32px', objectFit: 'cover', border: '2px solid #e0e0e0' }}
+                    style={{ width: '32px', height: '32px', objectFit: 'cover' }}
                   />
                 ) : (
                   <div
@@ -168,114 +168,142 @@ export default function QuizDetail() {
                       background: getAvatarGradient(quiz.creator_username),
                       color: 'white',
                       fontSize: '14px',
-                      fontWeight: '700',
-                      border: '2px solid #e0e0e0'
+                      fontWeight: '700'
                     }}
                   >
                     {quiz.creator_username?.charAt(0).toUpperCase()}
                   </div>
                 )}
-                <span className="text-muted small">by <strong>{quiz.creator_username}</strong></span>
+                <span className="text-muted small">by <strong className="text-dark">{quiz.creator_username}</strong></span>
               </Link>
             </div>
           )}
 
-          <p className="card-text mb-3">{getTranslatedText(quiz, 'description', i18n.language)}</p>
-          <div className="mb-3 text-muted">
-            {t('quiz.detail.category')}: {t(`categories.${quiz.category}`)} • {t('quiz.detail.difficulty')}: {t(`difficulty.${quiz.difficulty_level}`)}
-            {quiz.is_geo && <span className="ms-2 badge bg-info">{t('quiz.detail.geoQuiz')}</span>}
+          <p className="quiz-description">{getTranslatedText(quiz, 'description', i18n.language)}</p>
+
+          {/* Quiz Meta Info */}
+          <div className="quiz-meta">
+            <span className="quiz-meta-item">
+              <strong>{t('quiz.detail.category')}:</strong> {t(`categories.${quiz.category}`)}
+            </span>
+            <span className="quiz-meta-item">
+              <strong>{t('quiz.detail.difficulty')}:</strong> {t(`difficulty.${quiz.difficulty_level}`)}
+            </span>
+            {quiz.is_geo && (
+              <span className="geo-badge">
+                <MapPin size={14} />
+                {t('quiz.detail.geoQuiz')}
+              </span>
+            )}
+            {quiz.avg_rating > 0 && (
+              <span className="quiz-meta-item">
+                <Star size={14} fill="#ffc107" color="#ffc107" />
+                <strong>{quiz.avg_rating.toFixed(1)}</strong> ({quiz.total_ratings})
+              </span>
+            )}
           </div>
+
           {/* Language badges */}
-          <div className="d-flex gap-1 flex-wrap mb-3">
-            <span className="badge bg-primary" style={{ fontSize: '0.75rem' }}>
+          <div className="language-badges mb-3">
+            <span className="language-badge language-badge-primary">
+              <Globe size={12} />
               {quiz.default_language?.toUpperCase() || 'EN'}
             </span>
             {quiz.translations && quiz.translations.map(tr => (
-              <span key={tr.language} className="badge border border-primary text-primary bg-white" style={{ fontSize: '0.75rem' }}>
+              <span key={tr.language} className="language-badge language-badge-secondary">
                 {tr.language.toUpperCase()}
               </span>
             ))}
           </div>
 
           {username ? (
-            <div className="d-flex gap-2">
-              <button onClick={onStart} className="btn btn-primary">{t('quiz.detail.start')}</button>
+            <div className="quiz-actions">
+              <button onClick={onStart} className="btn btn-start-quiz">
+                <Play size={18} fill="white" />
+                {t('quiz.detail.start')}
+              </button>
 
               {isCreator && (
                 <>
-                  <Link to={`/quizzes/${id}/edit`} className="btn btn-warning">
-                    <Edit2 size={16} className="me-1" style={{ display: 'inline' }} />
+                  <Link to={`/quizzes/${id}/edit`} className="btn btn-edit-quiz">
+                    <Edit2 size={16} />
                     {t('quiz.detail.edit')}
                   </Link>
-                  <button onClick={handleDelete} className="btn btn-danger">
-                    <Trash2 size={16} className="me-1" style={{ display: 'inline' }} />
+                  <button onClick={handleDelete} className="btn btn-delete-quiz">
+                    <Trash2 size={16} />
                     {t('quiz.detail.delete')}
                   </button>
                 </>
               )}
             </div>
           ) : (
-            <Link to="/login" className="btn btn-outline-primary">{t('quiz.detail.loginToStart')}</Link>
+            <Link to="/login" className="btn btn-start-quiz">
+              <Play size={18} fill="white" />
+              {t('quiz.detail.loginToStart')}
+            </Link>
           )}
         </div>
       </div>
 
       {/* Questions list (for creator only) */}
       {isCreator && quiz.questions && quiz.questions.length > 0 && (
-        <div className="card mt-4">
-          <div className="card-body">
-            <h5 className="card-title mb-3">{t('quiz.detail.questions')} ({quiz.questions.length})</h5>
+        <div className="card questions-card">
+          <div className="card-body p-4">
+            <h5 className="card-title">{t('quiz.detail.questions')} ({quiz.questions.length})</h5>
             <ul className="list-group list-group-flush">
               {quiz.questions.map((q, index) => (
-                <li key={q.id} className="list-group-item px-0">
+                <li key={q.id} className="list-group-item question-item">
                   <div className="d-flex justify-content-between align-items-start">
                     <div className="flex-grow-1">
-                      <div className="mb-1">
-                        <strong>Q{index + 1}:</strong> {q.question_text.length > 80 ? q.question_text.substring(0, 80) + '...' : q.question_text}
+                      <div className="mb-2">
+                        <span className="question-number">{index + 1}</span>
+                        <span className="question-text">
+                          {q.question_text.length > 80 ? q.question_text.substring(0, 80) + '...' : q.question_text}
+                        </span>
                       </div>
-                      <div className="d-flex gap-2 flex-wrap">
-                        <span className="badge bg-secondary">{t(`questionTypes.${q.question_type}`)}</span>
-                        <span className="badge bg-primary">{q.points_value} {t('quiz.detail.points')}</span>
+                      <div className="question-badges">
+                        <span className="question-badge badge bg-secondary">{t(`questionTypes.${q.question_type}`)}</span>
+                        <span className="question-badge badge bg-primary">{q.points_value} {t('quiz.detail.points')}</span>
                         {q.geolocation && (
-                          <span className="badge bg-info">
+                          <span className="question-badge badge bg-info">
                             <MapPin size={12} style={{ display: 'inline' }} /> {t('quiz.detail.geo')}
                           </span>
                         )}
                         {/* Show badges for new media_files array */}
                         {q.media_files && q.media_files.filter(m => m.media_type === 'image').length > 0 && (
-                          <span className="badge bg-success">
+                          <span className="question-badge badge bg-success">
                             <Image size={12} style={{ display: 'inline' }} /> {q.media_files.filter(m => m.media_type === 'image').length} {q.media_files.filter(m => m.media_type === 'image').length > 1 ? t('quiz.detail.images') : t('quiz.detail.image')}
                           </span>
                         )}
                         {q.media_files && q.media_files.filter(m => m.media_type === 'audio').length > 0 && (
-                          <span className="badge bg-success">
+                          <span className="question-badge badge bg-success">
                             <Music size={12} style={{ display: 'inline' }} /> {q.media_files.filter(m => m.media_type === 'audio').length} {t('quiz.detail.audio')}
                           </span>
                         )}
                         {q.media_files && q.media_files.filter(m => m.media_type === 'video').length > 0 && (
-                          <span className="badge bg-success">
+                          <span className="question-badge badge bg-success">
                             <Video size={12} style={{ display: 'inline' }} /> {q.media_files.filter(m => m.media_type === 'video').length} {q.media_files.filter(m => m.media_type === 'video').length > 1 ? t('quiz.detail.videos') : t('quiz.detail.video')}
                           </span>
                         )}
                         {/* Fallback for legacy single media */}
                         {(!q.media_files || q.media_files.length === 0) && q.media_type === 'image' && (
-                          <span className="badge bg-success">
+                          <span className="question-badge badge bg-success">
                             <Image size={12} style={{ display: 'inline' }} /> {t('quiz.detail.image')}
                           </span>
                         )}
                         {(!q.media_files || q.media_files.length === 0) && q.media_type === 'audio' && (
-                          <span className="badge bg-success">
+                          <span className="question-badge badge bg-success">
                             <Music size={12} style={{ display: 'inline' }} /> {t('quiz.detail.audio')}
                           </span>
                         )}
                         {(!q.media_files || q.media_files.length === 0) && q.media_type === 'video' && (
-                          <span className="badge bg-success">
+                          <span className="question-badge badge bg-success">
                             <Video size={12} style={{ display: 'inline' }} /> {t('quiz.detail.video')}
                           </span>
                         )}
                       </div>
                     </div>
-                    <div className="d-flex gap-2 ms-3">
+                    <div className="question-actions ms-3">
                       <Link to={`/quizzes/${id}/questions/${q.id}/edit`} className="btn btn-sm btn-outline-warning">
                         <Edit2 size={14} />
                       </Link>
@@ -296,9 +324,9 @@ export default function QuizDetail() {
 
       {/* Ratings and Reviews Section */}
       {ratingSummary && (
-        <div className="card mt-4">
-          <div className="card-body">
-            <h5 className="card-title mb-3">{t('rating.ratingsReviews')}</h5>
+        <div className="card ratings-card">
+          <div className="card-body p-4">
+            <h5 className="card-title">{t('rating.ratingsReviews')}</h5>
 
             {/* Rating Summary */}
             <div className="d-flex align-items-center gap-3 mb-4">
@@ -378,8 +406,9 @@ export default function QuizDetail() {
 
       {/* Add questions button (for creator only) */}
       {isCreator && (
-        <div className="mt-3">
-          <Link to={`/quizzes/${id}/questions/create/`} className="btn btn-outline-primary">
+        <div className="mt-4 text-center">
+          <Link to={`/quizzes/${id}/questions/create/`} className="btn btn-add-questions">
+            <Plus size={18} />
             {t('quiz.detail.addQuestions')}
           </Link>
         </div>
