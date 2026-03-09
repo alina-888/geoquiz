@@ -108,7 +108,7 @@ function App() {
         <Route path="/quizzes/:id/question/:questionId/" element={<Question />} />
         <Route path="/quizzes/:id/complete/" element={<QuizComplete />} />
         <Route path="/quizzes/:id/results/" element={<QuizResults />} />
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<Login onLogin={setUsername} />} />
         <Route path="/register" element={<Register />} />
         <Route path="/profile/:username" element={<Profile />} />
       </Routes>

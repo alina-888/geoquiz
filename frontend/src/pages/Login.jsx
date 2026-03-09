@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { loginUser } from '../api/api';
 import { useTranslation } from 'react-i18next';
 
-export default function Login() {
+export default function Login({ onLogin }) {
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -18,9 +18,8 @@ export default function Login() {
     try {
       await loginUser(username, password);
       localStorage.setItem('auth.username', username);
-      // Force a full reload so the header reflects logged-in state
-      window.location.href = '/';
-      // Alternatively: navigate('/');
+      if (onLogin) onLogin(username);
+      navigate('/');
     } catch (err) {
       setError(err.message || t('auth.login.failed'));
       setSubmitting(false);

@@ -1,3 +1,4 @@
+import logging
 import os
 from io import BytesIO
 from django.db import models
@@ -6,6 +7,8 @@ from users.models import CustomUser
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, MaxValueValidator
 from PIL import Image
+
+logger = logging.getLogger(__name__)
 from .validators import (
     validate_quiz_image,
     validate_question_image,
@@ -113,7 +116,7 @@ class Quiz(models.Model):
             self.thumbnail.save(thumb_name, ContentFile(thumb_io.read()), save=False)
             Quiz.objects.filter(pk=self.pk).update(thumbnail=self.thumbnail.name)
         except Exception as e:
-            print(f"Error generating thumbnail: {e}")
+            logger.warning(f"Error generating thumbnail: {e}")
 
 
 class Question(models.Model):
@@ -290,7 +293,7 @@ class QuestionMedia(models.Model):
             self.thumbnail.save(thumb_name, ContentFile(thumb_io.read()), save=False)
             QuestionMedia.objects.filter(pk=self.pk).update(thumbnail=self.thumbnail.name)
         except Exception as e:
-            print(f"Error generating question media thumbnail: {e}")
+            logger.warning(f"Error generating question media thumbnail: {e}")
 
     def clean(self):
         """Validate file based on media type using comprehensive validators"""

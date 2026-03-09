@@ -1,7 +1,8 @@
-from django.db import models
+import logging
 import json
-from django.db.models import Avg, Count, Q, Exists, OuterRef
-from django.db.models.functions import Lower, Upper
+from django.db import models
+from django.db.models import Q, Exists, OuterRef
+from django.db.models.functions import Upper
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -10,6 +11,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
+
+logger = logging.getLogger(__name__)
 from .models import (
     Quiz, Question, Option, QuizAttempt, UserAnswer, QuestionMedia, Hint, HintUnlock,
     QuizTranslation, QuestionTranslation, OptionTranslation, HintTranslation, QuizRating,
@@ -35,6 +38,11 @@ class StandardResultsSetPagination(PageNumberPagination):
 
 
 class QuizViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for Quiz CRUD operations.
+    Anonymous users can list and retrieve published quizzes.
+    Authenticated users can create, update, and delete their own quizzes.
+    """
     queryset = Quiz.objects.all()
     permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
     # Removed SearchFilter to use custom Cyrillic-aware search in get_queryset()
@@ -124,13 +132,7 @@ class QuizViewSet(viewsets.ModelViewSet):
 
         # POST: create question (only quiz creator)
         try:
-            print(f"DEBUG: Creating question for quiz {quiz.id}")
-            print(f"DEBUG: Quiz creator: {quiz.creator}, Request user: {request.user}")
-            print(f"DEBUG: Request data keys: {request.data.keys()}")
-            print(f"DEBUG: Request FILES keys: {request.FILES.keys()}")
-
             if quiz.creator != request.user:
-                print(f"DEBUG: Permission denied - creator mismatch")
                 self.permission_denied(request)
 
             data = request.data
@@ -141,16 +143,12 @@ class QuizViewSet(viewsets.ModelViewSet):
             options_raw = data.get('options', [])
             geolocation_raw = data.get('geolocation')
 
-            print(f"DEBUG: question_text={question_text}, type={question_type}, points={points_value}")
-            print(f"DEBUG: options_raw type: {type(options_raw)}, value: {options_raw}")
-            print(f"DEBUG: geolocation_raw type: {type(geolocation_raw)}, value: {geolocation_raw}")
-
             # If sent via multipart, options may arrive as a JSON string
             if isinstance(options_raw, str):
                 try:
                     options_data = json.loads(options_raw)
                 except json.JSONDecodeError as e:
-                    print(f"DEBUG: Failed to parse options JSON: {e}")
+                    logger.debug(f"Failed to parse options JSON: {e}")
                     options_data = []
             else:
                 options_data = options_raw
@@ -161,48 +159,40 @@ class QuizViewSet(viewsets.ModelViewSet):
                 if isinstance(geolocation_raw, str):
                     try:
                         geolocation_data = json.loads(geolocation_raw)
-                        print(f"DEBUG: Parsed geolocation: {geolocation_data}")
+                        logger.debug(f"Parsed geolocation: {geolocation_data}")
                     except json.JSONDecodeError as e:
-                        print(f"DEBUG: Failed to parse geolocation JSON: {e}")
+                        logger.debug(f"Failed to parse geolocation JSON: {e}")
                         geolocation_data = None
                 elif isinstance(geolocation_raw, (dict, list)):
                     geolocation_data = geolocation_raw
-                    print(f"DEBUG: Using geolocation as-is: {geolocation_data}")
 
             # Block geolocation for non-geo quizzes
             if geolocation_data not in (None, {}, [], '') and getattr(quiz, 'is_geo', False) is False:
-                print(f"DEBUG: Blocking geolocation for non-geo quiz")
                 return Response(
                     {"error": "Geolocation is only allowed for geo quizzes"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
             if not question_text:
-                print(f"DEBUG: Missing question_text")
                 return Response({"error": "question_text is required"}, status=status.HTTP_400_BAD_REQUEST)
 
             # Get the next question order number (use max + 1 to avoid conflicts after deletions)
             max_order = quiz.questions.aggregate(models.Max('question_order'))['question_order__max']
             next_order = (max_order or 0) + 1
-            print(f"DEBUG: Next order: {next_order} (max was {max_order})")
 
             # Handle media files
             image_file = request.FILES.get('image')
             audio_file = request.FILES.get('audio')
             video_file = request.FILES.get('video')
 
-            print(f"DEBUG: Media files - image: {image_file}, audio: {audio_file}, video: {video_file}")
-
             # Validate that only one media type is provided
             media_files = [f for f in [image_file, audio_file, video_file] if f is not None]
             if len(media_files) > 1:
-                print(f"DEBUG: Multiple media files provided")
                 return Response(
                     {"error": "Only one media type can be attached per question"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            print(f"DEBUG: About to create question")
             question = Question.objects.create(
                 quiz=quiz,
                 question_text=question_text,
@@ -215,8 +205,6 @@ class QuizViewSet(viewsets.ModelViewSet):
                 video=video_file,
                 geolocation=geolocation_data,
             )
-            print(f"DEBUG: Question created with id={question.id}")
-
             # Create options if provided (for multiple choice)
             option_order = 1
             for opt in options_data:
@@ -230,22 +218,16 @@ class QuizViewSet(viewsets.ModelViewSet):
                             option_order=option_order,
                         )
                         option_order += 1
-                        print(f"DEBUG: Created option {option_order - 1}: {text}")
 
-            print(f"DEBUG: Serializing question")
             # Refresh the question to include newly created options
             question = Question.objects.prefetch_related('options', 'options__translations').get(pk=question.pk)
-            print(f"DEBUG: Question options count: {question.options.count()}")
-            print(f"DEBUG: Question options: {list(question.options.values('id', 'option_text'))}")
             serializer = QuestionSerializer(question)
-            print(f"DEBUG: Serialized data options: {serializer.data.get('options', [])}")
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         except Exception as e:
             import traceback
-            print(f"ERROR in questions POST: {str(e)}")
-            print(traceback.format_exc())
+            logger.error(f"Error in questions POST: {str(e)}\n{traceback.format_exc()}")
             return Response(
-                {"error": f"Failed to create question: {str(e)}"},
+                {"error": "Failed to create question. Please try again."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
@@ -969,8 +951,7 @@ class QuestionViewSet(viewsets.ModelViewSet):
             return Response(response_serializer.data)
         except Exception as e:
             import traceback
-            print(f"Error in QuestionViewSet.update: {str(e)}")
-            print(traceback.format_exc())
+            logger.error(f"Error in QuestionViewSet.update: {str(e)}\n{traceback.format_exc()}")
             raise
 
     @action(detail=True, methods=['get'])
@@ -1194,15 +1175,26 @@ class QuizTranslationViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(quiz_id=quiz_id)
         return queryset
 
+    def _check_quiz_owner(self, instance):
+        if instance.quiz.creator != self.request.user:
+            self.permission_denied(self.request)
+
     def perform_create(self, serializer):
         """Only quiz creator can add translations"""
-        # Get quiz from request data
         quiz_id = self.request.data.get('quiz')
         if quiz_id:
             quiz = Quiz.objects.get(id=quiz_id)
             if quiz.creator != self.request.user:
                 self.permission_denied(self.request)
         serializer.save()
+
+    def perform_update(self, serializer):
+        self._check_quiz_owner(serializer.instance)
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        self._check_quiz_owner(instance)
+        instance.delete()
 
 
 class QuestionTranslationViewSet(viewsets.ModelViewSet):
@@ -1221,15 +1213,26 @@ class QuestionTranslationViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(question_id=question_id)
         return queryset
 
+    def _check_question_owner(self, instance):
+        if instance.question.quiz.creator != self.request.user:
+            self.permission_denied(self.request)
+
     def perform_create(self, serializer):
         """Only quiz creator can add translations"""
-        # Get question from request data
         question_id = self.request.data.get('question')
         if question_id:
             question = Question.objects.get(id=question_id)
             if question.quiz.creator != self.request.user:
                 self.permission_denied(self.request)
         serializer.save()
+
+    def perform_update(self, serializer):
+        self._check_question_owner(serializer.instance)
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        self._check_question_owner(instance)
+        instance.delete()
 
 
 class OptionTranslationViewSet(viewsets.ModelViewSet):
@@ -1248,15 +1251,26 @@ class OptionTranslationViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(option_id=option_id)
         return queryset
 
+    def _check_option_owner(self, instance):
+        if instance.option.question.quiz.creator != self.request.user:
+            self.permission_denied(self.request)
+
     def perform_create(self, serializer):
         """Only quiz creator can add translations"""
-        # Get option from request data
         option_id = self.request.data.get('option')
         if option_id:
             option = Option.objects.get(id=option_id)
             if option.question.quiz.creator != self.request.user:
                 self.permission_denied(self.request)
         serializer.save()
+
+    def perform_update(self, serializer):
+        self._check_option_owner(serializer.instance)
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        self._check_option_owner(instance)
+        instance.delete()
 
 
 class HintTranslationViewSet(viewsets.ModelViewSet):
@@ -1275,14 +1289,25 @@ class HintTranslationViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(hint_id=hint_id)
         return queryset
 
+    def _check_hint_owner(self, instance):
+        if instance.hint.question.quiz.creator != self.request.user:
+            self.permission_denied(self.request)
+
     def perform_create(self, serializer):
         """Only quiz creator can add translations"""
-        # Get hint from request data
         hint_id = self.request.data.get('hint')
         if hint_id:
             hint = Hint.objects.get(id=hint_id)
             if hint.question.quiz.creator != self.request.user:
                 self.permission_denied(self.request)
         serializer.save()
+
+    def perform_update(self, serializer):
+        self._check_hint_owner(serializer.instance)
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        self._check_hint_owner(instance)
+        instance.delete()
 
 

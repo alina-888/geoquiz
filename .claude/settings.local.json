@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//mnt/c/Users/ahitjova/django-projects/**)",
+      "Bash(python3 -c \":*)",
+      "Bash(\"C:/Users/ahitjova/django-projects/geoquiz/venv/Scripts/python\":*)"
+    ]
+  }
+}

@@ -1,3 +1,4 @@
+import logging
 import os
 from io import BytesIO
 from django.contrib.auth.models import AbstractUser
@@ -5,6 +6,8 @@ from django.db import models
 from django.core.files.base import ContentFile
 from quizzes.validators import validate_profile_picture
 from PIL import Image
+
+logger = logging.getLogger(__name__)
 
 
 class CustomUser(AbstractUser):
@@ -74,4 +77,4 @@ class CustomUser(AbstractUser):
             self.profile_thumbnail.save(thumb_name, ContentFile(thumb_io.read()), save=False)
             CustomUser.objects.filter(pk=self.pk).update(profile_thumbnail=self.profile_thumbnail.name)
         except Exception as e:
-            print(f"Error generating profile thumbnail: {e}")
+            logger.warning(f"Error generating profile thumbnail: {e}")

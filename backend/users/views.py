@@ -1,5 +1,5 @@
 from rest_framework.generics import get_object_or_404
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -10,6 +10,8 @@ from .serializers import RegisterSerializer, UserSerializer
 
 
 class RegisterView(APIView):
+    permission_classes = [AllowAny]
+
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
@@ -19,6 +21,8 @@ class RegisterView(APIView):
 
 
 class LoginView(APIView):
+    permission_classes = [AllowAny]
+
     def post(self, request):
         username = request.data.get('username')
         password = request.data.get('password')
@@ -31,12 +35,13 @@ class LoginView(APIView):
             return Response({
                 "message": "Login successful",
                 "username": user.username,
-                "user_id": user.id
             })
         return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 class LogoutView(APIView):
+    permission_classes = [AllowAny]
+
     def post(self, request):
         logout(request)
         return Response({"message": "Logout successful"})
@@ -44,16 +49,16 @@ class LogoutView(APIView):
 
 class WhoAmIView(APIView):
     """Return current authenticated user info"""
+    permission_classes = [AllowAny]
+
     def get(self, request):
         if request.user.is_authenticated:
             return Response({
                 "username": request.user.username,
-                "user_id": request.user.id,
                 "is_authenticated": True
             })
         return Response({
             "username": None,
-            "user_id": None,
             "is_authenticated": False
         })
 
