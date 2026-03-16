@@ -13,20 +13,25 @@ import QuizReviews from './pages/QuizReviews';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
-import { logoutUser } from './api/api';
+import { logoutUser, whoAmI } from './api/api';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './components/LanguageSwitcher';
 
 function App() {
-  const [username, setUsername] = React.useState(localStorage.getItem('auth.username'));
+  const [username, setUsername] = React.useState(null);
   const { t } = useTranslation();
+
+  React.useEffect(() => {
+    whoAmI()
+      .then(data => setUsername(data.is_authenticated ? data.username : null))
+      .catch(() => setUsername(null));
+  }, []);
 
   const handleLogout = async () => {
     try {
       await logoutUser();
     } catch (_) {}
-    localStorage.removeItem('auth.username');
     setUsername(null);
   };
 

@@ -1,6 +1,6 @@
 import logging
 import json
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Q, Exists, OuterRef
 from django.db.models.functions import Upper
 from django.shortcuts import get_object_or_404
@@ -224,8 +224,7 @@ class QuizViewSet(viewsets.ModelViewSet):
             serializer = QuestionSerializer(question)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         except Exception as e:
-            import traceback
-            logger.error(f"Error in questions POST: {str(e)}\n{traceback.format_exc()}")
+            logger.exception("Error in questions POST: %s", e)
             return Response(
                 {"error": "Failed to create question. Please try again."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -359,21 +358,24 @@ class QuizViewSet(viewsets.ModelViewSet):
             }
         )
 
-        # If all answered, finalize attempt
+        # If all answered, finalize attempt — use select_for_update to prevent double-awarding
         total_questions = attempt.quiz.questions.count()
         answered_questions = attempt.answers.count()
         if answered_questions >= total_questions:
-            earned_points = attempt.answers.aggregate(total=models.Sum('points_earned'))['total'] or 0
-            hint_penalties = attempt.unlocked_hints.aggregate(total=models.Sum('points_deducted'))['total'] or 0
-            total_points = max(0, earned_points - hint_penalties)
-            completion_percent = (answered_questions / total_questions) * 100 if total_questions else 0
-            attempt.score = total_points
-            attempt.completion_percentage = completion_percent
-            attempt.end_time = timezone.now()
-            attempt.status = 'completed'
-            attempt.save()
-            attempt.user.total_points += total_points
-            attempt.user.save()
+            with transaction.atomic():
+                locked_attempt = QuizAttempt.objects.select_for_update().get(pk=attempt.pk)
+                if locked_attempt.status == 'in_progress':
+                    earned_points = locked_attempt.answers.aggregate(total=models.Sum('points_earned'))['total'] or 0
+                    hint_penalties = locked_attempt.unlocked_hints.aggregate(total=models.Sum('points_deducted'))['total'] or 0
+                    total_points = max(0, earned_points - hint_penalties)
+                    completion_percent = (answered_questions / total_questions) * 100 if total_questions else 0
+                    locked_attempt.score = total_points
+                    locked_attempt.completion_percentage = completion_percent
+                    locked_attempt.end_time = timezone.now()
+                    locked_attempt.status = 'completed'
+                    locked_attempt.save()
+                    locked_attempt.user.total_points += total_points
+                    locked_attempt.user.save()
 
         serializer = UserAnswerSerializer(user_answer)
         return Response(serializer.data)
@@ -382,25 +384,28 @@ class QuizViewSet(viewsets.ModelViewSet):
     def complete_by_quiz(self, request, pk=None):
         """Complete the current user's attempt for this quiz"""
         quiz = self.get_object()
-        attempt = QuizAttempt.objects.filter(user=request.user, quiz=quiz, status='in_progress').first()
-        if not attempt:
-            return Response({"error": "No in-progress attempt found"}, status=status.HTTP_400_BAD_REQUEST)
+        with transaction.atomic():
+            attempt = QuizAttempt.objects.select_for_update().filter(
+                user=request.user, quiz=quiz, status='in_progress'
+            ).first()
+            if not attempt:
+                return Response({"error": "No in-progress attempt found"}, status=status.HTTP_400_BAD_REQUEST)
 
-        total_questions = attempt.quiz.questions.count()
-        answered_questions = attempt.answers.count()
-        earned_points = attempt.answers.aggregate(total=models.Sum('points_earned'))['total'] or 0
-        hint_penalties = attempt.unlocked_hints.aggregate(total=models.Sum('points_deducted'))['total'] or 0
-        total_points = max(0, earned_points - hint_penalties)
-        completion_percent = (answered_questions / total_questions) * 100 if total_questions else 0
+            total_questions = attempt.quiz.questions.count()
+            answered_questions = attempt.answers.count()
+            earned_points = attempt.answers.aggregate(total=models.Sum('points_earned'))['total'] or 0
+            hint_penalties = attempt.unlocked_hints.aggregate(total=models.Sum('points_deducted'))['total'] or 0
+            total_points = max(0, earned_points - hint_penalties)
+            completion_percent = (answered_questions / total_questions) * 100 if total_questions else 0
 
-        attempt.score = total_points
-        attempt.completion_percentage = completion_percent
-        attempt.end_time = timezone.now()
-        attempt.status = 'completed'
-        attempt.save()
+            attempt.score = total_points
+            attempt.completion_percentage = completion_percent
+            attempt.end_time = timezone.now()
+            attempt.status = 'completed'
+            attempt.save()
 
-        attempt.user.total_points += total_points
-        attempt.user.save()
+            attempt.user.total_points += total_points
+            attempt.user.save()
 
         serializer = QuizAttemptSerializer(attempt)
         return Response(serializer.data)
@@ -950,8 +955,7 @@ class QuestionViewSet(viewsets.ModelViewSet):
             response_serializer = QuestionSerializer(instance)
             return Response(response_serializer.data)
         except Exception as e:
-            import traceback
-            logger.error(f"Error in QuestionViewSet.update: {str(e)}\n{traceback.format_exc()}")
+            logger.exception("Error in QuestionViewSet.update: %s", e)
             raise
 
     @action(detail=True, methods=['get'])
@@ -1036,15 +1040,8 @@ class QuizAttemptViewSet(viewsets.ModelViewSet):
         if question.question_type == 'multiple_choice':
             is_correct = bool(option.is_correct)
         elif question.question_type == 'true_false':
-            def to_bool_like(v):
-                if v is None:
-                    return None
-                s = str(v).strip().casefold()
-                if s in {'true','t','yes','y','1'}: return True
-                if s in {'false','f','no','n','0'}: return False
-                return None
-            user_bool = to_bool_like(text_answer)
-            correct_bool = to_bool_like(question.correct_answer)
+            user_bool = QuizViewSet._to_bool_like(text_answer)
+            correct_bool = QuizViewSet._to_bool_like(question.correct_answer)
             if user_bool is not None and correct_bool is not None:
                 is_correct = user_bool == correct_bool
         else:  # text
@@ -1065,31 +1062,26 @@ class QuizAttemptViewSet(viewsets.ModelViewSet):
             }
         )
 
-        # Check if all questions are answered
+        # Check if all questions are answered — use select_for_update to prevent double-awarding
         total_questions = attempt.quiz.questions.count()
         answered_questions = attempt.answers.count()
 
         if answered_questions >= total_questions:
-            # Calculate score and completion
-            correct_answers = attempt.answers.filter(is_correct=True).count()
-            earned_points = attempt.answers.aggregate(total=models.Sum('points_earned'))['total'] or 0
-            hint_penalties = attempt.unlocked_hints.aggregate(total=models.Sum('points_deducted'))['total'] or 0
-            total_points = max(0, earned_points - hint_penalties)
-            completion_percent = (answered_questions / total_questions) * 100
-
-            # Update attempt
-            attempt.score = total_points
-            attempt.completion_percentage = completion_percent
-            attempt.end_time = timezone.now()
-            attempt.status = 'completed'
-            attempt.save()
-
-            # Update user's total points
-            attempt.user.total_points += total_points
-            attempt.user.save()
-
-            # Check for achievements
-            self._check_achievements(attempt)
+            with transaction.atomic():
+                locked_attempt = QuizAttempt.objects.select_for_update().get(pk=attempt.pk)
+                if locked_attempt.status == 'in_progress':
+                    earned_points = locked_attempt.answers.aggregate(total=models.Sum('points_earned'))['total'] or 0
+                    hint_penalties = locked_attempt.unlocked_hints.aggregate(total=models.Sum('points_deducted'))['total'] or 0
+                    total_points = max(0, earned_points - hint_penalties)
+                    completion_percent = (answered_questions / total_questions) * 100
+                    locked_attempt.score = total_points
+                    locked_attempt.completion_percentage = completion_percent
+                    locked_attempt.end_time = timezone.now()
+                    locked_attempt.status = 'completed'
+                    locked_attempt.save()
+                    locked_attempt.user.total_points += total_points
+                    locked_attempt.user.save()
+                    self._check_achievements(locked_attempt)
 
         serializer = UserAnswerSerializer(user_answer)
         return Response(serializer.data)
@@ -1097,33 +1089,30 @@ class QuizAttemptViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def complete(self, request, pk=None):
         """Mark a quiz attempt as completed"""
-        attempt = self.get_object()
+        with transaction.atomic():
+            attempt = QuizAttempt.objects.select_for_update().get(pk=self.get_object().pk)
 
-        if attempt.status != 'in_progress':
-            return Response(
-                {"error": "This attempt is already complete or abandoned"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            if attempt.status != 'in_progress':
+                return Response(
+                    {"error": "This attempt is already complete or abandoned"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
-        # Calculate score and completion
-        total_questions = attempt.quiz.questions.count()
-        answered_questions = attempt.answers.count()
-        correct_answers = attempt.answers.filter(is_correct=True).count()
-        earned_points = attempt.answers.aggregate(total=models.Sum('points_earned'))['total'] or 0
-        hint_penalties = attempt.unlocked_hints.aggregate(total=models.Sum('points_deducted'))['total'] or 0
-        total_points = max(0, earned_points - hint_penalties)
-        completion_percent = (answered_questions / total_questions) * 100
+            total_questions = attempt.quiz.questions.count()
+            answered_questions = attempt.answers.count()
+            earned_points = attempt.answers.aggregate(total=models.Sum('points_earned'))['total'] or 0
+            hint_penalties = attempt.unlocked_hints.aggregate(total=models.Sum('points_deducted'))['total'] or 0
+            total_points = max(0, earned_points - hint_penalties)
+            completion_percent = (answered_questions / total_questions) * 100 if total_questions else 0
 
-        # Update attempt
-        attempt.score = total_points
-        attempt.completion_percentage = completion_percent
-        attempt.end_time = timezone.now()
-        attempt.status = 'completed'
-        attempt.save()
+            attempt.score = total_points
+            attempt.completion_percentage = completion_percent
+            attempt.end_time = timezone.now()
+            attempt.status = 'completed'
+            attempt.save()
 
-        # Update user's total points
-        attempt.user.total_points += total_points
-        attempt.user.save()
+            attempt.user.total_points += total_points
+            attempt.user.save()
 
         serializer = QuizAttemptSerializer(attempt)
         return Response(serializer.data)

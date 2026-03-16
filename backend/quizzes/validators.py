@@ -163,6 +163,18 @@ def validate_magic_bytes(file, expected_mime):
     )
 
 
+# Map extensions to MIME types for magic bytes verification
+EXTENSION_TO_MIME = {
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png': 'image/png',
+    'gif': 'image/gif',
+    'webp': 'image/webp',
+    'mp3': 'audio/mpeg',
+    'mp4': 'video/mp4',
+}
+
+
 def validate_image_file(file, compress=True, image_type='question'):
     """
     Comprehensive validation for image files with optional compression.
@@ -181,7 +193,13 @@ def validate_image_file(file, compress=True, image_type='question'):
     # 3. Extension validation
     validate_file_extension(file.name, ALLOWED_IMAGE_EXTENSIONS, 'image')
 
-    # 4. Compress image if requested
+    # 4. Magic bytes validation
+    ext = file.name.rsplit('.', 1)[-1].lower()
+    expected_mime = EXTENSION_TO_MIME.get(ext)
+    if expected_mime:
+        validate_magic_bytes(file, expected_mime)
+
+    # 5. Compress image if requested
     if compress:
         if image_type == 'profile':
             file = compress_profile_picture(file)
@@ -189,9 +207,6 @@ def validate_image_file(file, compress=True, image_type='question'):
             file = compress_quiz_image(file)
         else:  # question or default
             file = compress_question_image(file)
-
-    # Note: MIME type validation disabled due to dependency conflicts
-    # Security maintained via extension whitelist and file size limits
 
     return file
 
@@ -209,8 +224,11 @@ def validate_audio_file(file):
     # 3. Extension validation
     validate_file_extension(file.name, ALLOWED_AUDIO_EXTENSIONS, 'audio')
 
-    # Note: MIME type validation disabled due to dependency conflicts
-    # Security maintained via extension whitelist and file size limits
+    # 4. Magic bytes validation (for formats we have signatures for)
+    ext = file.name.rsplit('.', 1)[-1].lower()
+    expected_mime = EXTENSION_TO_MIME.get(ext)
+    if expected_mime:
+        validate_magic_bytes(file, expected_mime)
 
     return file
 
@@ -228,8 +246,11 @@ def validate_video_file(file):
     # 3. Extension validation
     validate_file_extension(file.name, ALLOWED_VIDEO_EXTENSIONS, 'video')
 
-    # Note: MIME type validation disabled due to dependency conflicts
-    # Security maintained via extension whitelist and file size limits
+    # 4. Magic bytes validation (for formats we have signatures for)
+    ext = file.name.rsplit('.', 1)[-1].lower()
+    expected_mime = EXTENSION_TO_MIME.get(ext)
+    if expected_mime:
+        validate_magic_bytes(file, expected_mime)
 
     return file
 
@@ -261,7 +282,13 @@ def validate_profile_picture(file):
     # 3. Extension validation
     validate_file_extension(file.name, ALLOWED_IMAGE_EXTENSIONS, 'profile picture')
 
-    # 4. Compress profile picture
+    # 4. Magic bytes validation
+    ext = file.name.rsplit('.', 1)[-1].lower()
+    expected_mime = EXTENSION_TO_MIME.get(ext)
+    if expected_mime:
+        validate_magic_bytes(file, expected_mime)
+
+    # 5. Compress profile picture
     file = compress_profile_picture(file)
 
     return file

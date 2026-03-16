@@ -347,6 +347,10 @@ class QuizAttemptSerializer(serializers.ModelSerializer):
 
 class QuizRatingSubmitSerializer(serializers.ModelSerializer):
     """Serializer for submitting/updating ratings"""
+    review_text = serializers.CharField(
+        max_length=2000, allow_blank=True, allow_null=True, required=False
+    )
+
     class Meta:
         model = QuizRating
         fields = ['rating', 'review_text']
@@ -354,6 +358,11 @@ class QuizRatingSubmitSerializer(serializers.ModelSerializer):
     def validate_rating(self, value):
         if value < 1 or value > 5:
             raise serializers.ValidationError("Rating must be between 1 and 5")
+        return value
+
+    def validate_review_text(self, value):
+        if value:
+            return value.strip()
         return value
 
 

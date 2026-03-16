@@ -1,9 +1,15 @@
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import authenticate, login, logout
+from django.middleware.csrf import rotate_token
+
+
+class LoginRateThrottle(AnonRateThrottle):
+    scope = 'login'
 
 from .models import CustomUser
 from .serializers import RegisterSerializer, UserSerializer
@@ -22,16 +28,19 @@ class RegisterView(APIView):
 
 class LoginView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [LoginRateThrottle]
 
     def post(self, request):
         username = request.data.get('username')
         password = request.data.get('password')
         user = authenticate(request, username=username, password=password)
         if user is not None:
-            # Clear any existing session first
+            # Clear any existing session first (prevents session fixation)
             logout(request)
-            # Login with new user
+            # Login with new user (cycles session key)
             login(request, user)
+            # Explicitly rotate CSRF token after login
+            rotate_token(request)
             return Response({
                 "message": "Login successful",
                 "username": user.username,

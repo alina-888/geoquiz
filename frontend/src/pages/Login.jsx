@@ -17,7 +17,6 @@ export default function Login({ onLogin }) {
     setSubmitting(true);
     try {
       await loginUser(username, password);
-      localStorage.setItem('auth.username', username);
       if (onLogin) onLogin(username);
       navigate('/');
     } catch (err) {

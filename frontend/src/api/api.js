@@ -290,6 +290,11 @@ export function getQuizzesByCreator(userIdOrUsername) {
   return apiRequest(`/quizzes/${query}`);
 }
 
+// Получить текущего пользователя с сервера
+export function whoAmI() {
+  return apiRequest('/users/whoami/');
+}
+
 // Логин
 export function loginUser(username, password) {
     return apiRequest('/users/login/', {
