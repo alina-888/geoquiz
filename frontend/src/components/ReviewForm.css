@@ -29,6 +29,7 @@
   border: 1px solid #ddd;
   border-radius: 4px;
   font-family: inherit;
+  font-size: 14px;
   resize: vertical;
 }
 
@@ -41,7 +42,7 @@
 .review-form .form-text {
   display: block;
   margin-top: 4px;
-  font-size: 0.875rem;
+  font-size: 12px;
   color: #666;
 }
 
@@ -54,6 +55,7 @@
   padding: 10px 20px;
   border: none;
   border-radius: 4px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;

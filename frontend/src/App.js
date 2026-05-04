@@ -38,7 +38,7 @@ function App() {
   return (
     <Router>
       {/* Navbar */}
-      <nav className="navbar navbar-expand-lg navbar-light bg-white border-bottom">
+      <nav className="navbar navbar-expand-lg navbar-dark bg-dark">
         <div className="container-fluid">
           {/* Логотип / название */}
           <Link to="/" className="navbar-brand fw-bold">

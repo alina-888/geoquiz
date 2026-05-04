@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getQuizQuestion, answerQuizQuestion, getQuizDetail, getQuizProgress, unlockHint } from '../api/api';
+import 'bootstrap/dist/css/bootstrap.min.css';
 import LocationStatus from '../components/LocationStatus';
 import AudioPlayer from '../components/AudioPlayer';
 import VideoPlayer from '../components/VideoPlayer';
