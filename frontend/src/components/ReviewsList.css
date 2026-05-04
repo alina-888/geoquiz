@@ -79,7 +79,6 @@
 .author-name {
   font-weight: 600;
   color: #333;
-  font-size: 14px;
 }
 
 .review-content {
@@ -99,6 +98,6 @@
 }
 
 .review-date {
-  font-size: 12px;
+  font-size: 0.875rem;
   color: #999;
 }
