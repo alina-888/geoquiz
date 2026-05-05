@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { MapPin, ChevronLeft, ChevronRight, Lightbulb } from 'lucide-react';
-import { getQuestion, updateQuestion, getQuizDetail, deleteQuestionMedia, createQuestionTranslation, updateQuestionTranslation, deleteQuestionTranslation, createOptionTranslation, updateOptionTranslation, deleteOptionTranslation, createHintTranslation } from '../api/api';
+import { getQuestion, updateQuestion, getQuizDetail, deleteQuestionMedia, createQuestionTranslation, updateQuestionTranslation, deleteQuestionTranslation, createOptionTranslation, createHintTranslation } from '../api/api';
 import LocationPicker from './LocationPicker';
 import HintsModal from '../components/HintsModal';
 import TranslationForm from '../components/TranslationForm';
@@ -35,7 +35,6 @@ export default function QuestionEdit() {
   const [translations, setTranslations] = useState([]);
   const [originalTranslations, setOriginalTranslations] = useState([]);
   const [optionTranslations, setOptionTranslations] = useState({});  // { optionIndex: [{ id?, language, option_text }] }
-  const [originalOptionTranslations, setOriginalOptionTranslations] = useState({});
   const [hintTranslations, setHintTranslations] = useState({});  // { hintIndex: [{ language, hint_text }] }
   const [isHintsModalOpen, setIsHintsModalOpen] = useState(false);
   const [options, setOptions] = useState([
@@ -117,7 +116,6 @@ export default function QuestionEdit() {
 
           // Load option translations
           const optTrans = {};
-          const origOptTrans = {};
           questionDetail.options.forEach((opt, idx) => {
             if (opt.translations && opt.translations.length > 0) {
               optTrans[idx] = opt.translations.map(tr => ({
@@ -125,15 +123,9 @@ export default function QuestionEdit() {
                 language: tr.language,
                 option_text: tr.option_text || ''
               }));
-              origOptTrans[idx] = opt.translations.map(tr => ({
-                id: tr.id,
-                language: tr.language,
-                option_text: tr.option_text || ''
-              }));
             }
           });
           setOptionTranslations(optTrans);
-          setOriginalOptionTranslations(origOptTrans);
         }
 
         // Load existing hints

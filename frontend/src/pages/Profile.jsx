@@ -5,7 +5,7 @@ import { isDebugMode, toggleDebugMode } from '../utils/geolocation';
 import { useTranslation } from 'react-i18next';
 import { getTranslatedText } from '../utils/translations';
 import { getAvatarGradient } from '../utils/avatarUtils';
-import { Camera, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import RatingWidget from '../components/RatingWidget';
 import './Profile.css';
 

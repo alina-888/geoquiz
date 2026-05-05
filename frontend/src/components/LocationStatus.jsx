@@ -100,7 +100,7 @@ const LocationStatus = ({
       targetMarker.bindPopup(`<strong>${t('location.targetLocation')}</strong>`);
 
       // Add radius circle
-      const circle = L.circle([targetLocation.lat, targetLocation.lng], {
+      L.circle([targetLocation.lat, targetLocation.lng], {
         radius: targetLocation.radius,
         color: isLocked ? '#dc3545' : '#28a745',
         fillColor: isLocked ? '#dc3545' : '#28a745',

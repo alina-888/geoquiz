@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lightbulb, Plus, Trash2, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { Lightbulb, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 /**

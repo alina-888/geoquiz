@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, Lightbulb, Lock, Unlock, X } from 'lucide-react';
+import { Lightbulb, Lock, Unlock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import AudioPlayer from './AudioPlayer';
 import VideoPlayer from './VideoPlayer';
