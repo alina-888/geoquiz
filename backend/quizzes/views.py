@@ -1,5 +1,6 @@
 import logging
 import json
+import math
 from django.db import models, transaction
 from django.db.models import Q, Exists, OuterRef
 from django.db.models.functions import Upper
@@ -102,6 +103,65 @@ class QuizViewSet(viewsets.ModelViewSet):
         serializer.save(creator=self.request.user)
 
     # Helpers for robust answer comparison
+    @staticmethod
+    def _haversine_distance(lat1, lng1, lat2, lng2):
+        """Distance in meters between two coordinates (Haversine formula)."""
+        R = 6371000.0  # Earth's radius in meters
+        phi1 = math.radians(lat1)
+        phi2 = math.radians(lat2)
+        dphi = math.radians(lat2 - lat1)
+        dlambda = math.radians(lng2 - lng1)
+        a = (math.sin(dphi / 2) ** 2
+             + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2)
+        return 2 * R * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    @staticmethod
+    def _validate_geo_answer(question, request):
+        """
+        For geo-questions, ensure the requester is within the question's radius.
+        Returns None if OK, or a Response with the appropriate error.
+
+        Bypasses (parity with the client-side checks in Question.jsx):
+        - the quiz creator can answer their own quiz from anywhere
+        - superusers can answer from anywhere (dev/testing)
+        """
+        geo = question.geolocation
+        if not geo:
+            return None
+
+        user = request.user
+        if question.quiz.creator_id == user.id or user.is_superuser:
+            return None
+
+        target_lat = geo.get('lat')
+        target_lng = geo.get('lng')
+        radius = geo.get('radius', 100)
+        if target_lat is None or target_lng is None:
+            return None  # malformed geo data — fail open
+
+        try:
+            user_lat = float(request.data.get('lat'))
+            user_lng = float(request.data.get('lng'))
+        except (TypeError, ValueError):
+            return Response(
+                {"error": "This question requires your current location."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        distance = QuizViewSet._haversine_distance(
+            user_lat, user_lng, float(target_lat), float(target_lng)
+        )
+        if distance > float(radius):
+            return Response(
+                {
+                    "error": "You are not within range of this question.",
+                    "distance_m": round(distance),
+                    "radius_m": round(float(radius)),
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return None
+
     @staticmethod
     def _normalize_text(value):
         if value is None:
@@ -301,6 +361,11 @@ class QuizViewSet(viewsets.ModelViewSet):
         """Submit an answer for a question within this quiz for the current user's active attempt"""
         quiz = self.get_object()
         question = get_object_or_404(Question, id=question_id, quiz=quiz)
+
+        # Geo-quiz: enforce that the user is within range before recording the answer.
+        geo_error = self._validate_geo_answer(question, request)
+        if geo_error is not None:
+            return geo_error
 
         # Find or create an in-progress attempt for this quiz
         attempt = QuizAttempt.objects.filter(user=request.user, quiz=quiz, status='in_progress').first()
@@ -1005,33 +1070,17 @@ class QuizAttemptViewSet(viewsets.ModelViewSet):
             return Response({"error": "Question is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         question = get_object_or_404(Question, id=question_id, quiz=attempt.quiz)
+
+        # Geo-quiz: enforce that the user is within range before recording the answer.
+        geo_error = QuizViewSet._validate_geo_answer(question, request)
+        if geo_error is not None:
+            return geo_error
+
         option = None
         if question.question_type == 'multiple_choice':
             if option_id in (None, '', 'null', 'undefined'):
                 return Response({"error": "Option is required for multiple choice"}, status=status.HTTP_400_BAD_REQUEST)
             option = get_object_or_404(Option, id=option_id, question=question)
-
-        # # Check if user's location matches question location
-        # if 'lat' in request.data and 'lng' in request.data:
-        #     try:
-        #         user_lat = float(request.data.get('lat'))
-        #         user_lng = float(request.data.get('lng'))
-        #
-        #         # Calculate rough distance (this is a simplification)
-        #         # For production, use GeoDjango's distance calculation
-        #         lat_diff = abs(user_lat - question.latitude)
-        #         lng_diff = abs(user_lng - question.longitude)
-        #
-        #         # Convert to approximate meters (very rough approximation)
-        #         approx_distance = ((lat_diff ** 2 + lng_diff ** 2) ** 0.5) * 111000
-        #
-        #         if approx_distance > question.radius_meters:
-        #             return Response(
-        #                 {"error": "You're not close enough to the question location"},
-        #                 status=status.HTTP_400_BAD_REQUEST
-        #             )
-        #     except (ValueError, TypeError):
-        #         pass
 
         # Create or update user answer
         # Compute correctness

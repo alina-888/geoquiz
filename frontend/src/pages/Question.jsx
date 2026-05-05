@@ -140,6 +140,11 @@ export default function Question() {
       } else {
         payload = { text: textAnswer };
       }
+      // Server validates location for geo-questions (creator/superuser bypass).
+      if (question.geolocation && userLocation) {
+        payload.lat = userLocation.lat;
+        payload.lng = userLocation.lng;
+      }
       await answerQuizQuestion(id, questionId, payload);
       const updated = await getQuizProgress(id);
       const answeredIds = new Set((updated.answers || []).map(a => a.question));
