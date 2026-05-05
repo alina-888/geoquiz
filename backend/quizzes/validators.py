@@ -3,11 +3,22 @@ File upload validators for security hardening
 """
 import os
 from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import UploadedFile
 from utils.image_compression import (
     compress_profile_picture,
     compress_quiz_image,
     compress_question_image,
 )
+
+
+def _is_fresh_upload(file):
+    """
+    True only for files freshly uploaded in the current request.
+    Already-stored FieldFile instances should not be re-validated: doing so
+    mutates ``file.name`` (sanitize_filename strips the directory) and the
+    next file operation fails with FileNotFoundError.
+    """
+    return isinstance(file, UploadedFile)
 
 
 # File size limits (in bytes)
@@ -184,6 +195,9 @@ def validate_image_file(file, compress=True, image_type='question'):
         compress: Whether to compress the image (default True)
         image_type: Type of image - 'question', 'quiz', or 'profile'
     """
+    if not _is_fresh_upload(file):
+        return file
+
     # 1. Size validation
     validate_file_size(file, MAX_IMAGE_SIZE, 'image')
 
@@ -215,6 +229,9 @@ def validate_audio_file(file):
     """
     Comprehensive validation for audio files.
     """
+    if not _is_fresh_upload(file):
+        return file
+
     # 1. Size validation
     validate_file_size(file, MAX_AUDIO_SIZE, 'audio')
 
@@ -237,6 +254,9 @@ def validate_video_file(file):
     """
     Comprehensive validation for video files.
     """
+    if not _is_fresh_upload(file):
+        return file
+
     # 1. Size validation
     validate_file_size(file, MAX_VIDEO_SIZE, 'video')
 
@@ -273,6 +293,9 @@ def validate_profile_picture(file):
     """
     Validation and compression for profile pictures (stricter size limit).
     """
+    if not _is_fresh_upload(file):
+        return file
+
     # 1. Size validation (smaller limit for profile pictures)
     validate_file_size(file, MAX_PROFILE_PICTURE_SIZE, 'profile picture')
 
