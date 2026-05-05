@@ -22,17 +22,30 @@ function App() {
   const [username, setUsername] = React.useState(null);
   const { t } = useTranslation();
 
+  // Keep localStorage in sync with auth state. Several pages (Profile,
+  // Question, QuizDetail, QuizEdit, QuestionEdit) read auth.username directly
+  // from localStorage to decide whether the viewer can edit, so we must
+  // populate it on login/whoAmI and clear it on logout.
+  const updateAuth = React.useCallback((name) => {
+    setUsername(name);
+    if (name) {
+      localStorage.setItem('auth.username', name);
+    } else {
+      localStorage.removeItem('auth.username');
+    }
+  }, []);
+
   React.useEffect(() => {
     whoAmI()
-      .then(data => setUsername(data.is_authenticated ? data.username : null))
-      .catch(() => setUsername(null));
-  }, []);
+      .then(data => updateAuth(data.is_authenticated ? data.username : null))
+      .catch(() => updateAuth(null));
+  }, [updateAuth]);
 
   const handleLogout = async () => {
     try {
       await logoutUser();
     } catch (_) {}
-    setUsername(null);
+    updateAuth(null);
   };
 
   return (
@@ -113,7 +126,7 @@ function App() {
         <Route path="/quizzes/:id/question/:questionId/" element={<Question />} />
         <Route path="/quizzes/:id/complete/" element={<QuizComplete />} />
         <Route path="/quizzes/:id/results/" element={<QuizResults />} />
-        <Route path="/login" element={<Login onLogin={setUsername} />} />
+        <Route path="/login" element={<Login onLogin={updateAuth} />} />
         <Route path="/register" element={<Register />} />
         <Route path="/profile/:username" element={<Profile />} />
       </Routes>
