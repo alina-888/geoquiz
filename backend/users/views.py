@@ -44,6 +44,7 @@ class LoginView(APIView):
             return Response({
                 "message": "Login successful",
                 "username": user.username,
+                "is_superuser": user.is_superuser,
             })
         return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
@@ -64,11 +65,13 @@ class WhoAmIView(APIView):
         if request.user.is_authenticated:
             return Response({
                 "username": request.user.username,
-                "is_authenticated": True
+                "is_authenticated": True,
+                "is_superuser": request.user.is_superuser,
             })
         return Response({
             "username": None,
-            "is_authenticated": False
+            "is_authenticated": False,
+            "is_superuser": False,
         })
 
 

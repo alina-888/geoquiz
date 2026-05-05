@@ -51,9 +51,10 @@ export default function Question() {
       return;
     }
 
-    // Check DEBUG mode
-    if (isDebugMode()) {
-      console.log('DEBUG mode enabled - bypassing location check');
+    // DEBUG mode bypass — superusers only
+    const isSuperuser = localStorage.getItem('auth.is_superuser') === 'true';
+    if (isSuperuser && isDebugMode()) {
+      console.log('DEBUG mode enabled (superuser) - bypassing location check');
       setIsLocked(false);
       return;
     }

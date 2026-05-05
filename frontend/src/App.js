@@ -26,18 +26,23 @@ function App() {
   // Question, QuizDetail, QuizEdit, QuestionEdit) read auth.username directly
   // from localStorage to decide whether the viewer can edit, so we must
   // populate it on login/whoAmI and clear it on logout.
-  const updateAuth = React.useCallback((name) => {
+  const updateAuth = React.useCallback((name, isSuperuser = false) => {
     setUsername(name);
     if (name) {
       localStorage.setItem('auth.username', name);
+      localStorage.setItem('auth.is_superuser', String(!!isSuperuser));
     } else {
       localStorage.removeItem('auth.username');
+      localStorage.removeItem('auth.is_superuser');
     }
   }, []);
 
   React.useEffect(() => {
     whoAmI()
-      .then(data => updateAuth(data.is_authenticated ? data.username : null))
+      .then(data => updateAuth(
+        data.is_authenticated ? data.username : null,
+        data.is_superuser
+      ))
       .catch(() => updateAuth(null));
   }, [updateAuth]);
 

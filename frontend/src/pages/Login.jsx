@@ -16,8 +16,8 @@ export default function Login({ onLogin }) {
     setError('');
     setSubmitting(true);
     try {
-      await loginUser(username, password);
-      if (onLogin) onLogin(username);
+      const data = await loginUser(username, password);
+      if (onLogin) onLogin(username, data?.is_superuser);
       navigate('/');
     } catch (err) {
       setError(err.message || t('auth.login.failed'));

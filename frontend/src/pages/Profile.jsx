@@ -12,6 +12,7 @@ import './Profile.css';
 export default function Profile() {
   const { username } = useParams();
   const authUsername = localStorage.getItem('auth.username');
+  const isSuperuser = localStorage.getItem('auth.is_superuser') === 'true';
   const canEdit = authUsername === username;
   const { t, i18n } = useTranslation();
 
@@ -246,8 +247,8 @@ export default function Profile() {
           </div>
         </div>
 
-      {/* Developer Tools - Only show when viewing your own profile */}
-      {canEdit && (
+      {/* Developer Tools - only on your own profile AND only for superusers */}
+      {canEdit && isSuperuser && (
         <div className="card shadow-sm mt-4 border-info">
           <div className="card-body">
             <h2 className="h5 mb-3">Developer Tools</h2>
