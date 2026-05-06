@@ -34,6 +34,7 @@ export default function Question() {
   const [isCheckingLocation, setIsCheckingLocation] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [distanceToTarget, setDistanceToTarget] = useState(null);
+  const [locationChecked, setLocationChecked] = useState(false);
 
   // Resolve absolute media URL if backend returned a relative path
   const resolveMediaUrl = (url) => {
@@ -45,64 +46,73 @@ export default function Question() {
 
   // Check user's location and determine if question is locked
   const checkLocation = async () => {
-    if (!question || !question.geolocation) {
-      // Question doesn't have geolocation, so it's unlocked
-      setIsLocked(false);
-      return;
-    }
-
-    // DEBUG mode bypass — superusers only
-    const isSuperuser = localStorage.getItem('auth.is_superuser') === 'true';
-    if (isSuperuser && isDebugMode()) {
-      console.log('DEBUG mode enabled (superuser) - bypassing location check');
-      setIsLocked(false);
-      return;
-    }
-
-    // Check if quiz creator is viewing their own quiz
-    const currentUser = localStorage.getItem('auth.username');
-    if (quiz && quiz.creator && quiz.creator.username === currentUser) {
-      console.log('Quiz creator viewing own quiz - bypassing location check');
-      setIsLocked(false);
-      return;
-    }
-
-    setIsCheckingLocation(true);
-    setLocationError('');
-
     try {
-      const position = await getCurrentPosition();
-      setUserLocation(position);
-
-      const distance = calculateDistance(
-        position.lat,
-        position.lng,
-        question.geolocation.lat,
-        question.geolocation.lng
-      );
-
-      setDistanceToTarget(distance);
-
-      const withinRadius = isWithinRadius(position, question.geolocation);
-      setIsLocked(!withinRadius);
-
-      if (withinRadius) {
-        console.log('User is within radius - question unlocked');
-      } else {
-        console.log(`User is ${distance.toFixed(0)}m away - question locked`);
+      if (!question || !question.geolocation) {
+        // Question doesn't have geolocation, so it's unlocked
+        setIsLocked(false);
+        return;
       }
-    } catch (err) {
-      console.error('Location error:', err);
-      setLocationError(err.message);
-      // If we can't get location, lock the question
-      setIsLocked(true);
+
+      // DEBUG mode bypass — superusers only
+      const isSuperuser = localStorage.getItem('auth.is_superuser') === 'true';
+      if (isSuperuser && isDebugMode()) {
+        console.log('DEBUG mode enabled (superuser) - bypassing location check');
+        setIsLocked(false);
+        return;
+      }
+
+      // Check if quiz creator is viewing their own quiz
+      const currentUser = localStorage.getItem('auth.username');
+      if (quiz && quiz.creator && quiz.creator.username === currentUser) {
+        console.log('Quiz creator viewing own quiz - bypassing location check');
+        setIsLocked(false);
+        return;
+      }
+
+      setIsCheckingLocation(true);
+      setLocationError('');
+
+      try {
+        const position = await getCurrentPosition();
+        setUserLocation(position);
+
+        const distance = calculateDistance(
+          position.lat,
+          position.lng,
+          question.geolocation.lat,
+          question.geolocation.lng
+        );
+
+        setDistanceToTarget(distance);
+
+        const withinRadius = isWithinRadius(position, question.geolocation);
+        setIsLocked(!withinRadius);
+
+        if (withinRadius) {
+          console.log('User is within radius - question unlocked');
+        } else {
+          console.log(`User is ${distance.toFixed(0)}m away - question locked`);
+        }
+      } catch (err) {
+        console.error('Location error:', err);
+        setLocationError(err.message);
+        // If we can't get location, lock the question
+        setIsLocked(true);
+      } finally {
+        setIsCheckingLocation(false);
+      }
     } finally {
-      setIsCheckingLocation(false);
+      setLocationChecked(true);
     }
   };
 
   useEffect(() => {
     setLoading(true);
+    setLocationChecked(false);
+    setIsLocked(false);
+    setLocationError('');
+    setUserLocation(null);
+    setDistanceToTarget(null);
     Promise.all([getQuizDetail(id), getQuizQuestion(id, questionId), getQuizProgress(id)])
       .then(([q, qu, att]) => {
         setQuiz(q);
@@ -177,6 +187,8 @@ export default function Question() {
   if (error) return <div className="alert alert-danger mt-4">{error}</div>;
   if (!question) return null;
 
+  const awaitingLocation = !!question.geolocation && !locationChecked;
+
   return (
     <div className="container mt-4" style={{ maxWidth: '700px' }}>
       {/* Show checking location state */}
@@ -193,8 +205,8 @@ export default function Question() {
         </div>
       )}
 
-      {/* Show location status if question has geolocation */}
-      {question.geolocation && (
+      {/* Show location status only after the first check completes */}
+      {question.geolocation && locationChecked && (
         <LocationStatus
           isLocked={isLocked}
           distance={distanceToTarget}
@@ -205,8 +217,8 @@ export default function Question() {
         />
       )}
 
-      {/* Only show question content if not locked */}
-      {!isLocked && (
+      {/* Only show question content if not locked AND geo check (if any) is done */}
+      {!isLocked && !awaitingLocation && (
         <div className="card shadow-sm">
           <div className="card-body">
             <h1 className="h4 fw-bold mb-3">{getTranslatedText(question, 'question_text', currentLanguage)}</h1>
@@ -364,7 +376,7 @@ export default function Question() {
       )}
 
       {/* Hints Menu - only show if question is unlocked and has hints */}
-      {!isLocked && question.hints && question.hints.length > 0 && (
+      {!isLocked && !awaitingLocation && question.hints && question.hints.length > 0 && (
         <HintsMenu
           hints={question.hints}
           onUnlockHint={handleUnlockHint}
