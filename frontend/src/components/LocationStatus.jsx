@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Lock, RefreshCw, MapPin } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { useTranslation } from 'react-i18next';
+import { useTranslation, Trans } from 'react-i18next';
 import { formatDistance } from '../utils/geolocation';
 
 // Fix Leaflet default icon issue
@@ -191,7 +191,12 @@ const LocationStatus = ({
             {distance !== null && (
               <div className="alert alert-info mb-3">
                 <MapPin size={16} className="me-2" style={{ display: 'inline' }} />
-                {t('location.youAreAway', { distance: formatDistance(distance) })}
+                <Trans
+                  i18nKey="location.youAreAway"
+                  values={{ distance: formatDistance(distance) }}
+                  components={{ strong: <strong /> }}
+                />
+
                 <br />
                 <small className="text-muted">
                   {t('location.needToBeWithin', { radius: targetLocation.radius })}
